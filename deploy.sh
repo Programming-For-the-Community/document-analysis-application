@@ -9,28 +9,30 @@ if [ -z "${ROLE_ARN}" ]; then
 fi
 
 echo "Assuming IAM role..."
-CREDENTIALS=$(aws sts assume-role \
+CREDS=$(aws sts assume-role \
   --role-arn "${ROLE_ARN}" \
   --role-session-name "doc-analysis-deploy" \
-  --query Credentials \
-  --output json)
+  --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+  --output text)
 
-export AWS_ACCESS_KEY_ID=$(echo "${CREDENTIALS}" | jq -r '.AccessKeyId')
-export AWS_SECRET_ACCESS_KEY=$(echo "${CREDENTIALS}" | jq -r '.SecretAccessKey')
-export AWS_SESSION_TOKEN=$(echo "${CREDENTIALS}" | jq -r '.SessionToken')
+export AWS_ACCESS_KEY_ID=$(echo "${CREDS}" | cut -f1)
+export AWS_SECRET_ACCESS_KEY=$(echo "${CREDS}" | cut -f2)
+export AWS_SESSION_TOKEN=$(echo "${CREDS}" | cut -f3)
 
-echo "Fetching secrets from AWS Parameter Store..."
+echo "Fetching secrets from AWS Secrets Manager..."
 
-NEO4J_USER=$(aws ssm get-parameter --name "doc-analysis-secret/SVC_USER" --with-decryption --query Parameter.Value --output text)
-NEO4J_PASSWORD=$(aws ssm get-parameter --name "doc-analysis-secret/SVC_PWD" --with-decryption --query Parameter.Value --output text)
-RABBITMQ_USER=$(aws ssm get-parameter --name "doc-analysis-secret/SVC_USER" --with-decryption --query Parameter.Value --output text)
-RABBITMQ_PASS=$(aws ssm get-parameter --name "doc-analysis-secret/SVC_PWD" --with-decryption --query Parameter.Value --output text)
+NEO4J_USER=$(aws secretsmanager get-secret-value --secret-id "doc-analysis-secret/SVC_USER" --query SecretString --output text)
+NEO4J_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "doc-analysis-secret/SVC_PWD" --query SecretString --output text)
+RABBITMQ_USER=$(aws secretsmanager get-secret-value --secret-id "doc-analysis-secret/SVC_USER" --query SecretString --output text)
+RABBITMQ_PASS=$(aws secretsmanager get-secret-value --secret-id "doc-analysis-secret/SVC_PWD" --query SecretString --output text)
+QDRANT_API_KEY=$(aws secretsmanager get-secret-value --secret-id "doc-analysis-secret/QDRANT_KEY" --query SecretString --output text)
 
 cat <<EOF > .env
 NEO4J_USER=${NEO4J_USER}
 NEO4J_PASSWORD=${NEO4J_PASSWORD}
 RABBITMQ_USER=${RABBITMQ_USER}
 RABBITMQ_PASS=${RABBITMQ_PASS}
+QDRANT_API_KEY=${QDRANT_API_KEY}
 EOF
 
 PRIMARY_DATA_PATH="D:/Projects/.data/doc-analysis"
