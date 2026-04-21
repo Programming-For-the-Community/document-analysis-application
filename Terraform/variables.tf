@@ -38,6 +38,21 @@ variable "user_arn" {
   type        = string
 }
 
+variable "bedrock_models" {
+  description = "List of Bedrock model ARNs the service role is permitted to invoke"
+  type        = list(string)
+  default = [
+    "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "anthropic.claude-3-haiku-20240307-v1:0"
+  ]
+}
+
+variable "electron_callback_url" {
+  description = "Custom protocol callback URL for the Electron app OAuth flow (e.g. doc-analysis://callback)"
+  type        = string
+  default     = "doc-analysis://callback"
+}
+
 variable "secrets_manager_path" {
   description = "Path prefix for Secrets Manager secrets"
   type        = string

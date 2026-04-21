@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   neo4j:
     image: neo4j:5-community
@@ -38,23 +36,20 @@ services:
       timeout: 5s
       retries: 5
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: doc-analysis-rabbitmq
-    ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # Management UI
-    environment:
-      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+
+  neo4j-init:
+    image: neo4j:5-community
+    container_name: doc-analysis-neo4j-init
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    entrypoint: >
+      cypher-shell -u ${NEO4J_USER} -p ${NEO4J_PASSWORD}
+      -a bolt://neo4j:7687
+      -f /schema.cypher
     volumes:
-      - ${DATA_PATH}/rabbitmq:/var/lib/rabbitmq
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ./Database/schema.cypher:/schema.cypher
+    restart: "no"
 
 networks:
   default:
