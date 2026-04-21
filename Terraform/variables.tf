@@ -26,6 +26,13 @@ variable "project" {
   default     = "Document Analysis Application"
 }
 
+variable "tf_project_name" {
+  description = "Name of the Terraform project (used for naming resources)"
+  type        = string
+  nullable    = false
+  default     = "doc-analysis-app"
+}
+
 variable "user_arn" {
   description = "IAM user ARN allowed to assume the service role"
   type        = string
