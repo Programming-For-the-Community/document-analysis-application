@@ -27,7 +27,7 @@ variable "project" {
 }
 
 variable "user_arn" {
-  description = "IAM username allowed to assume the service role"
+  description = "IAM user ARN allowed to assume the service role"
   type        = string
 }
 

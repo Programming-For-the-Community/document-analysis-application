@@ -1,7 +1,12 @@
 #!/bin/bash
 set -e  # exit on any error
 
-ROLE_ARN="arn:aws:iam::YOUR_ACCOUNT_ID:role/YOUR_ROLE_NAME"
+read -rp "Enter the IAM Role ARN to assume: " ROLE_ARN
+
+if [ -z "${ROLE_ARN}" ]; then
+  echo "Error: Role ARN cannot be empty."
+  exit 1
+fi
 
 echo "Assuming IAM role..."
 CREDENTIALS=$(aws sts assume-role \
