@@ -1,0 +1,77 @@
+# This workflow installs the latest version of Terraform CLI and configures the Terraform CLI configuration file
+# with an API token for Terraform Cloud (app.terraform.io). On push/pull_requests to tf/dev runs a tf plan
+
+name: AWS Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      manual_run:
+        description: 'Manual Run'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VAR_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+  TF_VAR_region: ${{ vars.AWS_RESOURCE_REGION }}
+  TF_VAR_project: ${{ vars.PROJECT}}
+  TF_VAR_owner: ${{ vars.OWNER}}
+  TF_VAR_user_arn: ${{ secrets.AWS_USER_ARN }}
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    environment: development
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS Credentials (via OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_DEPLOY_SVC_ACCT_ARN }}
+        aws-region: ${{ vars.AWS_RESOURCE_REGION }}
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+    # Note if Manual Run
+    - name: Manual Run
+      if: ${{ inputs.manual_run == 'true' }}
+      run: echo "Manual Run"
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      run: terraform -chdir=Terraform init -reconfigure
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: Terraform Format
+      run: terraform -chdir=Terraform fmt -check
+
+    # Validate Terraform
+    - name: Terraform Validate
+      run: terraform -chdir=Terraform validate
+
+    # Generates an execution plan for Terraform
+    - name: Terraform Plan
+      run: terraform -chdir=Terraform plan
+
+    # Build or change infrastructure according to Terraform configuration files
+    - name: Terraform Apply
+      run: terraform -chdir=Terraform apply -auto-approve
