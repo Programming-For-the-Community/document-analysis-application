@@ -15,6 +15,6 @@ resource "aws_secretsmanager_secret_version" "app_config" {
     SNS_TOPIC_ARN                 = aws_sns_topic.textract_results.arn
     SVC_PWD                       = var.svc_acct_password
     QDRANT_KEY                    = var.qdrant_api_key
-    SVC_USER_ARN                  = var.svc_acct_username
+    SVC_USER                      = var.svc_acct_username
   })
 }

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e  # exit on any error
 
+trap 'echo "ERROR: Script failed at line $LINENO with exit code $?"' ERR
+
 read -rp "Enter the IAM Role ARN to assume: " ROLE_ARN
 
 if [ -z "${ROLE_ARN}" ]; then
