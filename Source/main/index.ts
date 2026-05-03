@@ -9,6 +9,8 @@ import {
 import {
   CognitoIdentityProviderClient,
   AdminInitiateAuthCommand,
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 
 dotenv.config({ path: path.join(__dirname, '../../.env.dev') })
@@ -154,6 +156,69 @@ ipcMain.handle(
       return { success: true }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed'
+      return { success: false, error: message }
+    }
+  },
+)
+
+ipcMain.handle(
+  'auth:signup',
+  async (_event, credentials: { username: string; password: string }) => {
+    if (!roleCredentials || !appConfig) {
+      return { success: false, error: 'App not ready — restart the app' }
+    }
+
+    const client = new CognitoIdentityProviderClient({
+      region: process.env['AWS_REGION'],
+      credentials: roleCredentials,
+    })
+
+    try {
+      await client.send(
+        new AdminCreateUserCommand({
+          UserPoolId: appConfig.cognitoUserPoolId,
+          Username: credentials.username,
+          TemporaryPassword: credentials.password,
+          MessageAction: 'SUPPRESS',
+        }),
+      )
+
+      await client.send(
+        new AdminSetUserPasswordCommand({
+          UserPoolId: appConfig.cognitoUserPoolId,
+          Username: credentials.username,
+          Password: credentials.password,
+          Permanent: true,
+        }),
+      )
+
+      const authResponse = await client.send(
+        new AdminInitiateAuthCommand({
+          AuthFlow: 'ADMIN_USER_PASSWORD_AUTH',
+          UserPoolId: appConfig.cognitoUserPoolId,
+          ClientId: appConfig.cognitoClientId,
+          AuthParameters: {
+            USERNAME: credentials.username,
+            PASSWORD: credentials.password,
+          },
+        }),
+      )
+
+      const result = authResponse.AuthenticationResult
+      if (!result?.AccessToken || !result.IdToken || !result.RefreshToken) {
+        return { success: false, error: 'Account created but login failed — try signing in' }
+      }
+
+      currentTokens = {
+        accessToken: result.AccessToken,
+        idToken: result.IdToken,
+        refreshToken: result.RefreshToken,
+      }
+
+      mainWindow?.loadFile(path.join(__dirname, '../../renderer/home.html'))
+      return { success: true }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create account'
       return { success: false, error: message }
     }
   },

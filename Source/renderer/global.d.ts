@@ -8,6 +8,10 @@ declare global {
           username: string
           password: string
         }) => Promise<{ success: boolean; error?: string }>
+        signup: (credentials: {
+          username: string
+          password: string
+        }) => Promise<{ success: boolean; error?: string }>
         getTokens: () => Promise<{
           accessToken: string
           idToken: string

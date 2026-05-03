@@ -7,6 +7,11 @@ contextBridge.exposeInMainWorld('electron', {
       password: string
     }): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('auth:start', credentials),
+    signup: (credentials: {
+      username: string
+      password: string
+    }): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('auth:signup', credentials),
     getTokens: (): Promise<{
       accessToken: string
       idToken: string

@@ -199,6 +199,8 @@ resource "aws_iam_role_policy" "svc_role_cognito" {
         Action = [
           "cognito-idp:AdminInitiateAuth",
           "cognito-idp:AdminRespondToAuthChallenge",
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminSetUserPassword",
           "cognito-idp:AdminGetUser",
           "cognito-idp:ListUsers"
         ]
