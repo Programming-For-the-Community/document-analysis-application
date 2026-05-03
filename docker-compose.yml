@@ -6,7 +6,7 @@ services:
       - "7474:7474"  # HTTP
       - "7687:7687"  # Bolt
     environment:
-      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD}
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD}
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*
     volumes:
@@ -14,7 +14,7 @@ services:
       - ${DATA_PATH}/neo4j/logs:/logs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u ${NEO4J_USER} -p ${NEO4J_PASSWORD} 'RETURN 1' || exit 1"]
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p ${NEO4J_PASSWORD} 'RETURN 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,7 +44,7 @@ services:
       neo4j:
         condition: service_healthy
     entrypoint: >
-      cypher-shell -u ${NEO4J_USER} -p ${NEO4J_PASSWORD}
+      cypher-shell -u neo4j -p ${NEO4J_PASSWORD}
       -a bolt://neo4j:7687
       -f /schema.cypher
     volumes:

@@ -47,14 +47,26 @@ variable "bedrock_models" {
   ]
 }
 
-variable "electron_callback_url" {
-  description = "Custom protocol callback URL for the Electron app OAuth flow (e.g. doc-analysis://callback)"
-  type        = string
-  default     = "doc-analysis://callback"
-}
-
 variable "secrets_manager_path" {
   description = "Path prefix for Secrets Manager secrets"
   type        = string
   default     = "doc-analysis-secret"
+}
+
+variable "svc_acct_password" {
+  description = "Service account password"
+  type        = string
+  sensitive   = true
+}
+
+variable "svc_acct_username" {
+  description = "Service account username"
+  type        = string
+  sensitive   = true
+}
+
+variable "qdrant_api_key" {
+  description = "Qdrant API key"
+  type        = string
+  sensitive   = true
 }

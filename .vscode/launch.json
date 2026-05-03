@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Electron Main",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/Source",
+      "runtimeExecutable": "${workspaceFolder}/Source/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/Source/node_modules/.bin/electron.cmd"
+      },
+      "args": [".", "--remote-debugging-port=9222"],
+      "preLaunchTask": "Build TypeScript",
+      "outFiles": ["${workspaceFolder}/Source/dist/**/*.js"],
+      "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
+    }
+  ]
+}

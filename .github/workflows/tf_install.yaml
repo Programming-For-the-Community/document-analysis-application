@@ -24,6 +24,9 @@ env:
   TF_VAR_owner: ${{ vars.OWNER}}
   TF_VAR_user_arn: ${{ secrets.AWS_USER_ARN }}
   TF_VAR_secrets_manager_path: ${{ vars.SECRETS_MANAGER_PATH }}
+  TF_VAR_svc_acct_username: ${{ secrets.SVC_USER}}
+  TF_VAR_svc_acct_password: ${{ secrets.SVC_PWD }}
+  TF_VAR_qdrant_api_key: ${{ secrets.QDRANT_KEY }}
 
 jobs:
   terraform:

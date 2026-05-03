@@ -1,9 +1,6 @@
 resource "aws_cognito_user_pool" "users" {
   name = "${var.tf_project_name}-users"
 
-  username_attributes      = ["email"]
-  auto_verified_attributes = ["email"]
-
   username_configuration {
     case_sensitive = true
   }
@@ -20,7 +17,7 @@ resource "aws_cognito_user_pool" "users" {
 
   account_recovery_setting {
     recovery_mechanism {
-      name     = "verified_email"
+      name     = "admin_only"
       priority = 1
     }
   }
