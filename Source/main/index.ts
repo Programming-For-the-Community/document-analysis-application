@@ -1,7 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron'
-import path from 'path'
-import dotenv from 'dotenv'
-import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts'
+import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
 import {
   SecretsManagerClient,
   GetSecretValueCommand,
@@ -13,14 +10,7 @@ import {
   AdminSetUserPasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 
-dotenv.config({ path: path.join(__dirname, '../../.env.dev') })
-dotenv.config({ path: path.join(__dirname, '../../.env') })
-
-interface RoleCredentials {
-  accessKeyId: string
-  secretAccessKey: string
-  sessionToken: string | undefined
-}
+Menu.setApplicationMenu(null)
 
 interface AppConfig {
   cognitoUserPoolId: string
@@ -35,34 +25,8 @@ interface AppConfig {
 }
 
 let mainWindow: BrowserWindow | null = null
-let roleCredentials: RoleCredentials | null = null
 let appConfig: AppConfig | null = null
 let currentTokens: { accessToken: string; idToken: string; refreshToken: string } | null = null
-
-async function assumeServiceRole(): Promise<void> {
-  const roleArn = process.env['AWS_ROLE_ARN']
-  if (!roleArn) throw new Error('AWS_ROLE_ARN is not set in .env.dev')
-
-  const sts = new STSClient({ region: process.env['AWS_REGION'] })
-  const response = await sts.send(
-    new AssumeRoleCommand({
-      RoleArn: roleArn,
-      RoleSessionName: 'doc-analysis-electron',
-      DurationSeconds: 3600,
-    }),
-  )
-
-  const creds = response.Credentials
-  if (!creds?.AccessKeyId || !creds.SecretAccessKey) {
-    throw new Error('STS returned incomplete credentials')
-  }
-
-  roleCredentials = {
-    accessKeyId: creds.AccessKeyId,
-    secretAccessKey: creds.SecretAccessKey,
-    sessionToken: creds.SessionToken,
-  }
-}
 
 async function fetchAppConfig(): Promise<void> {
   const secretName = process.env['AWS_SECRET_NAME'] ?? 'doc-analysis-secret'
