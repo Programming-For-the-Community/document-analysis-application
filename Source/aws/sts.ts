@@ -21,6 +21,7 @@ export class AWS_STS {
     }
 
     static async getCredentials(): Promise<RoleCredentials> {
+        AWS_STS.getInstance();
         if(!AWS_STS.credentials) {
             AWS_STS.credentials = await AWS_STS.assumeRole();
         }

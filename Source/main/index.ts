@@ -1,8 +1,6 @@
+import path from 'path';
+
 import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron'
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} from '@aws-sdk/client-secrets-manager'
 import {
   CognitoIdentityProviderClient,
   AdminInitiateAuthCommand,
@@ -10,59 +8,17 @@ import {
   AdminSetUserPasswordCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 
+import { AWS_STS } from '../aws/sts'
+import { AWS_SECRETS } from '../aws/secrets'
+import { awsConfig, buildAppConfig, AppConfig } from './config'
+import { RoleCredentials } from '../interfaces/aws'
+
 Menu.setApplicationMenu(null)
 
-interface AppConfig {
-  cognitoUserPoolId: string
-  cognitoClientId: string
-  s3Bucket: string
-  dynamoProjectStateTable: string
-  dynamoProjectAccessTable: string
-  sqsQueueUrl: string
-  snsTopicArn: string
-  neo4jPassword: string
-  qdrantApiKey: string
-}
-
 let mainWindow: BrowserWindow | null = null
-let appConfig: AppConfig | null = null
 let currentTokens: { accessToken: string; idToken: string; refreshToken: string } | null = null
-
-async function fetchAppConfig(): Promise<void> {
-  const secretName = process.env['AWS_SECRET_NAME'] ?? 'doc-analysis-secret'
-
-  const client = new SecretsManagerClient({
-    region: process.env['AWS_REGION'],
-    credentials: roleCredentials!,
-  })
-
-  const response = await client.send(new GetSecretValueCommand({ SecretId: secretName }))
-  if (!response.SecretString) throw new Error(`Secret "${secretName}" has no string value`)
-
-  const s = JSON.parse(response.SecretString) as Record<string, string>
-
-  appConfig = {
-    cognitoUserPoolId: s['COGNITO_USER_POOL_ID'] ?? '',
-    cognitoClientId: s['COGNITO_CLIENT_ID'] ?? '',
-    s3Bucket: s['S3_BUCKET'] ?? '',
-    dynamoProjectStateTable: s['DYNAMODB_PROJECT_STATE_TABLE'] ?? '',
-    dynamoProjectAccessTable: s['DYNAMODB_PROJECT_ACCESS_TABLE'] ?? '',
-    sqsQueueUrl: s['SQS_QUEUE_URL'] ?? '',
-    snsTopicArn: s['SNS_TOPIC_ARN'] ?? '',
-    neo4jPassword: s['SVC_PWD'] ?? '',
-    qdrantApiKey: s['QDRANT_KEY'] ?? '',
-  }
-}
-
-export function getAwsCredentials(): RoleCredentials {
-  if (!roleCredentials) throw new Error('Service role not assumed — restart the app')
-  return roleCredentials
-}
-
-export function getAppConfig(): AppConfig {
-  if (!appConfig) throw new Error('App config not loaded — restart the app')
-  return appConfig
-}
+let roleCredentials: RoleCredentials | null = null
+let appConfig: AppConfig | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -88,7 +44,7 @@ ipcMain.handle(
     }
 
     const client = new CognitoIdentityProviderClient({
-      region: process.env['AWS_REGION'],
+      region: awsConfig.region,
       credentials: roleCredentials,
     })
 
@@ -96,8 +52,8 @@ ipcMain.handle(
       const response = await client.send(
         new AdminInitiateAuthCommand({
           AuthFlow: 'ADMIN_USER_PASSWORD_AUTH',
-          UserPoolId: appConfig.cognitoUserPoolId,
-          ClientId: appConfig.cognitoClientId,
+          UserPoolId: appConfig.cognito.userPoolId,
+          ClientId: appConfig.cognito.clientId,
           AuthParameters: {
             USERNAME: credentials.username,
             PASSWORD: credentials.password,
@@ -133,14 +89,14 @@ ipcMain.handle(
     }
 
     const client = new CognitoIdentityProviderClient({
-      region: process.env['AWS_REGION'],
+      region: awsConfig.region,
       credentials: roleCredentials,
     })
 
     try {
       await client.send(
         new AdminCreateUserCommand({
-          UserPoolId: appConfig.cognitoUserPoolId,
+          UserPoolId: appConfig.cognito.userPoolId,
           Username: credentials.username,
           TemporaryPassword: credentials.password,
           MessageAction: 'SUPPRESS',
@@ -149,7 +105,7 @@ ipcMain.handle(
 
       await client.send(
         new AdminSetUserPasswordCommand({
-          UserPoolId: appConfig.cognitoUserPoolId,
+          UserPoolId: appConfig.cognito.userPoolId,
           Username: credentials.username,
           Password: credentials.password,
           Permanent: true,
@@ -159,8 +115,8 @@ ipcMain.handle(
       const authResponse = await client.send(
         new AdminInitiateAuthCommand({
           AuthFlow: 'ADMIN_USER_PASSWORD_AUTH',
-          UserPoolId: appConfig.cognitoUserPoolId,
-          ClientId: appConfig.cognitoClientId,
+          UserPoolId: appConfig.cognito.userPoolId,
+          ClientId: appConfig.cognito.clientId,
           AuthParameters: {
             USERNAME: credentials.username,
             PASSWORD: credentials.password,
@@ -196,29 +152,31 @@ ipcMain.handle('auth:logout', () => {
 })
 
 ipcMain.handle('config:get', () => ({
-  region: process.env['AWS_REGION'],
-  roleArn: process.env['AWS_ROLE_ARN'],
-  s3Bucket: appConfig?.s3Bucket,
-  dynamoProjectStateTable: appConfig?.dynamoProjectStateTable,
-  dynamoProjectAccessTable: appConfig?.dynamoProjectAccessTable,
-  sqsQueueUrl: appConfig?.sqsQueueUrl,
-  snsTopicArn: appConfig?.snsTopicArn,
-  neo4jUri: process.env['NEO4J_URI'],
-  neo4jPassword: appConfig?.neo4jPassword,
-  qdrantUrl: process.env['QDRANT_URL'],
-  qdrantApiKey: appConfig?.qdrantApiKey,
+  region: awsConfig.region,
+  roleArn: awsConfig.roleArn,
+  s3Bucket: appConfig?.s3.documentBucket,
+  dynamoProjectStateTable: appConfig?.dynamoDB.projectStateTable,
+  dynamoProjectAccessTable: appConfig?.dynamoDB.projectAccessTable,
+  sqsQueueUrl: appConfig?.sqs.queueUrl,
+  snsTopicArn: appConfig?.sns.topicArn,
+  neo4jUri: appConfig?.neo4j.uri,
+  neo4jPassword: appConfig?.neo4j.password,
+  qdrantUrl: appConfig?.qdrant.url,
+  qdrantApiKey: appConfig?.qdrant.apiKey,
 }))
 
 app.whenReady().then(async () => {
   try {
-    await assumeServiceRole()
-    await fetchAppConfig()
+    roleCredentials = await AWS_STS.getCredentials()
+    await AWS_SECRETS.init(awsConfig.region, roleCredentials)
+    await AWS_SECRETS.loadSecrets(awsConfig.secretName)
+    appConfig = buildAppConfig(AWS_SECRETS.getSecrets())
     createWindow()
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     dialog.showErrorBox(
       'Startup Error',
-      `Failed to start the application:\n\n${message}\n\nEnsure your AWS CLI is configured and ${process.env['AWS_ROLE_ARN'] ?? 'the configured role'} is accessible.`,
+      `Failed to start the application:\n\n${message}\n\nEnsure your AWS CLI is configured and ${awsConfig.roleArn || 'the configured role'} is accessible.`,
     )
     app.quit()
   }
