@@ -1,27 +1,27 @@
-export {}
+export {};
 
 declare global {
   interface Window {
     electron: {
       auth: {
         start: (credentials: {
-          username: string
-          password: string
-        }) => Promise<{ success: boolean; error?: string }>
+          username: string;
+          password: string;
+        }) => Promise<{ success: boolean; error?: string }>;
         signup: (credentials: {
-          username: string
-          password: string
-        }) => Promise<{ success: boolean; error?: string }>
+          username: string;
+          password: string;
+        }) => Promise<{ success: boolean; error?: string }>;
         getTokens: () => Promise<{
-          accessToken: string
-          idToken: string
-          refreshToken: string
-        } | null>
-        logout: () => Promise<void>
-      }
+          accessToken: string;
+          idToken: string;
+          refreshToken: string;
+        } | null>;
+        logout: () => Promise<void>;
+      };
       config: {
-        get: () => Promise<Record<string, string>>
-      }
-    }
+        get: () => Promise<Record<string, string>>;
+      };
+    };
   }
 }

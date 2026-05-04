@@ -1,43 +1,35 @@
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-import { RoleCredentials, SecretValues } from "../interfaces/aws";
+import { AWS_STS } from './sts';
+import { awsConfig } from '../main/config';
+import { SecretValues } from '../interfaces/aws';
 
 export class AWS_SECRETS {
-    private static secretsClient: SecretsManagerClient;
-    private static secrets: SecretValues | null = null;
+  private static client: SecretsManagerClient;
+  public static secrets: SecretValues;
 
-    static async init(region: string, credentials: RoleCredentials): Promise<void> {
-        AWS_SECRETS.secretsClient = new SecretsManagerClient({
-            region,
-            credentials: {
-                accessKeyId: credentials.accessKeyId,
-                secretAccessKey: credentials.secretAccessKey,
-                sessionToken: credentials.sessionToken,
-            },
-        });
+  public static async init(): Promise<void> {
+    this.client = new SecretsManagerClient({
+      region: awsConfig.region,
+      credentials: {
+        accessKeyId: AWS_STS.credentials.accessKeyId,
+        secretAccessKey: AWS_STS.credentials.secretAccessKey,
+        sessionToken: AWS_STS.credentials.sessionToken,
+      },
+    });
+
+    if (!this.client) {
+      throw new Error('AWS_SECRETS not initialized — call init() first');
     }
 
-    static async loadSecrets(secretName: string): Promise<void> {
-        if (!AWS_SECRETS.secretsClient) {
-            throw new Error('AWS_SECRETS not initialized — call init() first');
-        }
+    const response = await this.client.send(
+      new GetSecretValueCommand({ SecretId: awsConfig.secretName })
+    );
 
-        const response = await AWS_SECRETS.secretsClient.send(
-            new GetSecretValueCommand({ SecretId: secretName }),
-        );
-
-        if (!response.SecretString) {
-            throw new Error(`Secret "${secretName}" has no string value`);
-        }
-
-        AWS_SECRETS.secrets = JSON.parse(response.SecretString) as SecretValues;
+    if (!response.SecretString) {
+      throw new Error(`Secret "${awsConfig.secretName}" has no string value`);
     }
 
-    static getSecrets(): SecretValues {
-        if (!AWS_SECRETS.secrets) {
-            throw new Error('Secrets not loaded — restart the app');
-        }
-
-        return AWS_SECRETS.secrets;
-    }
+    this.secrets = JSON.parse(response.SecretString) as SecretValues;
+  }
 }
