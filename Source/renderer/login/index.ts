@@ -58,6 +58,12 @@ const newUsernameInput = document.getElementById('new-username') as HTMLInputEle
 const newPasswordInput = document.getElementById('new-password') as HTMLInputElement;
 const confirmPasswordInput = document.getElementById('confirm-password') as HTMLInputElement;
 
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const signupVisible = !document.getElementById('signup-panel')?.classList.contains('hidden');
+  signupVisible ? createBtn.click() : signInBtn.click();
+});
+
 createBtn.addEventListener('click', async () => {
   const username = newUsernameInput.value.trim();
   const password = newPasswordInput.value;

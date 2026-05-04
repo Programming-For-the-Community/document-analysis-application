@@ -5,26 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
     <title>Document Analysis — Sign In</title>
-    <link rel="stylesheet" href="login.css" />
+    <link rel="stylesheet" href="../global.css" />
   </head>
-  <body>
+  <body class="page-login">
     <div class="login-container">
       <div class="login-card">
         <div class="logo">
-          <svg
-            width="40"
-            height="40"
-            viewBox="0 0 40 40"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="8" fill="#1a56db" />
-            <path
-              d="M10 12h20M10 18h14M10 24h20M10 30h10"
-              stroke="white"
-              stroke-width="2.5"
-              stroke-linecap="round"
-            />
+            <path d="M10 12h20M10 18h14M10 24h20M10 30h10" stroke="white" stroke-width="2.5" stroke-linecap="round" />
           </svg>
         </div>
         <h1>Document Analysis</h1>
@@ -42,12 +31,7 @@
           </div>
           <div class="form-group">
             <label for="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              placeholder="••••••••"
-              autocomplete="current-password"
-            />
+            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
           </div>
           <button id="sign-in-btn" class="btn-primary">Sign In</button>
         </div>
@@ -59,21 +43,11 @@
           </div>
           <div class="form-group">
             <label for="new-password">Password</label>
-            <input
-              type="password"
-              id="new-password"
-              placeholder="••••••••"
-              autocomplete="new-password"
-            />
+            <input type="password" id="new-password" placeholder="••••••••" autocomplete="new-password" />
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input
-              type="password"
-              id="confirm-password"
-              placeholder="••••••••"
-              autocomplete="new-password"
-            />
+            <input type="password" id="confirm-password" placeholder="••••••••" autocomplete="new-password" />
           </div>
           <button id="create-btn" class="btn-primary">Create Account</button>
         </div>
@@ -81,6 +55,6 @@
         <p id="error-msg" class="error-msg hidden"></p>
       </div>
     </div>
-    <script src="../dist/renderer/login.js" defer></script>
+    <script src="../../dist/renderer/login/index.js" defer></script>
   </body>
 </html>

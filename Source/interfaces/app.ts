@@ -40,3 +40,13 @@ export interface AppConfig {
   neo4j: Neo4JConfig;
   qdrant: QdrantConfig;
 }
+
+export interface LoggerConfig {
+  processor: string;
+  platform: string;
+  release: string;
+  app: string;
+  version: string;
+  format: string;
+  level: string;
+}

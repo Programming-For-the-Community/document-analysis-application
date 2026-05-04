@@ -1,12 +1,19 @@
 import path from 'path';
-import { app, BrowserWindow, ipcMain, dialog, Menu } from 'electron';
+import { app, BrowserWindow, dialog, Menu } from 'electron';
 
 import { AWS_STS } from '../aws/sts';
 import { AWS_SECRETS } from '../aws/secrets';
 import { AWS_COGNITO } from '../aws/cognito';
 import { awsConfig, buildAppConfig } from './config';
+import { registerAuthHandlers } from './handlers/auth';
+import { registerConfigHandlers } from './handlers/config';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
+import { Logger } from '../utils/logger';
+
+// Logger must be the first thing initialized so all subsequent module-scope
+// code and IPC handler registrations can emit structured log output.
+Logger.init();
 
 Menu.setApplicationMenu(null);
 
@@ -27,93 +34,43 @@ function createWindow(): void {
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../../renderer/login.html'));
+  mainWindow.loadFile(path.join(__dirname, '../../renderer/login/index.html'));
+  Logger.debug('Browser window created — loaded login page');
 }
 
-ipcMain.handle(
-  'auth:start',
-  async (_event, credentials: { username: string; password: string }) => {
-    if (!AWS_STS.credentials || !appConfig) {
-      return { success: false, error: 'App not ready — restart the app' };
-    }
-
-    try {
-      currentTokens = await AWS_COGNITO.authenticate(
-        credentials.username,
-        credentials.password,
-        appConfig.cognito
-      );
-
-      if (!currentTokens || typeof currentTokens === 'boolean') {
-        return { success: false, error: 'Incomplete authentication response from Cognito' };
-      }
-
-      mainWindow?.loadFile(path.join(__dirname, '../../renderer/home.html'));
-      return { success: true };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Authentication failed';
-      return { success: false, error: message };
-    }
+// IPC handlers are registered at module scope so they are ready before
+// app.whenReady fires. Closures keep references live as state changes.
+registerAuthHandlers(
+  () => mainWindow,
+  () => appConfig,
+  () => currentTokens,
+  (tokens) => {
+    currentTokens = tokens;
   }
 );
 
-ipcMain.handle(
-  'auth:signup',
-  async (_event, credentials: { username: string; password: string }) => {
-    if (!AWS_STS.credentials || !appConfig) {
-      return { success: false, error: 'App not ready — restart the app' };
-    }
-
-    try {
-      currentTokens = await AWS_COGNITO.register(
-        credentials.username,
-        credentials.password,
-        appConfig.cognito
-      );
-
-      if (!currentTokens || typeof currentTokens === 'boolean') {
-        return { success: false, error: 'Account created but login failed — try signing in' };
-      }
-
-      mainWindow?.loadFile(path.join(__dirname, '../../renderer/home.html'));
-      return { success: true };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create account';
-      return { success: false, error: message };
-    }
-  }
-);
-
-ipcMain.handle('auth:get-tokens', () => currentTokens);
-
-ipcMain.handle('auth:logout', () => {
-  currentTokens = null;
-  mainWindow?.loadFile(path.join(__dirname, '../../renderer/login.html'));
-});
-
-ipcMain.handle('config:get', () => ({
-  region: awsConfig.region,
-  roleArn: awsConfig.roleArn,
-  s3Bucket: appConfig?.s3.documentBucket,
-  dynamoProjectStateTable: appConfig?.dynamoDB.projectStateTable,
-  dynamoProjectAccessTable: appConfig?.dynamoDB.projectAccessTable,
-  sqsQueueUrl: appConfig?.sqs.queueUrl,
-  snsTopicArn: appConfig?.sns.topicArn,
-  neo4jUri: appConfig?.neo4j.uri,
-  neo4jPassword: appConfig?.neo4j.password,
-  qdrantUrl: appConfig?.qdrant.url,
-  qdrantApiKey: appConfig?.qdrant.apiKey,
-}));
+registerConfigHandlers(() => appConfig);
 
 app.whenReady().then(async () => {
+  Logger.info('Electron app ready — starting AWS initialization sequence');
+
   try {
+    Logger.info('Assuming IAM service role...');
     await AWS_STS.init();
+
+    Logger.info('Fetching application secrets...');
     await AWS_SECRETS.init();
+
     appConfig = buildAppConfig(AWS_SECRETS.secrets);
+    Logger.info('App config assembled from Secrets Manager values');
+
     AWS_COGNITO.init();
+
     createWindow();
+    Logger.info('Application startup complete');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    Logger.error(`Startup failed: ${message}`);
     dialog.showErrorBox(
       'Startup Error',
       `Failed to start the application:\n\n${message}\n\nEnsure your AWS CLI is configured and ${awsConfig.roleArn || 'the configured role'} is accessible.`
@@ -123,8 +80,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  Logger.info('All windows closed — quitting application');
   if (process.platform !== 'darwin') app.quit();
 });
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });

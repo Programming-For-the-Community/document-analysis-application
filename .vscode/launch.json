@@ -14,6 +14,7 @@
       "env": {
         "NODE_ENV": "${workspaceFolder}/Source/.env.dev"
       },
+      "outputCapture": "std",
       "preLaunchTask": "Build TypeScript",
       "outFiles": ["${workspaceFolder}/Source/dist/**/*.js"],
       "sourceMaps": true,

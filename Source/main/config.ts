@@ -18,6 +18,8 @@ export const databaseCxnsConfig: DBConnectionsConfig = {
   qdrantUrl: process.env['QDRANT_URL'] || '',
 };
 
+
+
 export function buildAppConfig(secrets: SecretValues): AppConfig {
   return {
     dynamoDB: {

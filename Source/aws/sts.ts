@@ -2,13 +2,18 @@ import { STSClient, AssumeRoleCommand, AssumeRoleCommandOutput } from '@aws-sdk/
 
 import { awsConfig } from '../main/config';
 import { RoleCredentials } from '../interfaces/aws';
+import { Logger } from '../utils/logger';
 
 export class AWS_STS {
+  // Client is created at class load time — no credentials needed to call AssumeRole,
+  // it uses the local AWS CLI session that is already authenticated.
   private static client: STSClient = new STSClient({ region: awsConfig.region });
   public static credentials: RoleCredentials;
 
   public static async init(): Promise<void> {
+    Logger.info(`Assuming IAM role: ${awsConfig.roleArn}`);
     this.credentials = await this.assumeRole();
+    Logger.info(`Role assumed successfully — session valid for 1h (keyId: ${this.credentials.accessKeyId})`);
   }
 
   private static async assumeRole(): Promise<RoleCredentials> {
