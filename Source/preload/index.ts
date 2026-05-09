@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 contextBridge.exposeInMainWorld('electron', {
   auth: {
@@ -36,5 +36,15 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('project:rename', projectId, newName),
     delete: (projectId: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:delete', projectId),
+  },
+  documents: {
+    upload: (
+      projectId: string,
+      files: Array<{ name: string; path: string; size: number }>
+    ) => ipcRenderer.invoke('document:upload', projectId, files),
+    list: (projectId: string) => ipcRenderer.invoke('document:list', projectId),
+  },
+  utils: {
+    getFilePath: (file: File): string => webUtils.getPathForFile(file),
   },
 });

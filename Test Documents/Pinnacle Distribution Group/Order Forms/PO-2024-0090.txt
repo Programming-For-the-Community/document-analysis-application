@@ -1,0 +1,81 @@
+PINNACLE DISTRIBUTION GROUP
+PURCHASE ORDER
+
+5678 Commerce Way, Indianapolis, IN 46201
+Phone: (317) 555-0293  |  purchasing@pinnacledist.com
+────────────────────────────────────────────────────────────────
+
+PURCHASE ORDER #: PO-2024-0090
+DATE ISSUED:      September 16, 2024
+REQUESTED BY:     Robert Hayes, HR Director
+APPROVED BY:      Jennifer Walsh, COO
+VENDOR:           Cintas Corporation
+
+────────────────────────────────────────────────────────────────
+VENDOR INFORMATION
+────────────────────────────────────────────────────────────────
+Cintas Corporation
+Attn: Service & Billing
+6800 Cintas Blvd
+Mason, OH 45040
+Phone: (800) 246-8271
+serviceorders@cintas.com
+Account #: 119-47283
+
+────────────────────────────────────────────────────────────────
+DELIVERY / SERVICE LOCATION
+────────────────────────────────────────────────────────────────
+Service Address:  Pinnacle Distribution Group
+                  5678 Commerce Way, Indianapolis, IN 46201
+Service Type:     Uniform Rental + First Aid Restock
+Requested Start:  September 30, 2024
+────────────────────────────────────────────────────────────────
+
+LINE ITEMS (ANNUAL SERVICE — INVOICED WEEKLY)
+────────────────────────────────────────────────────────────────
+#   Item / Description                           Qty    Unit   Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+    UNIFORM RENTAL (per week, 52 weeks)
+
+1   Class A Uniform Shirt — Safety Yellow         85    each   $3.20/wk   $14,144.00
+    (Hi-vis, embroidered Pinnacle logo)
+
+2   Uniform Pants — Navy, Cargo Style             85    each   $2.80/wk   $12,376.00
+
+3   Shop Towel Service (per 50-count bag)          8    bags   $8.50/wk    $3,536.00
+
+    FIRST AID CABINET RESTOCK (quarterly × 4)
+
+4   First Aid Cabinet — Full Restock               3    cabinets $88.00/ea  $1,056.00
+    (Buildings 1, 2, 3; quarterly service)
+
+5   Eyewash Station Inspection and Restock         4    stations $22.00/ea    $352.00
+    (quarterly, all buildings)
+
+────────────────────────────────────────────────────────────────────────────────
+                                      Annual Subtotal:      $31,464.00
+                                      Estimated Weekly Billing: $587.50
+
+────────────────────────────────────────────────────────────────
+CONTRACT TERM
+
+Initial Term:     October 1, 2024 – September 30, 2025 (12 months)
+Renewal:          Automatic annual renewal unless 60-day written notice given
+Price Escalation: 3% maximum annual increase
+
+────────────────────────────────────────────────────────────────
+TERMS AND CONDITIONS
+
+1. Pinnacle may add or remove garments with 2-week notice; minimum 80 garments.
+2. Lost or damaged garments billed at $18.00/shirt, $22.00/pants.
+3. Payment: Net 30 from weekly invoice date.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Purchasing Agent: ________________________    Date: ____________
+
+Approver:         ________________________    Date: ____________
+
+Cintas Representative: ___________________   Date: ____________
+────────────────────────────────────────────────────────────────

@@ -1,0 +1,79 @@
+ACME MANUFACTURING CO.
+PURCHASE ORDER
+
+1234 Industrial Blvd, Columbus, OH 43215
+Phone: (614) 555-0182  |  purchasing@acmemfg.com
+────────────────────────────────────────────────────────────────
+
+PURCHASE ORDER #: ORD-2024-0113
+DATE ISSUED:      September 3, 2024
+REQUESTED BY:     Lisa Rodriguez, Director of Operations
+APPROVED BY:      David Chen, CEO
+VENDOR:           National Fastener Distributors
+
+────────────────────────────────────────────────────────────────
+VENDOR INFORMATION
+────────────────────────────────────────────────────────────────
+National Fastener Distributors, Inc.
+Attn: Inside Sales Team
+3300 Industrial Pkwy North
+Cleveland, OH 44115
+Phone: (216) 555-0348
+orders@natfastener.com
+Account #: ACME-7241
+
+────────────────────────────────────────────────────────────────
+DELIVERY INFORMATION
+────────────────────────────────────────────────────────────────
+Deliver To:       Acme Manufacturing Co. — Receiving Dock A
+                  1234 Industrial Blvd, Columbus, OH 43215
+Requested By:     September 16, 2024
+Shipping Method:  UPS Ground, prepaid and add
+
+────────────────────────────────────────────────────────────────
+LINE ITEMS
+────────────────────────────────────────────────────────────────
+#   Item / Description                       Qty    Unit      Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+1   Hex Cap Screw, 1/2"-13 × 2",           2,000    each       $0.42       $840.00
+    Grade 5, Zinc Plated
+
+2   Hex Nut, 1/2"-13,                      2,000    each       $0.18       $360.00
+    Grade 5, Zinc Plated
+
+3   Flat Washer, 1/2", SAE,                4,000    each       $0.07       $280.00
+    Zinc Plated
+
+4   Lock Washer, 1/2", Split,              2,000    each       $0.09       $180.00
+    Medium, Zinc Plated
+
+5   Socket Head Cap Screw, M10 × 30,       1,000    each       $0.55       $550.00
+    Class 10.9, Black Oxide
+
+6   Set Screw, 5/16"-18 × 1/2",             500    each       $0.24       $120.00
+    Alloy Steel, Cup Point, Unplated
+
+────────────────────────────────────────────────────────────────────────────────
+                                      Subtotal:              $2,330.00
+                                      Estimated Freight:        $44.00
+                                      ──────────────────────────────
+                                      ORDER TOTAL:           $2,374.00
+
+────────────────────────────────────────────────────────────────
+TERMS AND CONDITIONS
+
+1. Certifications of conformance required for all Grade 5 and Class 10.9 fasteners.
+2. This purchase order number must appear on all shipping documents and invoices.
+3. Payment terms: Net 30 from date of receipt.
+4. All fasteners must meet ASME/ANSI dimensional standards.
+5. Substitutions are not permitted without prior written approval.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Purchasing Agent: ________________________    Date: ____________
+
+Approver:         ________________________    Date: ____________
+
+Vendor Acceptance: _______________________    Date: ____________
+────────────────────────────────────────────────────────────────

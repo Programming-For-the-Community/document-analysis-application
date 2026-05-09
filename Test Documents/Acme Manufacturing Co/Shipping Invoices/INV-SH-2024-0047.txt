@@ -1,0 +1,62 @@
+ACME MANUFACTURING CO.
+SHIPPING INVOICE
+
+1234 Industrial Blvd, Columbus, OH 43215
+Phone: (614) 555-0182  |  ar@acmemfg.com
+────────────────────────────────────────────────────────────────
+
+INVOICE #:        INV-SH-2024-0047
+INVOICE DATE:     September 19, 2024
+DUE DATE:         October 19, 2024 (Net 30)
+PURCHASE ORDER:   ORD-2024-0114
+SHIP DATE:        September 18, 2024
+CARRIER:          Acme Fleet (company truck)
+TRACKING #:       FLEET-2024-0109
+
+────────────────────────────────────────────────────────────────
+BILL TO                              SHIP TO
+────────────────────────────────────────────────────────────────
+Tri-State Fabrication Corp.          Tri-State Fabrication Corp.
+Attn: Accounts Payable               Attn: Plant Manager – South Dock
+2200 River Run Pkwy                  2200 River Run Pkwy
+Cincinnati, OH 45204                 Cincinnati, OH 45204
+accounts@tristatefab.com
+────────────────────────────────────────────────────────────────
+
+LINE ITEMS
+────────────────────────────────────────────────────────────────
+#   Part Number    Description                    Qty   Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+1   AMC-GBX-0021   Gear Reduction Box,              6   $385.00     $2,310.00
+                   5:1 ratio, 56C Frame
+2   AMC-MTG-0008   Motor Mounting Plate,            6    $54.00       $324.00
+                   Steel, Powder-coated
+3   AMC-CHN-0016   ANSI #50 Roller Chain,          12    $47.50       $570.00
+                   10 ft section
+4   AMC-SPK-0031   Sprocket, #50, 18T,             12    $22.80       $273.60
+                   1" Bore, Keyway
+5   AMC-KEY-0002   Woodruff Key Set,                4    $15.00        $60.00
+                   Assorted, 40-piece
+6   AMC-LUB-0007   Industrial Chain Lube,          12    $8.75        $105.00
+                   Aerosol, 16 oz
+────────────────────────────────────────────────────────────────────────────────
+
+                                      Subtotal:             $3,642.60
+                                      Freight (Fleet):          $0.00
+                                      Sales Tax (OH 7.25%):   $264.09
+                                      ──────────────────────────────
+                                      TOTAL DUE:            $3,906.69
+
+────────────────────────────────────────────────────────────────
+PAYMENT TERMS:    Net 30. 1.5% monthly interest applied to overdue balances.
+PAYMENT METHOD:   ACH preferred. Remit to routing 041001039, acct 7720048813.
+                  Checks payable to "Acme Manufacturing Co."
+
+NOTE:             Delivered via company truck — no freight charge. Driver:
+                  T. Kowalski, Truck #ACM-07. Signed delivery receipt on file.
+                  All items per approved drawings Rev. C; COC enclosed.
+
+────────────────────────────────────────────────────────────────
+Authorized by: Lisa Rodriguez, Director of Operations
+Acme Manufacturing Co.
+────────────────────────────────────────────────────────────────

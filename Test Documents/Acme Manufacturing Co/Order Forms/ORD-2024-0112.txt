@@ -1,0 +1,77 @@
+ACME MANUFACTURING CO.
+PURCHASE ORDER
+
+1234 Industrial Blvd, Columbus, OH 43215
+Phone: (614) 555-0182  |  purchasing@acmemfg.com
+────────────────────────────────────────────────────────────────
+
+PURCHASE ORDER #: ORD-2024-0112
+DATE ISSUED:      August 28, 2024
+REQUESTED BY:     Mark Thompson, Regional Sales Manager
+APPROVED BY:      David Chen, CEO
+VENDOR:           Midwest Steel Supply Co.
+
+────────────────────────────────────────────────────────────────
+VENDOR INFORMATION
+────────────────────────────────────────────────────────────────
+Midwest Steel Supply Co.
+Attn: Sales / Order Desk
+700 Commerce Park Drive
+Toledo, OH 43612
+Phone: (419) 555-0761
+sales@midweststeel.com
+Account #: ACME-0047
+
+────────────────────────────────────────────────────────────────
+DELIVERY INFORMATION
+────────────────────────────────────────────────────────────────
+Deliver To:       Acme Manufacturing Co. — Receiving Dock A
+                  1234 Industrial Blvd, Columbus, OH 43215
+Requested By:     September 10, 2024
+Shipping Method:  Vendor's carrier, prepaid and add to invoice
+
+────────────────────────────────────────────────────────────────
+LINE ITEMS
+────────────────────────────────────────────────────────────────
+#   Item / Description                       Qty    Unit      Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+1   Hot-Rolled Steel Flat Bar                200    pieces    $14.20     $2,840.00
+    1" × 4" × 12", ASTM A36
+
+2   Cold-Drawn Steel Round Bar                50    pieces    $38.75     $1,937.50
+    2" diameter × 12 ft, 1018
+
+3   Steel Structural Angle                   100    pieces    $22.60     $2,260.00
+    2" × 2" × 1/4" × 20 ft, A36
+
+4   Steel Plate                               20    pieces    $91.00     $1,820.00
+    1/2" × 24" × 48", A36
+
+────────────────────────────────────────────────────────────────────────────────
+                                      Subtotal:              $8,857.50
+                                      Estimated Freight:       $215.00
+                                      ──────────────────────────────
+                                      ORDER TOTAL:           $9,072.50
+
+────────────────────────────────────────────────────────────────
+TERMS AND CONDITIONS
+
+1. All items must conform to the specifications listed. Non-conforming material
+   will be returned at the vendor's expense.
+2. This purchase order must be referenced on all packing slips, invoices, and
+   shipping labels.
+3. Payment terms: Net 30 from date of receipt and acceptance.
+4. Any price changes must be approved in writing before shipment.
+5. Acme Manufacturing Co. reserves the right to cancel this PO if delivery
+   falls more than 5 business days past the requested delivery date without
+   prior written notice.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Purchasing Agent: ________________________    Date: ____________
+
+Approver:         ________________________    Date: ____________
+
+Vendor Acceptance: _______________________    Date: ____________
+────────────────────────────────────────────────────────────────

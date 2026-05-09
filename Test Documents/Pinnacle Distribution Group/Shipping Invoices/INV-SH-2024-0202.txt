@@ -1,0 +1,70 @@
+PINNACLE DISTRIBUTION GROUP
+SHIPPING / FREIGHT INVOICE
+
+5678 Commerce Way, Indianapolis, IN 46201
+Phone: (317) 555-0293  |  billing@pinnacledist.com
+────────────────────────────────────────────────────────────────
+
+INVOICE #:        INV-SH-2024-0202
+INVOICE DATE:     September 13, 2024
+DUE DATE:         September 27, 2024 (Net 14)
+CLIENT REF #:     GARDN-PO-8841
+SERVICE PERIOD:   September 1 – September 13, 2024
+ACCOUNT MANAGER:  Carlos Mendez, Operations Manager
+
+────────────────────────────────────────────────────────────────
+BILL TO                              SERVICE LOCATION
+────────────────────────────────────────────────────────────────
+Gardner Home Goods, Inc.              Pinnacle Distribution Group
+Attn: Finance Department              Fulfillment Center — Building 3
+3304 Lakeview Avenue                  5678 Commerce Way
+Columbus, OH 43219                    Indianapolis, IN 46201
+finance@gardnerhomegoods.com
+────────────────────────────────────────────────────────────────
+
+SERVICES RENDERED — INBOUND, STORAGE & OUTBOUND
+────────────────────────────────────────────────────────────────
+#   Service Description                           Units    Rate       Total
+────────────────────────────────────────────────────────────────────────────────
+1   Pallet Storage — September (full month)       140 pal  $14.50/mo $2,030.00
+
+2   Inbound Receiving — Container Unload             3 cont $310.00    $930.00
+    (40' containers, floor-loaded)
+
+3   Inbound Receiving — Palletized                  48 pal   $7.50     $360.00
+
+4   Unit Pick & Pack — Direct-to-Consumer        2,241 units  $1.10  $2,465.10
+
+5   Kitting — Gift Set Assembly                    300 sets  $2.40     $720.00
+    (3-piece sets: candle, soap, tray)
+
+6   Outbound Parcel — UPS Ground                 2,241 shpts  $0.35    $784.35
+    (Pinnacle account, billed at cost)
+
+7   Outbound LTL — Retail Wholesale                 9 shpts $165.00  $1,485.00
+
+8   Returns Processing                              87 units  $1.85    $160.95
+    (inspect, restock, or dispose per client SOP)
+
+────────────────────────────────────────────────────────────────────────────────
+
+                                      Subtotal:             $8,935.40
+                                      ──────────────────────────────
+                                      TOTAL DUE:            $8,935.40
+
+Note: ST-108E exemption certificate on file; no Indiana sales tax applied.
+
+────────────────────────────────────────────────────────────────
+PAYMENT TERMS:    Net 14. Late payments subject to 1.75% monthly service charge.
+PAYMENT METHOD:   ACH preferred. Routing: 074908594, Account: 3310027481.
+                  Reference invoice number on all payments.
+
+NOTE:             September kitting volume was 20% above forecast. Per our MSA
+                  Section 4.2, Pinnacle retains the right to adjust kitting rates
+                  with 30-day notice if monthly volume exceeds 500 sets. A rate
+                  review has been scheduled for the October account review call.
+
+────────────────────────────────────────────────────────────────
+Authorized by: Jennifer Walsh, COO
+Pinnacle Distribution Group
+────────────────────────────────────────────────────────────────

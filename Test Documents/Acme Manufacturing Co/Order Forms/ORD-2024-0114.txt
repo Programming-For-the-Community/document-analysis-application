@@ -1,0 +1,79 @@
+ACME MANUFACTURING CO.
+PURCHASE ORDER
+
+1234 Industrial Blvd, Columbus, OH 43215
+Phone: (614) 555-0182  |  purchasing@acmemfg.com
+────────────────────────────────────────────────────────────────
+
+PURCHASE ORDER #: ORD-2024-0114
+DATE ISSUED:      September 9, 2024
+REQUESTED BY:     Lisa Rodriguez, Director of Operations
+APPROVED BY:      David Chen, CEO
+VENDOR:           Apex Industrial Coatings
+
+────────────────────────────────────────────────────────────────
+VENDOR INFORMATION
+────────────────────────────────────────────────────────────────
+Apex Industrial Coatings LLC
+Attn: Accounts Receivable
+88 Paint Mill Road
+Akron, OH 44305
+Phone: (330) 555-0094
+billing@apexcoatings.com
+Account #: AMC-2204
+
+────────────────────────────────────────────────────────────────
+DELIVERY / SERVICE INFORMATION
+────────────────────────────────────────────────────────────────
+Service Location:  Acme Manufacturing Co.
+                   1234 Industrial Blvd, Columbus, OH 43215
+Service Date:      September 23–25, 2024 (3-day on-site job)
+Contact On-Site:   Lisa Rodriguez — (614) 555-0182 ext. 214
+
+────────────────────────────────────────────────────────────────
+LINE ITEMS (SERVICES AND MATERIALS)
+────────────────────────────────────────────────────────────────
+#   Item / Description                       Qty    Unit      Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+1   Powder Coat — Acme Standard Gray          320    pieces    $9.80      $3,136.00
+    (RAL 7037), Gear Reduction Housings
+
+2   Zinc Phosphate Pretreatment               320    pieces    $2.10        $672.00
+    (per coating process)
+
+3   Touch-Up and Masking Labor                  3    days    $640.00     $1,920.00
+
+4   Waste Disposal / Environmental Fee          1    lot      $180.00       $180.00
+
+────────────────────────────────────────────────────────────────────────────────
+                                      Subtotal:              $5,908.00
+                                      Sales Tax (OH 7.25%):   $428.33
+                                      ──────────────────────────────
+                                      ORDER TOTAL:           $6,336.33
+
+────────────────────────────────────────────────────────────────
+SPECIAL INSTRUCTIONS
+
+- All parts must be masked per Acme drawing AMC-GBX-0021 Rev. C prior to coating.
+- Color chip approval required before production run begins. Submit to Lisa Rodriguez.
+- Coating thickness must meet 2.5–4.0 mil dry film; random sample inspection report
+  required upon delivery.
+- Parts must be returned packaged individually in poly bags to prevent scratching.
+
+────────────────────────────────────────────────────────────────
+TERMS AND CONDITIONS
+
+1. Work must meet Acme quality inspection standards. Rejected parts re-coated
+   at vendor's expense.
+2. Payment terms: Net 30 from date of invoice following service completion.
+3. Any changes to scope, materials, or pricing require written change order.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Purchasing Agent: ________________________    Date: ____________
+
+Approver:         ________________________    Date: ____________
+
+Vendor Acceptance: _______________________    Date: ____________
+────────────────────────────────────────────────────────────────

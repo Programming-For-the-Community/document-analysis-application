@@ -11,6 +11,7 @@ import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';
 import { registerNavHandlers } from './handlers/nav';
 import { registerProjectHandlers } from './handlers/projects';
+import { registerDocumentHandlers } from './handlers/documents';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -56,6 +57,10 @@ registerAuthHandlers(
 registerConfigHandlers(() => appConfig);
 registerNavHandlers(() => mainWindow);
 registerProjectHandlers(
+  () => appConfig,
+  () => currentTokens
+);
+registerDocumentHandlers(
   () => appConfig,
   () => currentTokens
 );

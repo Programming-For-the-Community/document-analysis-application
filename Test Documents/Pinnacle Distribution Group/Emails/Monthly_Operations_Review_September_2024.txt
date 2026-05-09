@@ -1,0 +1,86 @@
+FROM:     Jennifer Walsh <j.walsh@pinnacledist.com>
+TO:       Robert Hayes <r.hayes@pinnacledist.com>;
+          Carlos Mendez <c.mendez@pinnacledist.com>;
+          Amy Foster <a.foster@pinnacledist.com>
+DATE:     October 3, 2024, 8:30 AM
+SUBJECT:  September 2024 Operations Review — Summary & Action Items
+
+────────────────────────────────────────────────────────────────
+
+Team —
+
+Here is the summary from yesterday's September ops review. Please review your
+action items and confirm receipt.
+
+────────────────────────────────────────────────────────────────
+SEPTEMBER HIGHLIGHTS
+
+Total Pallets Handled:   1,847 in / 1,612 out
+Total Orders Shipped:    6,214 units across 49 clients
+On-Time Delivery Rate:   96.2%  (target: 98%)
+Order Accuracy:          99.4%  (target: 99.5%)
+Returns Processed:       312 units (4.8% return rate)
+New Clients Onboarded:   1 (Gardner Home Goods)
+
+────────────────────────────────────────────────────────────────
+ISSUES AND ROOT CAUSES
+
+1. ON-TIME DELIVERY — 3 late shipments attributed to the FedEx terminal
+   outage on September 10 (documented; not counted against us per MSA §6.3
+   force majeure clause). Remaining 2 delays were due to missed cutoff times
+   on September 18 (Shift B — Carlos is following up with shift lead).
+
+2. ORDER ACCURACY — 36 units shipped with incorrect SKU (Gardner Home Goods,
+   Ref GARDN-PO-8841). Root cause: kitting SOP was not updated for the 3-piece
+   gift set spec change communicated by Gardner on September 5. Carlos to issue
+   updated SOP by October 7. Gardner has been notified; no chargeback expected.
+
+3. STAFFING — Building 3 ran short-handed 4 shifts due to Derek Paulson's
+   attendance issues (HR has initiated formal process). Mandatory overtime
+   was required on September 18 and 19. Total OT cost: $2,840. Robert,
+   please activate the Staffmark contingency agreement for Building 3 backup
+   coverage through October.
+
+────────────────────────────────────────────────────────────────
+FINANCIAL SNAPSHOT — SEPTEMBER
+
+  Total Revenue Invoiced:   $47,822.14
+  Accounts Receivable > 30 days:  $14,205.00
+    - Marvel Office Solutions (INV-SH-2024-0198, $6,812): 35 days past due.
+      Amy, please send a second notice today.
+    - Brandon & Associates (INV-SH-2024-0196, $7,393): disputed (freight
+      claim pending). Hold collection until FedEx settles claim FC-2024-3847.
+
+  Operating Expenses:       $31,440.00
+  Net Operating Margin:     34.2%  (target: 35%)
+
+────────────────────────────────────────────────────────────────
+ACTION ITEMS
+
+Carlos Mendez:
+  [ ] Reissue updated Gardner kitting SOP by October 7
+  [ ] Debrief Shift B lead on September 18 cutoff misses; report back Oct 10
+  [ ] Prepare forklift operator OT summary for Q4 staffing forecast
+
+Robert Hayes:
+  [ ] Activate Staffmark contingency agreement for Building 3 (10/4)
+  [ ] Confirm Derek Paulson disciplinary process per HR SOP (see notice)
+  [ ] Post Warehouse Associate II requisition for Building 3 by October 8
+
+Amy Foster:
+  [ ] Send second payment notice to Marvel Office Solutions today
+  [ ] Monitor FedEx claim FC-2024-3847; apply credit to Marvel upon settlement
+  [ ] Distribute September client invoices by October 4 EOD
+
+Jennifer Walsh:
+  [ ] Q4 capacity planning meeting with all clients — schedule for October 15-18
+  [ ] Renew carrier contract with FedEx Freight; evaluate adding ABF as backup
+
+────────────────────────────────────────────────────────────────
+Next Ops Review: November 3, 2024, 9:00 AM — Conference Room A
+
+Jennifer Walsh
+COO, Pinnacle Distribution Group
+(317) 555-0293 ext. 301
+
+────────────────────────────────────────────────────────────────

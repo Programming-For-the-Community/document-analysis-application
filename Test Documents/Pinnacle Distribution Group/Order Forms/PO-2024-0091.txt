@@ -1,0 +1,92 @@
+PINNACLE DISTRIBUTION GROUP
+PURCHASE ORDER
+
+5678 Commerce Way, Indianapolis, IN 46201
+Phone: (317) 555-0293  |  purchasing@pinnacledist.com
+────────────────────────────────────────────────────────────────
+
+PURCHASE ORDER #: PO-2024-0091
+DATE ISSUED:      September 23, 2024
+REQUESTED BY:     Carlos Mendez, Operations Manager
+APPROVED BY:      Jennifer Walsh, COO
+VENDOR:           Crown Equipment Corporation (Crown Lift Trucks)
+
+────────────────────────────────────────────────────────────────
+VENDOR INFORMATION
+────────────────────────────────────────────────────────────────
+Crown Equipment Corporation
+Attn: Fleet Sales — Indianapolis Branch
+4820 W. 86th Street
+Indianapolis, IN 46268
+Phone: (317) 555-0620
+indy.fleet@crown.com
+Account #: PDG-0441
+
+────────────────────────────────────────────────────────────────
+DELIVERY INFORMATION
+────────────────────────────────────────────────────────────────
+Deliver To:       Pinnacle Distribution Group — Building 2, Bay 4
+                  5678 Commerce Way, Indianapolis, IN 46201
+Requested By:     October 14, 2024
+On-Site Contact:  Carlos Mendez, (317) 555-0293 ext. 204
+
+────────────────────────────────────────────────────────────────
+LINE ITEMS
+────────────────────────────────────────────────────────────────
+#   Item / Description                           Qty    Unit   Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+1   Crown RC 5500 Series Reach Truck                2    each  $34,800.00  $69,600.00
+    Electric, 4,500 lb capacity, 270" max lift
+    — Li-ion battery included
+    — Crown Info|Link telematics included
+
+2   Crown WP 3000 Series Walkie Pallet Jack         3    each   $5,200.00  $15,600.00
+    Electric, 4,500 lb capacity, 48V
+
+3   Battery Charger, 48V 3-Phase                    2    each   $1,850.00   $3,700.00
+    (for walkie units)
+
+4   Operator Training — Certified                   1    lot    $1,200.00   $1,200.00
+    (OSHA-compliant, on-site, up to 12 operators)
+
+5   Delivery and Pre-Delivery Inspection            1    lot      $450.00     $450.00
+
+────────────────────────────────────────────────────────────────────────────────
+                                      Subtotal:            $90,550.00
+                                      Applicable Taxes:         $0.00
+                                      (Exempt — IN ST-105, manufacturing)
+                                      ──────────────────────────────
+                                      ORDER TOTAL:         $90,550.00
+
+────────────────────────────────────────────────────────────────
+FINANCING
+
+Financed through Crown Financial Services.
+Term: 60 months at 5.9% APR.
+Estimated monthly payment: $1,746.22 (subject to credit approval).
+Down payment: $9,055.00 (10%), due at delivery.
+
+────────────────────────────────────────────────────────────────
+WARRANTY
+
+  Reach Trucks:     2 years / 4,000 hours on powertrain; 1 year on parts
+  Walkie Pallet:    1 year / 2,000 hours on powertrain; 1 year on parts
+  Battery/Charger:  2 years
+
+────────────────────────────────────────────────────────────────
+TERMS AND CONDITIONS
+
+1. Crown must deliver equipment in new, defect-free condition.
+2. Operator certification must be completed within 5 days of equipment delivery.
+3. Pinnacle reserves the right to reject any unit that fails PDI inspection.
+4. All terms subject to Crown Financial Services credit approval.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Purchasing Agent: ________________________    Date: ____________
+
+Approver:         ________________________    Date: ____________
+
+Crown Representative: ____________________   Date: ____________
+────────────────────────────────────────────────────────────────

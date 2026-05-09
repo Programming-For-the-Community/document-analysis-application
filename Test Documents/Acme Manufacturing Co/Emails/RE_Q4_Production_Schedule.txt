@@ -1,0 +1,64 @@
+FROM:     David Chen <d.chen@acmemfg.com>
+TO:       Lisa Rodriguez <l.rodriguez@acmemfg.com>;
+          Mark Thompson <m.thompson@acmemfg.com>;
+          Sarah Mitchell <s.mitchell@acmemfg.com>
+DATE:     October 2, 2024, 9:14 AM
+SUBJECT:  RE: Q4 Production Schedule — Final Review
+
+────────────────────────────────────────────────────────────────
+
+Lisa, Mark, Sarah —
+
+Thanks for your inputs on the draft schedule. A few decisions coming out of
+yesterday's leadership call:
+
+1. PRODUCTION FREEZE WINDOW — We will observe a production shutdown from
+   December 23 through January 2. All outstanding customer orders must be
+   shipped by December 20. Mark, please flag any accounts that may need an
+   expedited fulfillment this cycle and get those to Lisa by October 18.
+
+2. MAINTENANCE WINDOW — Lisa, please coordinate with the maintenance team
+   to schedule the Line 3 conveyor overhaul during the shutdown. That project
+   has been pushed twice and we need it done before the new year. Confirm
+   scope and parts availability with Kevin by October 11.
+
+3. HEADCOUNT — Sarah, we need 4 temporary production associates from
+   Staffmark starting November 4 through December 20. Please initiate the
+   request this week. We had issues with last year's temps not knowing the
+   PPE requirements — please make sure orientation is scheduled the same day
+   as their start.
+
+4. CONSOLIDATED METALS RFP — Mark, I've confirmed this is a major opportunity.
+   Target is $800K in new annual revenue. I want a draft proposal on my desk
+   by December 6. Let me know what technical support you need from Lisa's team.
+
+Let's plan a 30-minute check-in on October 16 at 10 AM to confirm everyone's
+on track. Sarah, can you send the invite?
+
+David
+
+────────────────────────────────────────────────────────────────
+
+From: Lisa Rodriguez <l.rodriguez@acmemfg.com>
+Sent: October 1, 2024, 4:47 PM
+To: David Chen; Mark Thompson; Sarah Mitchell
+Subject: Q4 Production Schedule — Final Review
+
+David, Mark, Sarah —
+
+Attached is the revised Q4 production schedule (v3). Key notes:
+
+- Line 3 is running at 87% capacity through November due to the belt wear issue.
+  Kevin has parts on order; expected repair window is the Christmas shutdown.
+- We have 11 open customer orders that carry into Q4. Mark, please confirm
+  delivery priority ranking by EOD Thursday.
+- I've blocked off November 18–19 for the annual forklift certification
+  renewals. Sarah, please coordinate with the 8 operators who are due.
+
+Let me know if anything needs to change before I send this to the floor supervisors.
+
+Lisa Rodriguez
+Director of Operations, Acme Manufacturing Co.
+(614) 555-0182 ext. 214
+
+────────────────────────────────────────────────────────────────

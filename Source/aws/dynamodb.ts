@@ -5,6 +5,7 @@ import {
   DynamoDBDocumentClient,
   QueryCommand,
   GetCommand,
+  PutCommand,
   UpdateCommand,
   BatchGetCommand,
   BatchWriteCommand,
@@ -16,6 +17,7 @@ import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
 import { DynamoDBConfig } from '../interfaces/app';
 import { ProjectListItem } from '../interfaces/project';
+import { DocumentRecord } from '../interfaces/document';
 import { Logger } from '../utils/logger';
 
 export class AWS_DYNAMODB {
@@ -222,6 +224,82 @@ export class AWS_DYNAMODB {
 
     Logger.info(`Project ${projectId} removed from DynamoDB`);
     return s3Prefix;
+  }
+
+  public static async getProjectMeta(
+    projectId: string,
+    config: DynamoDBConfig
+  ): Promise<{ s3Prefix: string } | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: 'META' },
+      })
+    );
+    if (!result.Item) return null;
+    return { s3Prefix: result.Item['s3_prefix'] as string };
+  }
+
+  public static async addDocumentRecord(
+    record: DocumentRecord,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new PutCommand({
+        TableName: config.projectStateTable,
+        Item: {
+          project_id: record.projectId,
+          document_id: record.documentId,
+          document_name: record.documentName,
+          s3_key: record.s3Key,
+          file_size: record.fileSize,
+          uploaded_at: record.uploadedAt,
+        },
+      })
+    );
+    Logger.debug(`Document record created: ${record.documentId}`);
+  }
+
+  public static async incrementDocumentCount(
+    projectId: string,
+    count: number,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new UpdateCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: 'META' },
+        UpdateExpression: 'ADD document_count :n SET updated_at = :now',
+        ExpressionAttributeValues: {
+          ':n': count,
+          ':now': new Date().toISOString(),
+        },
+      })
+    );
+  }
+
+  public static async listDocuments(
+    projectId: string,
+    config: DynamoDBConfig
+  ): Promise<DocumentRecord[]> {
+    Logger.debug(`Listing documents for project: ${projectId}`);
+    const result = await this.client.send(
+      new QueryCommand({
+        TableName: config.projectStateTable,
+        KeyConditionExpression: 'project_id = :pid',
+        ExpressionAttributeValues: { ':pid': projectId },
+      })
+    );
+    const items = (result.Items ?? []).filter((item) => item['document_id'] !== 'META');
+    Logger.info(`Found ${items.length} document(s) for project: ${projectId}`);
+    return items.map((item) => ({
+      documentId: item['document_id'] as string,
+      projectId: item['project_id'] as string,
+      documentName: item['document_name'] as string,
+      s3Key: item['s3_key'] as string,
+      fileSize: item['file_size'] as number,
+      uploadedAt: item['uploaded_at'] as string,
+    }));
   }
 }
 

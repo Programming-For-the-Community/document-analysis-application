@@ -1,6 +1,10 @@
 export {};
 
 declare global {
+  interface File {
+    readonly path: string;
+  }
+
   interface Window {
     electron: {
       auth: {
@@ -32,6 +36,21 @@ declare global {
         rename: (projectId: string, newName: string) => Promise<{ success: boolean; error?: string }>;
         delete: (projectId: string) => Promise<{ success: boolean; error?: string }>;
       };
+      documents: {
+        upload: (
+          projectId: string,
+          files: Array<{ name: string; path: string; size: number }>
+        ) => Promise<{
+          success: boolean;
+          uploaded?: DocumentRecord[];
+          failed?: { name: string; error: string }[];
+          error?: string;
+        }>;
+        list: (projectId: string) => Promise<{ success: boolean; documents?: DocumentRecord[]; error?: string }>;
+      };
+      utils: {
+        getFilePath: (file: File) => string;
+      };
     };
   }
 
@@ -40,5 +59,14 @@ declare global {
     name: string;
     documentCount: number;
     lastModified: string;
+  }
+
+  interface DocumentRecord {
+    documentId: string;
+    projectId: string;
+    documentName: string;
+    s3Key: string;
+    fileSize: number;
+    uploadedAt: string;
   }
 }

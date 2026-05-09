@@ -1,0 +1,66 @@
+PINNACLE DISTRIBUTION GROUP
+SHIPPING / FREIGHT INVOICE
+
+5678 Commerce Way, Indianapolis, IN 46201
+Phone: (317) 555-0293  |  billing@pinnacledist.com
+────────────────────────────────────────────────────────────────
+
+INVOICE #:        INV-SH-2024-0203
+INVOICE DATE:     September 30, 2024
+DUE DATE:         October 14, 2024 (Net 14)
+CLIENT REF #:     MARVL-PO-3319
+SERVICE PERIOD:   September 14 – September 30, 2024
+ACCOUNT MANAGER:  Jennifer Walsh, COO
+
+────────────────────────────────────────────────────────────────
+BILL TO                              SERVICE LOCATION
+────────────────────────────────────────────────────────────────
+Marvel Office Solutions, Inc.         Pinnacle Distribution Group
+Attn: Accounts Payable — Ref INV0203  Fulfillment Center — Building 1
+720 Executive Boulevard               5678 Commerce Way
+Detroit, MI 48207                     Indianapolis, IN 46201
+billing@marvelofficellc.com
+────────────────────────────────────────────────────────────────
+
+SERVICES RENDERED — LTL & EXPEDITED FREIGHT
+────────────────────────────────────────────────────────────────
+#   Service Description                           Units    Rate       Total
+────────────────────────────────────────────────────────────────────────────────
+1   Pallet Storage — September (partial, 14–30)  210 pal  $14.50/mo $1,611.29
+    (17/30 days prorated)
+
+2   LTL Outbound Freight — Standard               22 shpts $155.00  $3,410.00
+    (FedEx Freight Economy, coordinated by Pinnacle)
+
+3   LTL Outbound Freight — Expedited               4 shpts $380.00  $1,520.00
+    (customer-requested same-week delivery)
+
+4   Pallet Build and Shrink-Wrap                  46 pal    $8.00     $368.00
+
+5   BOL Preparation and Carrier Scheduling        26 shpts   $6.50    $169.00
+
+6   After-Hours Dispatch Fee                       2 shpts  $95.00    $190.00
+    (shipping requests received after 3:00 PM cutoff)
+
+7   Freight Claim Processing Fee                   1 claim $125.00    $125.00
+    (damaged goods claim filed with FedEx, ref FC-2024-3847)
+
+────────────────────────────────────────────────────────────────────────────────
+
+                                      Subtotal:             $7,393.29
+                                      ──────────────────────────────
+                                      TOTAL DUE:            $7,393.29
+
+────────────────────────────────────────────────────────────────
+PAYMENT TERMS:    Net 14. Late payments subject to 1.75% monthly service charge.
+PAYMENT METHOD:   ACH preferred. Routing: 074908594, Account: 3310027481.
+
+NOTE:             FedEx freight claim #FC-2024-3847 is pending resolution.
+                  Estimated claim value: $1,240. Pinnacle will credit Marvel
+                  Office Solutions upon settlement receipt. This invoice reflects
+                  only services rendered; claim credit will appear on a future invoice.
+
+────────────────────────────────────────────────────────────────
+Authorized by: Jennifer Walsh, COO
+Pinnacle Distribution Group
+────────────────────────────────────────────────────────────────

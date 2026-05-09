@@ -1,0 +1,78 @@
+PINNACLE DISTRIBUTION GROUP
+PURCHASE ORDER
+
+5678 Commerce Way, Indianapolis, IN 46201
+Phone: (317) 555-0293  |  purchasing@pinnacledist.com
+────────────────────────────────────────────────────────────────
+
+PURCHASE ORDER #: PO-2024-0089
+DATE ISSUED:      September 3, 2024
+REQUESTED BY:     Carlos Mendez, Operations Manager
+APPROVED BY:      Jennifer Walsh, COO
+VENDOR:           Uline Shipping Supplies
+
+────────────────────────────────────────────────────────────────
+VENDOR INFORMATION
+────────────────────────────────────────────────────────────────
+Uline
+Attn: Order Fulfillment
+12575 Uline Drive
+Pleasant Prairie, WI 53158
+Phone: (800) 295-5510
+orders@uline.com
+Account #: PDG-144829
+
+────────────────────────────────────────────────────────────────
+DELIVERY INFORMATION
+────────────────────────────────────────────────────────────────
+Deliver To:       Pinnacle Distribution Group — Dock 4 / Supplies Receiving
+                  5678 Commerce Way, Indianapolis, IN 46201
+Requested By:     September 13, 2024
+Shipping Method:  Uline standard ground
+
+────────────────────────────────────────────────────────────────
+LINE ITEMS
+────────────────────────────────────────────────────────────────
+#   Item / Description                           Qty    Unit   Unit Price    Total
+────────────────────────────────────────────────────────────────────────────────
+1   Corrugated Boxes, 12 × 10 × 8",            2,000    each   $1.04      $2,080.00
+    32 ECT, Single Wall (S-4082)
+
+2   Corrugated Boxes, 18 × 14 × 12",           1,000    each   $1.89      $1,890.00
+    32 ECT, Single Wall (S-4102)
+
+3   Corrugated Boxes, 24 × 18 × 18",             500    each   $3.14      $1,570.00
+    32 ECT, Single Wall (S-4112)
+
+4   Clear Packing Tape, 2" × 110 yds,             72    rolls   $2.85       $205.20
+    2 mil, case of 36 (S-423)
+
+5   Poly Bubble Mailers, 8.5 × 12",            1,000    each   $0.46        $460.00
+    Self-Sealing (S-14067)
+
+6   Packing Peanuts, Anti-Static,                 10    bags   $18.40       $184.00
+    30-gallon bag (S-1254)
+
+7   Stretch Wrap, 18" × 1,500 ft,                24    rolls   $9.20        $220.80
+    Hand Roll, 80 ga (S-1078)
+
+────────────────────────────────────────────────────────────────────────────────
+                                      Subtotal:             $6,610.00
+                                      Freight:                $148.00
+                                      ──────────────────────────────
+                                      ORDER TOTAL:           $6,758.00
+
+────────────────────────────────────────────────────────────────
+TERMS AND CONDITIONS
+
+1. Reference PO number on all shipping labels and invoices.
+2. Substitute items are not accepted without prior approval.
+3. Payment terms: Net 30 from date of delivery.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Purchasing Agent: ________________________    Date: ____________
+
+Approver:         ________________________    Date: ____________
+────────────────────────────────────────────────────────────────

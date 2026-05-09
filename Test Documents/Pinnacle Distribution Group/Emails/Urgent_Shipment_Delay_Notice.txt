@@ -1,0 +1,47 @@
+FROM:     Carlos Mendez <c.mendez@pinnacledist.com>
+TO:       Amy Foster <a.foster@brandonretail.com>
+CC:       Jennifer Walsh <j.walsh@pinnacledist.com>
+DATE:     September 10, 2024, 2:18 PM
+SUBJECT:  URGENT: Shipment Delay Notification — Brandon & Associates Orders
+
+────────────────────────────────────────────────────────────────
+
+Amy —
+
+I'm writing to notify you of an unplanned delay affecting three of your outbound
+shipments scheduled for today, September 10.
+
+WHAT HAPPENED:
+This morning at approximately 6:45 AM, FedEx Freight notified us that their
+Indianapolis terminal experienced a dock equipment failure overnight, resulting in
+the rejection of all pickups until further notice. The terminal confirmed at
+1:00 PM that capacity is partially restored, but our three scheduled pickups
+(BOL numbers PDG-09102024-01, -02, and -03) have been rescheduled to tomorrow,
+September 11, between 10:00 AM and 2:00 PM.
+
+AFFECTED SHIPMENTS:
+  BOL PDG-09102024-01 — 4 pallets, Ref: BRANDO-PO-5512, Ship-To: Chicago DC
+  BOL PDG-09102024-02 — 2 pallets, Ref: BRANDO-PO-5514, Ship-To: Milwaukee Store #4
+  BOL PDG-09102024-03 — 3 pallets, Ref: BRANDO-PO-5516, Ship-To: Naperville Store #11
+
+REVISED DELIVERY ESTIMATE:
+Based on FedEx transit times, deliveries originally scheduled for September 12 are
+now estimated for September 13 (Chicago DC) and September 14 (Milwaukee, Naperville).
+
+WHAT WE'RE DOING:
+- All freight is loaded and staged at our dock — no risk of further delay on our end.
+- I have personally confirmed the September 11 pickup window with your FedEx
+  account rep, Shannon Doyle (SDonnell contact on file).
+- I will send you tracking confirmation by 3:00 PM tomorrow once pickup is verified.
+
+I sincerely apologize for the inconvenience. Please let me know if any of these
+shipments contain time-sensitive merchandise that requires escalation to an
+expedited carrier.
+
+Carlos Mendez
+Operations Manager
+Pinnacle Distribution Group
+(317) 555-0293 ext. 204
+c.mendez@pinnacledist.com
+
+────────────────────────────────────────────────────────────────

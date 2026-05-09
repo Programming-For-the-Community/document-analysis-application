@@ -1,0 +1,47 @@
+FROM:     Lisa Rodriguez <l.rodriguez@acmemfg.com>
+TO:       Brian Hollis <b.hollis@midweststeel.com>
+CC:       David Chen <d.chen@acmemfg.com>
+DATE:     October 7, 2024, 10:32 AM
+SUBJECT:  Annual Supply Agreement Renewal — Acme Mfg / Midwest Steel Supply
+
+────────────────────────────────────────────────────────────────
+
+Brian —
+
+Our current supply agreement (Agreement #MSS-2022-ACME) expires on December 31,
+2024. I'd like to begin renewal discussions now to avoid any disruption to our
+material flow heading into Q1 2025.
+
+Over the past year, we've placed 38 purchase orders with Midwest Steel totaling
+approximately $186,000 in material. We consider you a preferred vendor and
+want to continue that relationship, but we do need to revisit a couple of items:
+
+PRICING: Your last price increase notice (August 2024) raised hot-rolled flat bar
+by 7.2% and structural angle by 5.8%. Our customers are not absorbing cost
+increases at this pace, and we need to find a way to share that burden more
+equitably. We'd like to propose price caps tied to the Metals Week CRU Index
+with a quarterly true-up, rather than ad hoc increases.
+
+LEAD TIMES: We've experienced three instances in 2024 where delivery was more
+than 5 business days past the promised date (POs 0093, 0101, and 0112). This
+causes production disruptions and ultimately affects our customer commitments.
+We'd like to formalize a 98% on-time delivery SLA with a defined remedy process.
+
+VOLUME COMMITMENT: In exchange for the above, we're prepared to commit to a
+minimum annual spend of $200,000 for 2025, contingent on competitive pricing
+and meeting the SLA.
+
+Could you propose a meeting — either at your Toledo office or via Teams — within
+the next two weeks to work through these points? I'd like to have a signed
+agreement in place before November 30.
+
+Best regards,
+
+Lisa Rodriguez
+Director of Operations
+Acme Manufacturing Co.
+1234 Industrial Blvd, Columbus, OH 43215
+(614) 555-0182 ext. 214
+l.rodriguez@acmemfg.com
+
+────────────────────────────────────────────────────────────────

@@ -1,0 +1,103 @@
+ACME MANUFACTURING CO.
+QUARTERLY PERFORMANCE REVIEW — Q3 2024
+
+────────────────────────────────────────────────────────────────
+EMPLOYEE INFORMATION
+
+Name:             Mark Thompson
+Employee ID:      AMC-0047
+Title:            Regional Sales Manager
+Department:       Sales & Business Development
+Review Period:    July 1 – September 30, 2024
+Date of Review:   October 14, 2024
+Reviewer:         David Chen, CEO
+HR Representative: Sarah Mitchell
+────────────────────────────────────────────────────────────────
+
+RATING SCALE
+  5 — Exceptional    4 — Exceeds Expectations    3 — Meets Expectations
+  2 — Needs Improvement    1 — Unsatisfactory
+
+────────────────────────────────────────────────────────────────
+SECTION A — PERFORMANCE GOALS (SET Q2 2024)
+
+Goal 1: Achieve $1.2M in regional sales revenue for Q3
+Result: $1.38M achieved — 115% of target
+Rating: [ 5 ]
+
+Comments: Mark exceeded his quarterly revenue goal by a significant margin,
+largely driven by two new accounts (Hargrove Industrial and Lakeshore Plastics)
+and a strong renewal cycle with existing clients. Outstanding performance.
+
+────────────────────────────────────────────────────────────────
+Goal 2: Onboard 3 new key accounts
+Result: 4 new accounts onboarded (Hargrove Industrial, Lakeshore Plastics,
+        Tri-State Fabrication, and River Valley Components)
+Rating: [ 5 ]
+
+Comments: All four accounts are generating repeat orders within 60 days of
+onboarding, which is ahead of the typical 90-day ramp. Mark's relationship-
+building approach has been noted by clients in follow-up surveys.
+
+────────────────────────────────────────────────────────────────
+Goal 3: Reduce quote-to-close cycle from 18 days to 14 days
+Result: Average cycle reduced to 13.2 days
+Rating: [ 5 ]
+
+Comments: Mark worked closely with the engineering team to streamline custom
+quote approvals. The SLA agreement signed with the engineering department was
+his initiative and has benefited the entire sales team.
+
+────────────────────────────────────────────────────────────────
+SECTION B — CORE COMPETENCIES
+
+Communication:              [ 4 ]
+Customer Relationship Mgmt: [ 5 ]
+Teamwork & Collaboration:   [ 4 ]
+Problem Solving:            [ 4 ]
+Adherence to Process:       [ 3 ]
+
+Comments on Adherence to Process: Mark has demonstrated a pattern of submitting
+CRM updates after the weekly Monday deadline. While his results are strong, this
+creates downstream reporting issues for finance and leadership. This is a
+recurring item and must improve in Q4.
+
+────────────────────────────────────────────────────────────────
+SECTION C — AREAS FOR DEVELOPMENT
+
+1. CRM discipline: All deal updates must be entered in Salesforce by 9:00 AM
+   Monday. Mark is expected to achieve 100% compliance in Q4.
+
+2. Delegation: As the team grows, Mark should develop his two junior sales reps
+   more intentionally. A mentorship plan should be created by November 1.
+
+────────────────────────────────────────────────────────────────
+SECTION D — Q4 2024 GOALS
+
+1. Achieve $1.35M in regional sales revenue (Q4 target)
+2. Maintain 100% CRM update compliance (tracked weekly)
+3. Develop and submit mentorship plan for junior reps by November 1
+4. Submit RFP for the Consolidated Metals contract by December 6
+
+────────────────────────────────────────────────────────────────
+OVERALL RATING:  [ 4.4 ]  —  Exceeds Expectations
+
+────────────────────────────────────────────────────────────────
+COMPENSATION ACTION
+  [ ] No change at this time
+  [X] Merit increase recommended — effective January 1, 2025
+      Recommended increase: 6.5%
+      Current base: $94,000    Proposed base: $100,110
+
+Note: Pending budget approval by CFO. HR will confirm by November 15.
+
+────────────────────────────────────────────────────────────────
+SIGNATURES
+
+Employee: ________________________________   Date: ____________
+(Signature confirms receipt, not necessarily agreement)
+
+Reviewer: ________________________________   Date: ____________
+
+HR Representative: _______________________   Date: ____________
+────────────────────────────────────────────────────────────────

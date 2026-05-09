@@ -1,0 +1,74 @@
+FROM:     Jennifer Walsh <j.walsh@pinnacledist.com>
+TO:       Patricia Greer <p.greer@gardnerhomegoods.com>
+CC:       Carlos Mendez <c.mendez@pinnacledist.com>;
+          Robert Hayes <r.hayes@pinnacledist.com>
+DATE:     August 19, 2024, 9:42 AM
+SUBJECT:  Welcome to Pinnacle Distribution Group — Onboarding Next Steps
+
+────────────────────────────────────────────────────────────────
+
+Patricia —
+
+On behalf of the entire Pinnacle team, welcome aboard! We're genuinely excited to
+partner with Gardner Home Goods and support your growth into new retail channels
+this fall.
+
+I'm writing to confirm next steps and introduce you to the key members of your
+Pinnacle team:
+
+YOUR DEDICATED TEAM:
+  Account Manager:    Jennifer Walsh (me) — j.walsh@pinnacledist.com, ext. 301
+  Operations Contact: Carlos Mendez — c.mendez@pinnacledist.com, ext. 204
+                      (day-to-day questions, inbound/outbound status, escalations)
+  Billing Contact:    Amy Foster — a.foster@pinnacledist.com, ext. 115
+
+────────────────────────────────────────────────────────────────
+ONBOARDING TIMELINE
+
+Week of August 26:
+  - IT: Please send your WMS/EDI integration contact to Carlos. We use
+    SPS Commerce for EDI; if Gardner uses a different platform, we'll
+    coordinate a mapping session.
+  - Inventory: Your first inbound shipment (3 containers, Ref GARDN-IC-001)
+    is confirmed to arrive September 2. Carlos's team will have a receiving
+    plan ready by August 29.
+  - SOPs: Carlos will send our standard client SOP template by August 23.
+    Please complete and return Section 3 (Returns Disposition) and Section 5
+    (Special Handling) before your first inbound.
+
+Week of September 2 (Go-Live):
+  - First container unloaded and inventoried
+  - You'll receive a Pinnacle portal login for real-time inventory visibility
+  - First weekly inventory report sent every Monday at 8:00 AM ET
+
+────────────────────────────────────────────────────────────────
+KEY AGREEMENTS TO EXECUTE
+
+Please have your legal team review and return the following by August 23:
+  1. Master Service Agreement (attached)
+  2. W-9 / ACH Authorization Form (attached)
+  3. Certificate of Insurance — Gardner must be named as additional insured
+     on Pinnacle's GL policy; our COI is attached for your records
+
+────────────────────────────────────────────────────────────────
+KICKOFF CALL
+
+I've booked a kickoff call for Thursday, August 22 at 11:00 AM ET. Dial-in
+details below:
+
+  Microsoft Teams: Pinnacle External Meeting — [link omitted]
+  Dial-in: (317) 555-8800, Conf ID: 8819#
+  Attendees: Jennifer Walsh, Carlos Mendez (Pinnacle); Patricia Greer (Gardner)
+
+Please come with any questions about the SOP template, the EDI setup, or
+inventory receiving procedures.
+
+Looking forward to a great partnership.
+
+Jennifer Walsh
+Chief Operating Officer
+Pinnacle Distribution Group
+(317) 555-0293 ext. 301
+j.walsh@pinnacledist.com
+
+────────────────────────────────────────────────────────────────

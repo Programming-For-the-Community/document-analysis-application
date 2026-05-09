@@ -1,7 +1,10 @@
+import fs from 'fs';
+
 import {
   S3Client,
   ListObjectsV2Command,
   DeleteObjectsCommand,
+  PutObjectCommand,
 } from '@aws-sdk/client-s3';
 
 import { AWS_STS } from './sts';
@@ -58,5 +61,23 @@ export class AWS_S3 {
     } while (continuationToken);
 
     Logger.info(`Deleted ${totalDeleted} S3 object(s) under prefix: ${prefix}`);
+  }
+
+  public static async uploadDocument(
+    filePath: string,
+    s3Key: string,
+    fileSize: number,
+    config: S3Config
+  ): Promise<void> {
+    Logger.debug(`Uploading ${s3Key} (${fileSize} bytes)`);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: config.documentBucket,
+        Key: s3Key,
+        Body: fs.createReadStream(filePath),
+        ContentLength: fileSize,
+      })
+    );
+    Logger.debug(`Uploaded ${s3Key}`);
   }
 }

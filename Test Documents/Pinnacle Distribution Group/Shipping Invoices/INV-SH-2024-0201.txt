@@ -1,0 +1,61 @@
+PINNACLE DISTRIBUTION GROUP
+SHIPPING / FREIGHT INVOICE
+
+5678 Commerce Way, Indianapolis, IN 46201
+Phone: (317) 555-0293  |  billing@pinnacledist.com
+────────────────────────────────────────────────────────────────
+
+INVOICE #:        INV-SH-2024-0201
+INVOICE DATE:     September 6, 2024
+DUE DATE:         September 20, 2024 (Net 14)
+CLIENT REF #:     BRANDO-PO-5512
+SERVICE PERIOD:   August 26 – September 5, 2024
+ACCOUNT MANAGER:  Jennifer Walsh, COO
+
+────────────────────────────────────────────────────────────────
+BILL TO                              SERVICE LOCATION
+────────────────────────────────────────────────────────────────
+Brandon & Associates Retail, LLC      Pinnacle Distribution Group
+Attn: Accounts Payable                Fulfillment Center — Building 2
+1010 Commerce Plaza, Suite 400        5678 Commerce Way
+Chicago, IL 60601                     Indianapolis, IN 46201
+ap@brandonretail.com
+────────────────────────────────────────────────────────────────
+
+SERVICES RENDERED — OUTBOUND FULFILLMENT
+────────────────────────────────────────────────────────────────
+#   Service Description                           Units    Rate       Total
+────────────────────────────────────────────────────────────────────────────────
+1   Pallet Storage — August billing               82 pal   $14.50/mo $1,189.00
+    (prorated: Aug 26 – Aug 31, 6 days)                    (6/31 days) $229.65
+
+2   Case Pick & Pack                           4,812 cases  $0.78    $3,752.16
+
+3   Outbound LTL Shipments                        18 shpts  $145.00  $2,610.00
+    (carrier coordinated by Pinnacle)
+
+4   Residential Delivery Surcharge                 6 shpts   $28.50    $171.00
+    (UPS surcharge, passed through at cost)
+
+5   Fuel Surcharge — September billing             1 lot    $214.80    $214.80
+    (5.8% of carrier freight, per agreement)
+
+6   Special Handling — Fragile / Floor-loaded      2 shpts   $65.00    $130.00
+
+────────────────────────────────────────────────────────────────────────────────
+
+                                      Subtotal:             $7,107.61
+                                      ──────────────────────────────
+                                      TOTAL DUE:            $7,107.61
+
+Note: 3PL logistics services are exempt from Indiana sales tax (ST-108E on file).
+
+────────────────────────────────────────────────────────────────
+PAYMENT TERMS:    Net 14. Late payments subject to 1.75% monthly service charge.
+PAYMENT METHOD:   ACH preferred. Routing: 074908594, Account: 3310027481.
+                  Reference invoice number on all payments.
+
+────────────────────────────────────────────────────────────────
+Authorized by: Jennifer Walsh, COO
+Pinnacle Distribution Group
+────────────────────────────────────────────────────────────────
