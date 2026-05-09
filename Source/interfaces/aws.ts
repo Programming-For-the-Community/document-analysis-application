@@ -20,8 +20,8 @@ export interface SecretValues {
   COGNITO_USER_POOL_ID: string;
   COGNITO_CLIENT_ID: string;
   S3_BUCKET: string;
-  DYNAMO_PROJECT_STATE_TABLE: string;
-  DYNAMO_PROJECT_ACCESS_TABLE: string;
+  DYNAMODB_PROJECT_STATE_TABLE: string;
+  DYNAMODB_PROJECT_ACCESS_TABLE: string;
   SQS_QUEUE_URL: string;
   SNS_TOPIC_ARN: string;
   NEO4J_PASSWORD: string;

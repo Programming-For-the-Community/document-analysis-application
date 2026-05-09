@@ -23,8 +23,8 @@ export const databaseCxnsConfig: DBConnectionsConfig = {
 export function buildAppConfig(secrets: SecretValues): AppConfig {
   return {
     dynamoDB: {
-      projectStateTable: secrets.DYNAMO_PROJECT_STATE_TABLE,
-      projectAccessTable: secrets.DYNAMO_PROJECT_ACCESS_TABLE,
+      projectStateTable: secrets.DYNAMODB_PROJECT_STATE_TABLE,
+      projectAccessTable: secrets.DYNAMODB_PROJECT_ACCESS_TABLE,
     },
     cognito: {
       userPoolId: secrets.COGNITO_USER_POOL_ID,

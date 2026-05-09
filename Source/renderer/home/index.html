@@ -29,7 +29,21 @@
           <button class="btn-primary" id="new-project-btn">+ New Project</button>
         </div>
 
-        <div id="projects-empty" class="empty-state">
+        <div id="projects-loading" class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading projects…</p>
+        </div>
+
+        <div id="projects-error" class="empty-state hidden">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="20" stroke="#9ca3af" stroke-width="2"/>
+            <path d="M24 14v12M24 32v2" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <p id="projects-error-msg">Failed to load projects.</p>
+          <button class="btn-primary" id="projects-retry-btn">Retry</button>
+        </div>
+
+        <div id="projects-empty" class="empty-state hidden">
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="8" y="6" width="26" height="34" rx="3" stroke="#9ca3af" stroke-width="2" />
             <path d="M14 16h14M14 22h10M14 28h14" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" />
@@ -43,6 +57,32 @@
         <div id="projects-list" class="projects-grid hidden"></div>
       </main>
     </div>
+    <div id="delete-project-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="modal-title">Delete Project</h2>
+        <p class="modal-body">Are you sure you want to delete <strong id="delete-project-name"></strong>? All documents and graph data will be permanently removed.</p>
+        <div class="modal-actions">
+          <button id="delete-project-cancel" class="btn-secondary">Cancel</button>
+          <button id="delete-project-confirm" class="btn-danger">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="new-project-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="modal-title">New Project</h2>
+        <div class="form-group">
+          <label for="new-project-name">Project name</label>
+          <input type="text" id="new-project-name" placeholder="e.g. Legal Contracts Q1" maxlength="100" />
+        </div>
+        <p id="new-project-error" class="error-msg hidden"></p>
+        <div class="modal-actions">
+          <button id="new-project-cancel" class="btn-secondary">Cancel</button>
+          <button id="new-project-submit" class="btn-primary">Create Project</button>
+        </div>
+      </div>
+    </div>
+
     <script src="../../dist/renderer/home/index.js" defer></script>
   </body>
 </html>

@@ -1,0 +1,206 @@
+import crypto from 'crypto';
+
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  QueryCommand,
+  GetCommand,
+  BatchGetCommand,
+  BatchWriteCommand,
+  DeleteCommand,
+  TransactWriteCommand,
+} from '@aws-sdk/lib-dynamodb';
+
+import { AWS_STS } from './sts';
+import { awsConfig } from '../main/config';
+import { DynamoDBConfig } from '../interfaces/app';
+import { ProjectListItem } from '../interfaces/project';
+import { Logger } from '../utils/logger';
+
+export class AWS_DYNAMODB {
+  // Client is created inside init() because it needs STS credentials
+  // that aren't available until AWS_STS.init() has completed.
+  private static client: DynamoDBDocumentClient;
+
+  public static init(): void {
+    const rawClient = new DynamoDBClient({
+      region: awsConfig.region,
+      credentials: {
+        accessKeyId: AWS_STS.credentials.accessKeyId,
+        secretAccessKey: AWS_STS.credentials.secretAccessKey,
+        sessionToken: AWS_STS.credentials.sessionToken,
+      },
+    });
+    this.client = DynamoDBDocumentClient.from(rawClient);
+    Logger.debug(`DynamoDB document client initialized (region: ${awsConfig.region})`);
+  }
+
+  public static async listProjectsForUser(
+    userSub: string,
+    config: DynamoDBConfig
+  ): Promise<ProjectListItem[]> {
+    Logger.debug(`Querying projects accessible by user: ${userSub}`);
+
+    const accessResult = await this.client.send(
+      new QueryCommand({
+        TableName: config.projectAccessTable,
+        KeyConditionExpression: 'user_sub = :sub',
+        ExpressionAttributeValues: { ':sub': userSub },
+      })
+    );
+
+    const accessItems = accessResult.Items ?? [];
+    if (accessItems.length === 0) return [];
+
+    const keys = accessItems.map((item) => ({
+      project_id: item['project_id'] as string,
+      document_id: 'META',
+    }));
+
+    const metaResult = await this.client.send(
+      new BatchGetCommand({
+        RequestItems: {
+          [config.projectStateTable]: { Keys: keys },
+        },
+      })
+    );
+
+    const metaItems = metaResult.Responses?.[config.projectStateTable] ?? [];
+    Logger.info(`Found ${metaItems.length} project(s) for user: ${userSub}`);
+
+    return metaItems.map((item) => ({
+      id: item['project_id'] as string,
+      name: item['project_name'] as string,
+      documentCount: (item['document_count'] as number) ?? 0,
+      lastModified: formatDate(item['updated_at'] as string),
+    }));
+  }
+
+  public static async createProject(
+    projectName: string,
+    ownerSub: string,
+    config: DynamoDBConfig
+  ): Promise<ProjectListItem> {
+    const existing = await this.listProjectsForUser(ownerSub, config);
+    const duplicate = existing.some(
+      (p) => p.name.toLowerCase() === projectName.toLowerCase()
+    );
+    if (duplicate) {
+      throw new Error(`A project named "${projectName}" already exists.`);
+    }
+
+    const projectId = crypto.randomUUID();
+    // S3 prefix uses owner_sub/project_id to avoid special-character issues
+    // with project names and to remain stable if a project is ever renamed.
+    const s3Prefix = `${ownerSub}/${projectId}/`;
+    const now = new Date().toISOString();
+
+    Logger.info(`Creating project "${projectName}" (${projectId}) for owner: ${ownerSub}`);
+
+    await this.client.send(
+      new TransactWriteCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: config.projectStateTable,
+              Item: {
+                project_id: projectId,
+                document_id: 'META',
+                project_name: projectName,
+                owner_sub: ownerSub,
+                s3_prefix: s3Prefix,
+                document_count: 0,
+                created_at: now,
+                updated_at: now,
+              },
+            },
+          },
+          {
+            Put: {
+              TableName: config.projectAccessTable,
+              Item: {
+                user_sub: ownerSub,
+                project_id: projectId,
+              },
+            },
+          },
+        ],
+      })
+    );
+
+    Logger.info(`Project "${projectName}" (${projectId}) created successfully`);
+
+    return {
+      id: projectId,
+      name: projectName,
+      documentCount: 0,
+      lastModified: formatDate(now),
+    };
+  }
+
+  public static async deleteProject(
+    projectId: string,
+    userSub: string,
+    config: DynamoDBConfig
+  ): Promise<string> {
+    Logger.info(`Deleting project ${projectId} for user: ${userSub}`);
+
+    const metaResult = await this.client.send(
+      new GetCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: 'META' },
+      })
+    );
+
+    if (!metaResult.Item) throw new Error('Project not found');
+    const s3Prefix = (metaResult.Item['s3_prefix'] as string | undefined)
+      ?? `${userSub}/${projectId}/`;
+
+    // Query all rows for this project (META + all document rows)
+    const allItemsResult = await this.client.send(
+      new QueryCommand({
+        TableName: config.projectStateTable,
+        KeyConditionExpression: 'project_id = :pid',
+        ExpressionAttributeValues: { ':pid': projectId },
+      })
+    );
+
+    const deleteRequests = (allItemsResult.Items ?? []).map((item) => ({
+      DeleteRequest: {
+        Key: {
+          project_id: item['project_id'] as string,
+          document_id: item['document_id'] as string,
+        },
+      },
+    }));
+
+    // BatchWriteItem accepts at most 25 requests per call
+    for (let i = 0; i < deleteRequests.length; i += 25) {
+      await this.client.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [config.projectStateTable]: deleteRequests.slice(i, i + 25),
+          },
+        })
+      );
+    }
+
+    await this.client.send(
+      new DeleteCommand({
+        TableName: config.projectAccessTable,
+        Key: { user_sub: userSub, project_id: projectId },
+      })
+    );
+
+    Logger.info(`Project ${projectId} removed from DynamoDB`);
+    return s3Prefix;
+  }
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}

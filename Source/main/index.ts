@@ -4,9 +4,13 @@ import { app, BrowserWindow, dialog, Menu } from 'electron';
 import { AWS_STS } from '../aws/sts';
 import { AWS_SECRETS } from '../aws/secrets';
 import { AWS_COGNITO } from '../aws/cognito';
+import { AWS_DYNAMODB } from '../aws/dynamodb';
+import { AWS_S3 } from '../aws/s3';
 import { awsConfig, buildAppConfig } from './config';
 import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';
+import { registerNavHandlers } from './handlers/nav';
+import { registerProjectHandlers } from './handlers/projects';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -50,6 +54,11 @@ registerAuthHandlers(
 );
 
 registerConfigHandlers(() => appConfig);
+registerNavHandlers(() => mainWindow);
+registerProjectHandlers(
+  () => appConfig,
+  () => currentTokens
+);
 
 app.whenReady().then(async () => {
   Logger.info('Electron app ready — starting AWS initialization sequence');
@@ -65,6 +74,8 @@ app.whenReady().then(async () => {
     Logger.info('App config assembled from Secrets Manager values');
 
     AWS_COGNITO.init();
+    AWS_DYNAMODB.init();
+    AWS_S3.init();
 
     createWindow();
     Logger.info('Application startup complete');
