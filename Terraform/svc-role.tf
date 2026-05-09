@@ -63,7 +63,8 @@ resource "aws_iam_role_policy" "svc_role_s3" {
           "s3:CreateMultipartUpload",
           "s3:UploadPart",
           "s3:CompleteMultipartUpload",
-          "s3:AbortMultipartUpload"
+          "s3:AbortMultipartUpload",
+          "s3:DeleteObjects"
         ]
         Resource = [
           aws_s3_bucket.documents.arn,
@@ -94,7 +95,8 @@ resource "aws_iam_role_policy" "svc_role_dynamodb" {
           "dynamodb:Query",
           "dynamodb:Scan",
           "dynamodb:BatchGetItem",
-          "dynamodb:TransactWriteItems"
+          "dynamodb:TransactWriteItems",
+          "dynamodb:BatchWriteItem"
         ]
         Resource = [
           aws_dynamodb_table.project_state.arn,
