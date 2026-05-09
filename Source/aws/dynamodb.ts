@@ -5,6 +5,7 @@ import {
   DynamoDBDocumentClient,
   QueryCommand,
   GetCommand,
+  UpdateCommand,
   BatchGetCommand,
   BatchWriteCommand,
   DeleteCommand,
@@ -90,8 +91,6 @@ export class AWS_DYNAMODB {
     }
 
     const projectId = crypto.randomUUID();
-    // S3 prefix uses owner_sub/project_id to avoid special-character issues
-    // with project names and to remain stable if a project is ever renamed.
     const s3Prefix = `${ownerSub}/${projectId}/`;
     const now = new Date().toISOString();
 
@@ -138,6 +137,37 @@ export class AWS_DYNAMODB {
     };
   }
 
+  public static async renameProject(
+    projectId: string,
+    newName: string,
+    userSub: string,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    const existing = await this.listProjectsForUser(userSub, config);
+    const duplicate = existing.some(
+      (p) => p.id !== projectId && p.name.toLowerCase() === newName.toLowerCase()
+    );
+    if (duplicate) {
+      throw new Error(`A project named "${newName}" already exists.`);
+    }
+
+    const now = new Date().toISOString();
+
+    await this.client.send(
+      new UpdateCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: 'META' },
+        UpdateExpression: 'SET project_name = :name, updated_at = :now',
+        ExpressionAttributeValues: {
+          ':name': newName,
+          ':now': now,
+        },
+      })
+    );
+
+    Logger.info(`Project ${projectId} renamed to "${newName}"`);
+  }
+
   public static async deleteProject(
     projectId: string,
     userSub: string,
@@ -153,10 +183,8 @@ export class AWS_DYNAMODB {
     );
 
     if (!metaResult.Item) throw new Error('Project not found');
-    const s3Prefix = (metaResult.Item['s3_prefix'] as string | undefined)
-      ?? `${userSub}/${projectId}/`;
+    const s3Prefix = metaResult.Item['s3_prefix'] as string;
 
-    // Query all rows for this project (META + all document rows)
     const allItemsResult = await this.client.send(
       new QueryCommand({
         TableName: config.projectStateTable,

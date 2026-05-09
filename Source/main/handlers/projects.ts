@@ -9,14 +9,17 @@ import { Logger } from '../../utils/logger';
 
 function extractSub(idToken: string): string {
   const base64 = idToken.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
-  const payload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8')) as Record<string, unknown>;
+  const payload = JSON.parse(
+    Buffer.from(base64, 'base64').toString('utf-8')
+  ) as Record<string, unknown>;
   const sub = payload['sub'];
   if (typeof sub !== 'string' || !sub) throw new Error('ID token missing sub claim');
   return sub;
 }
 
-type ProjectListResult = { success: boolean; projects?: ProjectListItem[]; error?: string };
+type ProjectListResult   = { success: boolean; projects?: ProjectListItem[]; error?: string };
 type ProjectCreateResult = { success: boolean; project?: ProjectListItem; error?: string };
+type ProjectRenameResult = { success: boolean; error?: string };
 type ProjectDeleteResult = { success: boolean; error?: string };
 
 export function registerProjectHandlers(
@@ -56,12 +59,38 @@ export function registerProjectHandlers(
 
     try {
       const userSub = extractSub(tokens.idToken);
-      const project = await AWS_DYNAMODB.createProject(projectName.trim(), userSub, config.dynamoDB);
+      const project = await AWS_DYNAMODB.createProject(
+        projectName.trim(), userSub, config.dynamoDB
+      );
       Logger.info(`Project "${project.name}" created via IPC`);
       return { success: true, project };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create project';
       Logger.error(`project:create error: ${message}`);
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle('project:rename', async (_event, projectId: string, newName: string): Promise<ProjectRenameResult> => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+
+    if (!config || !tokens || typeof tokens === 'boolean') {
+      return { success: false, error: 'App not ready' };
+    }
+
+    if (!newName?.trim()) {
+      return { success: false, error: 'Project name is required' };
+    }
+
+    try {
+      const userSub = extractSub(tokens.idToken);
+      await AWS_DYNAMODB.renameProject(projectId, newName.trim(), userSub, config.dynamoDB);
+      Logger.info(`Project ${projectId} renamed to "${newName.trim()}" via IPC`);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to rename project';
+      Logger.error(`project:rename error: ${message}`);
       return { success: false, error: message };
     }
   });

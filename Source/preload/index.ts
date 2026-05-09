@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('project:list'),
     create: (projectName: string): Promise<{ success: boolean; project?: { id: string; name: string; documentCount: number; lastModified: string }; error?: string }> =>
       ipcRenderer.invoke('project:create', projectName),
+    rename: (projectId: string, newName: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:rename', projectId, newName),
     delete: (projectId: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:delete', projectId),
   },

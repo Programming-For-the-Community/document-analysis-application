@@ -318,7 +318,7 @@ body.page-home {
   display: flex;
 }
 
-.btn-card-delete {
+.btn-card-action {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,8 +333,13 @@ body.page-home {
   flex-shrink: 0;
 }
 
-.project-card:hover .btn-card-delete {
+.project-card:hover .btn-card-action {
   color: var(--text-muted);
+}
+
+.btn-card-action:hover {
+  color: var(--text) !important;
+  background: var(--bg);
 }
 
 .btn-card-delete:hover {

@@ -57,6 +57,21 @@
         <div id="projects-list" class="projects-grid hidden"></div>
       </main>
     </div>
+    <div id="rename-project-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="modal-title">Rename Project</h2>
+        <div class="form-group">
+          <label for="rename-project-name">New name</label>
+          <input type="text" id="rename-project-name" maxlength="100" />
+        </div>
+        <p id="rename-project-error" class="error-msg hidden"></p>
+        <div class="modal-actions">
+          <button id="rename-project-cancel" class="btn-secondary">Cancel</button>
+          <button id="rename-project-submit" class="btn-primary">Rename</button>
+        </div>
+      </div>
+    </div>
+
     <div id="delete-project-modal" class="modal-overlay hidden">
       <div class="modal-card">
         <h2 class="modal-title">Delete Project</h2>

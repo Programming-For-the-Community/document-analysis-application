@@ -29,6 +29,7 @@ declare global {
       projects: {
         list: () => Promise<{ success: boolean; projects?: ProjectListItem[]; error?: string }>;
         create: (projectName: string) => Promise<{ success: boolean; project?: ProjectListItem; error?: string }>;
+        rename: (projectId: string, newName: string) => Promise<{ success: boolean; error?: string }>;
         delete: (projectId: string) => Promise<{ success: boolean; error?: string }>;
       };
     };

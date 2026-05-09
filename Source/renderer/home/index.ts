@@ -20,7 +20,12 @@ function createProjectCard(project: ProjectListItem): HTMLElement {
           <path d="M14 17h3M15.5 15.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </div>
-      <button class="btn-card-delete" title="Delete project" aria-label="Delete ${project.name}">
+      <button class="btn-card-action" title="Rename project" aria-label="Rename ${project.name}">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9.5 1.5a1.414 1.414 0 012 2L4 11H2v-2L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="btn-card-action btn-card-delete" title="Delete project" aria-label="Delete ${project.name}">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M5 1h5M1 3h13M6 6v5M9 6v5M2 3l1 10a1 1 0 001 1h7a1 1 0 001-1l1-10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -34,7 +39,11 @@ function createProjectCard(project: ProjectListItem): HTMLElement {
   card.addEventListener('click', () => {
     void window.electron.nav.openProject({ id: project.id, name: project.name });
   });
-  const deleteBtn = card.querySelector('.btn-card-delete');
+  const [renameBtn, deleteBtn] = card.querySelectorAll('.btn-card-action');
+  renameBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openRenameModal(project.id, project.name);
+  });
   deleteBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     openDeleteModal(project.id, project.name);
@@ -99,6 +108,30 @@ async function init(): Promise<void> {
 
 // ── Modal helpers ────────────────────────────────────────────────────────────
 
+let pendingRenameId: string | null = null;
+
+function openRenameModal(projectId: string, currentName: string): void {
+  pendingRenameId = projectId;
+  const input = document.getElementById('rename-project-name') as HTMLInputElement;
+  const errorEl = document.getElementById('rename-project-error');
+  input.value = currentName;
+  errorEl?.classList.add('hidden');
+  document.getElementById('rename-project-modal')?.classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function closeRenameModal(): void {
+  pendingRenameId = null;
+  document.getElementById('rename-project-modal')?.classList.add('hidden');
+}
+
+function setRenameError(message: string): void {
+  const errorEl = document.getElementById('rename-project-error');
+  if (errorEl) errorEl.textContent = message;
+  errorEl?.classList.remove('hidden');
+}
+
 let pendingDeleteId: string | null = null;
 
 function openDeleteModal(projectId: string, projectName: string): void {
@@ -133,6 +166,51 @@ function setModalError(message: string): void {
 }
 
 // ── Event listeners ──────────────────────────────────────────────────────────
+
+document.getElementById('rename-project-cancel')?.addEventListener('click', () => {
+  closeRenameModal();
+});
+
+document.getElementById('rename-project-modal')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeRenameModal();
+});
+
+document.getElementById('rename-project-submit')?.addEventListener('click', async () => {
+  if (!pendingRenameId) return;
+
+  const input = document.getElementById('rename-project-name') as HTMLInputElement;
+  const newName = input.value.trim();
+
+  if (!newName) {
+    setRenameError('Please enter a project name.');
+    return;
+  }
+
+  const submitBtn = document.getElementById('rename-project-submit') as HTMLButtonElement;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Renaming…';
+
+  const result = await window.electron.projects.rename(pendingRenameId, newName);
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Rename';
+
+  if (!result.success) {
+    setRenameError(result.error ?? 'Failed to rename project.');
+    return;
+  }
+
+  closeRenameModal();
+  void loadProjects();
+});
+
+document.getElementById('rename-project-name')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    (document.getElementById('rename-project-submit') as HTMLButtonElement | null)?.click();
+  } else if (e.key === 'Escape') {
+    closeRenameModal();
+  }
+});
 
 document.getElementById('delete-project-cancel')?.addEventListener('click', () => {
   closeDeleteModal();
