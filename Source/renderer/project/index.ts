@@ -127,20 +127,13 @@ async function loadProjectDocuments(): Promise<void> {
 
 // ── Upload ────────────────────────────────────────────────────────────────────
 
-async function handleProjectUpload(fileList: FileList): Promise<void> {
-  if (!currentProjectId || fileList.length === 0) return;
-
-  const files = Array.from(fileList).map((f) => ({
-    name: f.name,
-    path: window.electron.utils.getFilePath(f),
-    size: f.size,
-  }));
+async function uploadFiles(files: Array<{ name: string; path: string; size: number }>): Promise<void> {
+  if (!currentProjectId || files.length === 0) return;
 
   showProjectUploadStatus(`Uploading ${files.length} file${files.length !== 1 ? 's' : ''}…`);
 
   try {
     const result = await window.electron.documents.upload(currentProjectId, files);
-
     hideProjectUploadStatus();
 
     if (!result.success) {
@@ -155,6 +148,35 @@ async function handleProjectUpload(fileList: FileList): Promise<void> {
   }
 
   await loadProjectDocuments();
+}
+
+async function handleDocumentSelect(): Promise<void> {
+  const result = await window.electron.documents.selectFiles();
+  if (!result.success || result.files.length === 0) return;
+  await uploadFiles(result.files);
+}
+
+async function handleFolderSelect(): Promise<void> {
+  const result = await window.electron.documents.selectFolder();
+  if (!result.success || result.files.length === 0) return;
+  await uploadFiles(result.files);
+}
+
+function toggleAddDocsMenu(): void {
+  document.getElementById('add-docs-menu')?.classList.toggle('hidden');
+}
+
+function closeAddDocsMenu(): void {
+  document.getElementById('add-docs-menu')?.classList.add('hidden');
+}
+
+function handleDropUpload(fileList: FileList): void {
+  const files = Array.from(fileList).map((f) => ({
+    name: f.name,
+    path: window.electron.utils.getFilePath(f),
+    size: f.size,
+  }));
+  void uploadFiles(files);
 }
 
 // ── Drag-and-drop ─────────────────────────────────────────────────────────────
@@ -176,30 +198,31 @@ docsPanel?.addEventListener('drop', (e) => {
   e.preventDefault();
   document.getElementById('docs-upload-zone')?.classList.remove('drag-over');
   const files = e.dataTransfer?.files;
-  if (files && files.length > 0) void handleProjectUpload(files);
+  if (files && files.length > 0) handleDropUpload(files);
 });
 
-// ── File input wiring ─────────────────────────────────────────────────────────
+// ── Button wiring ─────────────────────────────────────────────────────────────
 
-const fileInput = document.getElementById('file-input') as HTMLInputElement;
-const folderInput = document.getElementById('folder-input') as HTMLInputElement;
+document.getElementById('add-docs-btn')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleAddDocsMenu();
+});
 
-document.getElementById('add-files-btn')?.addEventListener('click', () => fileInput.click());
-document.getElementById('add-folder-btn')?.addEventListener('click', () => folderInput.click());
+document.getElementById('add-files-option')?.addEventListener('click', () => {
+  closeAddDocsMenu();
+  void handleDocumentSelect();
+});
 
-document.getElementById('docs-upload-zone')?.addEventListener('click', () => fileInput.click());
+document.getElementById('add-folder-option')?.addEventListener('click', () => {
+  closeAddDocsMenu();
+  void handleFolderSelect();
+});
+
+document.addEventListener('click', closeAddDocsMenu);
+
+document.getElementById('docs-upload-zone')?.addEventListener('click', () => void handleDocumentSelect());
 document.getElementById('docs-upload-zone')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') fileInput.click();
-});
-
-fileInput?.addEventListener('change', () => {
-  if (fileInput.files) void handleProjectUpload(fileInput.files);
-  fileInput.value = '';
-});
-
-folderInput?.addEventListener('change', () => {
-  if (folderInput.files) void handleProjectUpload(folderInput.files);
-  folderInput.value = '';
+  if (e.key === 'Enter' || e.key === ' ') void handleDocumentSelect();
 });
 
 // ── Navigation listeners ──────────────────────────────────────────────────────

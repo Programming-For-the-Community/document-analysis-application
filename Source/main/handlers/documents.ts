@@ -1,6 +1,8 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
-import { ipcMain } from 'electron';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
 
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_S3 } from '../../aws/s3';
@@ -21,6 +23,20 @@ type DocumentListResult = {
   documents?: DocumentRecord[];
   error?: string;
 };
+
+function collectFiles(
+  dir: string,
+  results: Array<{ name: string; path: string; size: number }>
+): void {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectFiles(fullPath, results);
+    } else if (entry.isFile()) {
+      results.push({ name: entry.name, path: fullPath, size: fs.statSync(fullPath).size });
+    }
+  }
+}
 
 export function registerDocumentHandlers(
   getAppConfig: () => AppConfig | null,
@@ -83,6 +99,45 @@ export function registerDocumentHandlers(
       }
     }
   );
+
+  ipcMain.handle('document:select-files', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win ?? new BrowserWindow(), {
+      title: 'Select Files',
+      properties: ['openFile', 'multiSelections'],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: true, files: [] };
+    }
+
+    const files = result.filePaths.map((filePath) => ({
+      name: path.basename(filePath),
+      path: filePath,
+      size: fs.statSync(filePath).size,
+    }));
+
+    Logger.debug(`File selection returned ${files.length} file(s)`);
+    return { success: true, files };
+  });
+
+  ipcMain.handle('document:select-folder', async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win ?? new BrowserWindow(), {
+      title: 'Select Folder',
+      properties: ['openDirectory'],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { success: true, files: [] };
+    }
+
+    const files: Array<{ name: string; path: string; size: number }> = [];
+    collectFiles(result.filePaths[0]!, files);
+
+    Logger.debug(`Folder selection returned ${files.length} file(s)`);
+    return { success: true, files };
+  });
 
   ipcMain.handle(
     'document:list',

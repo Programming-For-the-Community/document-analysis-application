@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('project:delete', projectId),
   },
   documents: {
+    selectFiles: () => ipcRenderer.invoke('document:select-files'),
+    selectFolder: () => ipcRenderer.invoke('document:select-folder'),
     upload: (
       projectId: string,
       files: Array<{ name: string; path: string; size: number }>

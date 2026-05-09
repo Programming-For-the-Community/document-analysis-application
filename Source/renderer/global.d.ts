@@ -37,6 +37,8 @@ declare global {
         delete: (projectId: string) => Promise<{ success: boolean; error?: string }>;
       };
       documents: {
+        selectFiles: () => Promise<{ success: boolean; files: Array<{ name: string; path: string; size: number }> }>;
+        selectFolder: () => Promise<{ success: boolean; files: Array<{ name: string; path: string; size: number }> }>;
         upload: (
           projectId: string,
           files: Array<{ name: string; path: string; size: number }>
