@@ -183,10 +183,7 @@ resource "aws_iam_role_policy" "svc_role_bedrock" {
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream"
         ]
-        Resource = [
-          for model in var.bedrock_models :
-          "arn:aws:bedrock:${var.region}::foundation-model/${model}"
-        ]
+        Resource = "arn:aws:bedrock:${var.region}::foundation-model/${var.bedrock_model}"
       }
     ]
   })

@@ -38,13 +38,10 @@ variable "user_arn" {
   type        = string
 }
 
-variable "bedrock_models" {
-  description = "List of Bedrock model ARNs the service role is permitted to invoke"
-  type        = list(string)
-  default = [
-    "anthropic.claude-3-5-sonnet-20241022-v2:0",
-    "anthropic.claude-3-haiku-20240307-v1:0"
-  ]
+variable "bedrock_model" {
+  description = "Bedrock model ID used for relationship extraction"
+  type        = string
+  default     = "anthropic.claude-haiku-4-5-20251001-v1:0"
 }
 
 variable "secrets_manager_path" {
@@ -70,3 +67,4 @@ variable "qdrant_api_key" {
   type        = string
   sensitive   = true
 }
+

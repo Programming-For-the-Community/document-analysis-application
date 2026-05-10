@@ -13,8 +13,9 @@ resource "aws_secretsmanager_secret_version" "app_config" {
     DYNAMODB_PROJECT_ACCESS_TABLE = aws_dynamodb_table.project_access.name
     SQS_QUEUE_URL                 = aws_sqs_queue.textract_results.url
     SNS_TOPIC_ARN                 = aws_sns_topic.textract_results.arn
-    SVC_PWD                       = var.svc_acct_password
+    BEDROCK_MODEL_ID              = var.bedrock_model
     QDRANT_KEY                    = var.qdrant_api_key
+    SVC_PWD                       = var.svc_acct_password
     SVC_USER                      = var.svc_acct_username
   })
 }
