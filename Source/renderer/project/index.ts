@@ -64,12 +64,22 @@ function showProjectUploadError(message: string): void {
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 
+const STATUS_BADGE: Record<ProcessingStatus, { label: string; cls: string }> = {
+  UNPROCESSED: { label: 'not processed', cls: 'doc-status-badge doc-status-unprocessed' },
+  QUEUED:      { label: 'queued',         cls: 'doc-status-badge doc-status-queued' },
+  PROCESSING:  { label: 'processing',     cls: 'doc-status-badge doc-status-processing' },
+  COMPLETE:    { label: 'analyzed',       cls: 'doc-status-badge doc-status-complete' },
+  FAILED:      { label: 'failed',         cls: 'doc-status-badge doc-status-failed' },
+};
+
 function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElement {
   const item = document.createElement('div');
   item.className = 'doc-item';
   const duplicateBadge = isDuplicate
     ? `<span class="doc-duplicate-badge" title="Another document with this name exists in this project">duplicate</span>`
     : '';
+  const { label, cls } = STATUS_BADGE[doc.processingStatus];
+  const statusBadge = `<span class="${cls}">${label}</span>`;
   item.innerHTML = `
     <div class="doc-item-icon">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -81,6 +91,7 @@ function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElem
       <div class="doc-item-name-row">
         <span class="doc-item-name">${doc.documentName}</span>
         ${duplicateBadge}
+        ${statusBadge}
       </div>
       <span class="doc-item-meta">${formatProjectFileSize(doc.fileSize)} · Uploaded ${formatProjectUploadDate(doc.uploadedAt)}</span>
     </div>

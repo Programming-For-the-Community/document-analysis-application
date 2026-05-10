@@ -24,6 +24,7 @@ export interface SecretValues {
   DYNAMODB_PROJECT_ACCESS_TABLE: string;
   SQS_QUEUE_URL: string;
   SNS_TOPIC_ARN: string;
+  BEDROCK_MODEL_ID: string;
   NEO4J_PASSWORD: string;
   QDRANT_API_KEY: string;
 }

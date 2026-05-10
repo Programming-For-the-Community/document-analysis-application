@@ -6,6 +6,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_S3 } from '../../aws/s3';
+import { AWS_TEXTRACT } from '../../aws/textract';
 import { AppConfig } from '../../interfaces/app';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
@@ -38,6 +39,29 @@ function collectFiles(
   }
 }
 
+async function enqueueDocument(
+  doc: DocumentRecord,
+  config: AppConfig
+): Promise<void> {
+  try {
+    await AWS_TEXTRACT.startDocumentAnalysis(
+      doc.s3Key,
+      config.s3.documentBucket,
+      config.sns.topicArn,
+      doc.documentId
+    );
+    await AWS_DYNAMODB.updateDocumentStatus(
+      doc.projectId,
+      doc.documentId,
+      'QUEUED',
+      config.dynamoDB
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    Logger.error(`Failed to enqueue document ${doc.documentId}: ${message}`);
+  }
+}
+
 export function registerDocumentHandlers(
   getAppConfig: () => AppConfig | null,
   getTokens: () => CognitoAuthResult | null
@@ -56,7 +80,7 @@ export function registerDocumentHandlers(
         const meta = await AWS_DYNAMODB.getProjectMeta(projectId, config.dynamoDB);
         if (!meta) return { success: false, error: 'Project not found' };
 
-        const { s3Prefix } = meta;
+        const { s3Prefix, ownerSub, projectName } = meta;
         const uploaded: DocumentRecord[] = [];
         const failed: { name: string; error: string }[] = [];
 
@@ -71,15 +95,20 @@ export function registerDocumentHandlers(
             const record: DocumentRecord = {
               documentId,
               projectId,
+              projectName,
+              ownerSub,
               documentName: file.name,
               s3Key,
               fileSize: file.size,
               uploadedAt: now,
+              processingStatus: 'UNPROCESSED',
             };
 
             await AWS_DYNAMODB.addDocumentRecord(record, config.dynamoDB);
-            uploaded.push(record);
             Logger.info(`Uploaded document: ${file.name} → ${s3Key}`);
+
+            await enqueueDocument(record, config);
+            uploaded.push({ ...record, processingStatus: 'QUEUED' });
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Upload failed';
             Logger.error(`Failed to upload "${file.name}": ${message}`);
@@ -151,6 +180,14 @@ export function registerDocumentHandlers(
 
       try {
         const documents = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
+
+        // Fire-and-forget: enqueue any documents that were never sent to Textract
+        const unprocessed = documents.filter((d) => d.processingStatus === 'UNPROCESSED');
+        if (unprocessed.length > 0) {
+          Logger.info(`Enqueueing ${unprocessed.length} unprocessed document(s) for project ${projectId}`);
+          void Promise.all(unprocessed.map((doc) => enqueueDocument(doc, config)));
+        }
+
         return { success: true, documents };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load documents';

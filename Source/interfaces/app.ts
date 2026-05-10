@@ -31,12 +31,17 @@ export interface SQSConfig {
   queueUrl: string;
 }
 
+export interface BedrockConfig {
+  modelId: string;
+}
+
 export interface AppConfig {
   dynamoDB: DynamoDBConfig;
   cognito: CognitoConfig;
   s3: S3Config;
   sns: SNSConfig;
   sqs: SQSConfig;
+  bedrock: BedrockConfig;
   neo4j: Neo4JConfig;
   qdrant: QdrantConfig;
 }

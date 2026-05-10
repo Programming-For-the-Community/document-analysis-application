@@ -10,6 +10,13 @@ resource "aws_iam_role" "svc_role" {
           AWS = var.user_arn
         }
         Action = "sts:AssumeRole"
+      },
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "textract.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
       }
     ]
   })
@@ -38,6 +45,25 @@ resource "aws_iam_role_policy" "svc_role_secrets" {
           "secretsmanager:DescribeSecret"
         ]
         Resource = "arn:aws:secretsmanager:${var.region}:${var.account_id}:secret:${var.secrets_manager_path}*"
+      }
+    ]
+  })
+}
+
+# -------------------------------------------------------
+# SNS — publish (used by Textract when it assumes this role to notify completion)
+# -------------------------------------------------------
+resource "aws_iam_role_policy" "svc_role_sns" {
+  name = "doc-analysis-sns"
+  role = aws_iam_role.svc_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "sns:Publish"
+        Resource = aws_sns_topic.textract_results.arn
       }
     ]
   })

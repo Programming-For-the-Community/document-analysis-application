@@ -39,6 +39,9 @@ export function buildAppConfig(secrets: SecretValues): AppConfig {
     sqs: {
       queueUrl: secrets.SQS_QUEUE_URL,
     },
+    bedrock: {
+      modelId: secrets.BEDROCK_MODEL_ID,
+    },
     neo4j: {
       uri: process.env['NEO4J_URI'] || '',
       user: 'neo4j',

@@ -63,12 +63,17 @@ declare global {
     lastModified: string;
   }
 
+  type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED';
+
   interface DocumentRecord {
     documentId: string;
     projectId: string;
+    projectName: string;
+    ownerSub: string;
     documentName: string;
     s3Key: string;
     fileSize: number;
     uploadedAt: string;
+    processingStatus: ProcessingStatus;
   }
 }

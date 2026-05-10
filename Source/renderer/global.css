@@ -735,6 +735,45 @@ body.page-project {
   padding: 1px 6px;
 }
 
+.doc-status-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 1px 6px;
+  border: 1px solid;
+}
+
+.doc-status-unprocessed {
+  color: #6b7280;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.doc-status-queued {
+  color: #1e40af;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.doc-status-processing {
+  color: #6d28d9;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.doc-status-complete {
+  color: #065f46;
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.doc-status-failed {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
 .doc-item-meta {
   font-size: 12px;
   color: var(--text-muted);

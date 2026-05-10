@@ -17,7 +17,7 @@ import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
 import { DynamoDBConfig } from '../interfaces/app';
 import { ProjectListItem } from '../interfaces/project';
-import { DocumentRecord } from '../interfaces/document';
+import { DocumentRecord, ProcessingStatus } from '../interfaces/document';
 import { Logger } from '../utils/logger';
 
 export class AWS_DYNAMODB {
@@ -229,7 +229,7 @@ export class AWS_DYNAMODB {
   public static async getProjectMeta(
     projectId: string,
     config: DynamoDBConfig
-  ): Promise<{ s3Prefix: string } | null> {
+  ): Promise<{ s3Prefix: string; ownerSub: string; projectName: string } | null> {
     const result = await this.client.send(
       new GetCommand({
         TableName: config.projectStateTable,
@@ -237,7 +237,11 @@ export class AWS_DYNAMODB {
       })
     );
     if (!result.Item) return null;
-    return { s3Prefix: result.Item['s3_prefix'] as string };
+    return {
+      s3Prefix: result.Item['s3_prefix'] as string,
+      ownerSub: result.Item['owner_sub'] as string,
+      projectName: result.Item['project_name'] as string,
+    };
   }
 
   public static async addDocumentRecord(
@@ -250,14 +254,34 @@ export class AWS_DYNAMODB {
         Item: {
           project_id: record.projectId,
           document_id: record.documentId,
+          project_name: record.projectName,
+          owner_sub: record.ownerSub,
           document_name: record.documentName,
           s3_key: record.s3Key,
           file_size: record.fileSize,
           uploaded_at: record.uploadedAt,
+          processing_status: record.processingStatus,
         },
       })
     );
     Logger.debug(`Document record created: ${record.documentId}`);
+  }
+
+  public static async updateDocumentStatus(
+    projectId: string,
+    documentId: string,
+    status: ProcessingStatus,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new UpdateCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: documentId },
+        UpdateExpression: 'SET processing_status = :status',
+        ExpressionAttributeValues: { ':status': status },
+      })
+    );
+    Logger.debug(`Document ${documentId} status → ${status}`);
   }
 
   public static async incrementDocumentCount(
@@ -295,10 +319,13 @@ export class AWS_DYNAMODB {
     return items.map((item) => ({
       documentId: item['document_id'] as string,
       projectId: item['project_id'] as string,
+      projectName: (item['project_name'] as string) ?? '',
+      ownerSub: (item['owner_sub'] as string) ?? '',
       documentName: item['document_name'] as string,
       s3Key: item['s3_key'] as string,
       fileSize: item['file_size'] as number,
       uploadedAt: item['uploaded_at'] as string,
+      processingStatus: ((item['processing_status'] as ProcessingStatus) ?? 'UNPROCESSED'),
     }));
   }
 }
