@@ -1008,4 +1008,5 @@ body.page-project {
   color: var(--error);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  white-space: pre-line;
 }

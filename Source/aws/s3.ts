@@ -92,6 +92,13 @@ export class AWS_S3 {
     return (await result.Body?.transformToString()) ?? '';
   }
 
+  public static async getObjectBytes(key: string, config: S3Config): Promise<Uint8Array> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: config.documentBucket, Key: key })
+    );
+    return (await result.Body?.transformToByteArray()) ?? new Uint8Array();
+  }
+
   public static async putJson(key: string, data: unknown, config: S3Config): Promise<void> {
     await this.client.send(
       new PutObjectCommand({

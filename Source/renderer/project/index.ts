@@ -330,8 +330,27 @@ async function uploadFiles(files: Array<{ name: string; path: string; size: numb
     if (!result.success) {
       showProjectUploadError(result.error ?? 'Upload failed.');
     } else if (result.failed && result.failed.length > 0) {
-      const names = result.failed.map((f) => f.name).join(', ');
-      showProjectUploadError(`Failed to upload: ${names}`);
+      const uploadedCount = result.uploaded?.length ?? 0;
+      const lines: string[] = [];
+
+      if (uploadedCount > 0) {
+        lines.push(`${uploadedCount} file${uploadedCount !== 1 ? 's' : ''} uploaded successfully.`);
+      }
+
+      // Group failures by error reason so each distinct reason is one line
+      const byError = new Map<string, string[]>();
+      for (const f of result.failed) {
+        const group = byError.get(f.error) ?? [];
+        group.push(f.name);
+        byError.set(f.error, group);
+      }
+      for (const [error, names] of byError) {
+        const nameList =
+          names.length > 3 ? `${names.slice(0, 3).join(', ')} and ${names.length - 3} more` : names.join(', ');
+        lines.push(`Could not upload ${nameList}: ${error}`);
+      }
+
+      showProjectUploadError(lines.join('\n'));
     }
   } catch {
     hideProjectUploadStatus();

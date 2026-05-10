@@ -7,7 +7,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
-import { AWS_BEDROCK } from '../../aws/bedrock';
+import { AWS_BEDROCK, BedrockDocFormat } from '../../aws/bedrock';
 import { Neo4J } from '../../aws/neo4j';
 import { Qdrant } from '../../aws/qdrant';
 import { AppConfig } from '../../interfaces/app';
@@ -70,6 +70,17 @@ function staleProcessingResetStatus(doc: DocumentRecord): 'QUEUED' | 'UNPROCESSE
 
 const TEXTRACT_EXTENSIONS = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.tif']);
 const TEXT_EXTENSIONS = new Set(['.txt', '.csv', '.md']);
+const BEDROCK_DOC_EXTENSIONS = new Set(['.doc', '.docx', '.xls', '.xlsx', '.html', '.htm']);
+const BEDROCK_FORMAT_MAP: Record<string, string> = {
+  '.doc': 'doc', '.docx': 'docx',
+  '.xls': 'xls', '.xlsx': 'xlsx',
+  '.html': 'html', '.htm': 'html',
+};
+const SUPPORTED_EXTENSIONS = new Set([
+  ...TEXTRACT_EXTENSIONS, ...TEXT_EXTENSIONS, ...BEDROCK_DOC_EXTENSIONS,
+]);
+const ACCEPTED_TYPES_MSG =
+  'Unsupported file type. Accepted: PDF, PNG, JPG, TIFF, TXT, CSV, MD, DOC, DOCX, XLS, XLSX, HTML';
 
 async function enqueueDocument(
   doc: DocumentRecord,
@@ -144,6 +155,50 @@ async function enqueueDocument(
     return;
   }
 
+  if (BEDROCK_DOC_EXTENSIONS.has(ext)) {
+    const format = BEDROCK_FORMAT_MAP[ext] as BedrockDocFormat;
+    try {
+      Logger.info(`${docTag} Office/HTML document — extracting text via Bedrock document API`);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'PROCESSING', config.dynamoDB);
+      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+        projectId: doc.projectId, documentId: doc.documentId, status: 'PROCESSING',
+      });
+
+      const bytes = await AWS_S3.getObjectBytes(doc.s3Key, config.s3);
+      const text = await AWS_BEDROCK.extractTextFromDocument(bytes, format, doc.documentName);
+
+      await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
+
+      const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
+      const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
+      await AWS_S3.putJson(analysisKey, graph, config.s3);
+
+      await Neo4J.loadGraph(graph).catch((err: unknown) =>
+        Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+
+      await embedAndStore(
+        doc.ownerSub, doc.projectId, doc.documentId, doc.documentName, text, config
+      ).catch((err: unknown) =>
+        Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
+      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+        projectId: doc.projectId, documentId: doc.documentId, status: 'COMPLETE',
+      });
+      Logger.info(`${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      Logger.error(`${docTag} Bedrock document processing FAILED: ${message}`);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
+      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+        projectId: doc.projectId, documentId: doc.documentId, status: 'FAILED',
+      });
+    }
+    return;
+  }
+
   Logger.warn(`${docTag} Unsupported file type "${ext}" — marking FAILED`);
   await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
 }
@@ -176,6 +231,13 @@ export function registerDocumentHandlers(
         const existingSet = new Set(existing.map((d) => existingKey(d.documentName, d.fileSize)));
 
         for (const file of files) {
+          const fileExt = path.extname(file.name).toLowerCase();
+          if (!SUPPORTED_EXTENSIONS.has(fileExt)) {
+            Logger.warn(`Rejecting unsupported file type "${fileExt}" for "${file.name}"`);
+            failed.push({ name: file.name, error: ACCEPTED_TYPES_MSG });
+            continue;
+          }
+
           if (existingSet.has(existingKey(file.name, file.size))) {
             Logger.warn(`Skipping duplicate upload: "${file.name}" (${file.size} bytes) already exists in project ${projectId}`);
             failed.push({ name: file.name, error: 'A file with this name and size already exists in the project' });
