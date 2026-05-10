@@ -49,9 +49,22 @@ declare global {
           error?: string;
         }>;
         list: (projectId: string) => Promise<{ success: boolean; documents?: DocumentRecord[]; error?: string }>;
+        delete: (projectId: string, documentId: string) => Promise<{ success: boolean; error?: string }>;
+        getText: (projectId: string, documentId: string) => Promise<{ success: boolean; text?: string; error?: string }>;
         onStatusUpdate: (
           callback: (update: { projectId: string; documentId: string; status: ProcessingStatus }) => void
         ) => void;
+      };
+      search: {
+        query: (
+          projectId: string,
+          query: string
+        ) => Promise<{
+          success: boolean;
+          answer?: string;
+          citations?: SearchCitation[];
+          error?: string;
+        }>;
       };
       graph: {
         syncProject: (projectId: string) => Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }>;
@@ -76,6 +89,13 @@ declare global {
   }
 
   type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED';
+
+  interface SearchCitation {
+    documentId:   string;
+    documentName: string;
+    excerpt:      string;
+    score:        number;
+  }
 
   interface GraphNode {
     data: { id: string; label: string; type: string; documentId: string };

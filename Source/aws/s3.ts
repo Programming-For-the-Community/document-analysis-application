@@ -104,6 +104,32 @@ export class AWS_S3 {
     Logger.debug(`Wrote JSON to S3: ${key}`);
   }
 
+  public static async putText(key: string, text: string, config: S3Config): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: config.documentBucket,
+        Key: key,
+        Body: text,
+        ContentType: 'text/plain',
+      })
+    );
+    Logger.debug(`Wrote text to S3: ${key}`);
+  }
+
+  public static async deleteKeys(keys: string[], config: S3Config): Promise<void> {
+    if (keys.length === 0) return;
+    await this.client.send(
+      new DeleteObjectsCommand({
+        Bucket: config.documentBucket,
+        Delete: {
+          Objects: keys.map((k) => ({ Key: k })),
+          Quiet: true,
+        },
+      })
+    );
+    Logger.debug(`Deleted ${keys.length} S3 object(s)`);
+  }
+
   public static async uploadDocument(
     filePath: string,
     s3Key: string,

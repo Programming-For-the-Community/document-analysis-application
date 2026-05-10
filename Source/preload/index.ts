@@ -45,11 +45,26 @@ contextBridge.exposeInMainWorld('electron', {
       files: Array<{ name: string; path: string; size: number }>
     ) => ipcRenderer.invoke('document:upload', projectId, files),
     list: (projectId: string) => ipcRenderer.invoke('document:list', projectId),
+    delete: (projectId: string, documentId: string) =>
+      ipcRenderer.invoke('document:delete', projectId, documentId),
+    getText: (projectId: string, documentId: string) =>
+      ipcRenderer.invoke('document:get-text', projectId, documentId),
     onStatusUpdate: (
       callback: (update: { projectId: string; documentId: string; status: string }) => void
     ) => {
       ipcRenderer.on('document:status-update', (_event, update) => callback(update as { projectId: string; documentId: string; status: string }));
     },
+  },
+  search: {
+    query: (
+      projectId: string,
+      query: string
+    ): Promise<{
+      success: boolean;
+      answer?: string;
+      citations?: Array<{ documentName: string; excerpt: string; score: number }>;
+      error?: string;
+    }> => ipcRenderer.invoke('search:query', projectId, query),
   },
   graph: {
     syncProject: (projectId: string): Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }> =>

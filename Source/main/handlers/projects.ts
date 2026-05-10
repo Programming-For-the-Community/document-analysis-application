@@ -2,6 +2,8 @@ import { ipcMain } from 'electron';
 
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_S3 } from '../../aws/s3';
+import { Neo4J } from '../../aws/neo4j';
+import { Qdrant } from '../../aws/qdrant';
 import { AppConfig } from '../../interfaces/app';
 import { ProjectListItem } from '../../interfaces/project';
 import { CognitoAuthResult } from '../../types/aws';
@@ -107,6 +109,14 @@ export function registerProjectHandlers(
       const userSub = extractSub(tokens.idToken);
       const s3Prefix = await AWS_DYNAMODB.deleteProject(projectId, userSub, config.dynamoDB);
       await AWS_S3.deleteProjectObjects(s3Prefix, config.s3);
+
+      await Neo4J.deleteProject(projectId).catch((err: unknown) =>
+        Logger.warn(`project:delete Neo4j cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+      await Qdrant.deleteProject(projectId).catch((err: unknown) =>
+        Logger.warn(`project:delete Qdrant cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+
       Logger.info(`Project ${projectId} deleted via IPC`);
       return { success: true };
     } catch (err) {

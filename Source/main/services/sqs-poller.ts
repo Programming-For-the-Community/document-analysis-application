@@ -7,6 +7,7 @@ import { AWS_BEDROCK } from '../../aws/bedrock';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { Neo4J } from '../../aws/neo4j';
 import { AppConfig } from '../../interfaces/app';
+import { saveDocumentText, embedAndStore } from './embedder';
 import { ProcessingStatus } from '../../interfaces/document';
 import { getSessionId } from './session';
 import { Logger } from '../../utils/logger';
@@ -72,6 +73,11 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
     const blocks = await AWS_TEXTRACT.getDocumentAnalysis(msg.jobId);
     Logger.info(`${docTag} Textract results fetched — ${blocks.length} block(s) in ${Date.now() - textractStart}ms`);
 
+    const documentText = AWS_BEDROCK.extractText(blocks);
+
+    // Save raw text to S3 so re-embedding is always possible after restarts
+    await saveDocumentText(msg.ownerSub, msg.projectId, msg.documentId, documentText, config);
+
     const bedrockStart = Date.now();
     const graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId);
     Logger.info(
@@ -84,6 +90,17 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
 
     await Neo4J.loadGraph(graph).catch((err: unknown) =>
       Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+    );
+
+    const documentName =
+      await AWS_DYNAMODB.getDocumentName(msg.projectId, msg.documentId, config.dynamoDB)
+        .catch(() => null) ?? msg.documentId;
+
+    await embedAndStore(
+      msg.ownerSub, msg.projectId, msg.documentId,
+      documentName, documentText, config
+    ).catch((err: unknown) =>
+      Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
     );
 
     await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, 'COMPLETE', config.dynamoDB);

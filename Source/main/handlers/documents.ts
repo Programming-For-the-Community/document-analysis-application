@@ -9,7 +9,9 @@ import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
 import { AWS_BEDROCK } from '../../aws/bedrock';
 import { Neo4J } from '../../aws/neo4j';
+import { Qdrant } from '../../aws/qdrant';
 import { AppConfig } from '../../interfaces/app';
+import { embeddingS3Key, textS3Key, saveDocumentText, embedAndStore } from '../services/embedder';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';
@@ -108,12 +110,22 @@ async function enqueueDocument(
         projectId: doc.projectId, documentId: doc.documentId, status: 'PROCESSING',
       });
       const text = await AWS_S3.getObjectText(doc.s3Key, config.s3);
+
+      // Persist raw text so re-embedding is possible after restarts
+      await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
+
       const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
       const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
       await AWS_S3.putJson(analysisKey, graph, config.s3);
 
       await Neo4J.loadGraph(graph).catch((err: unknown) =>
         Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+
+      await embedAndStore(
+        doc.ownerSub, doc.projectId, doc.documentId, doc.documentName, text, config
+      ).catch((err: unknown) =>
+        Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
       );
 
       await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
@@ -321,6 +333,86 @@ export function registerDocumentHandlers(
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load documents';
         Logger.error(`document:list error: ${message}`);
+        return { success: false, error: message };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'document:delete',
+    async (_event, projectId: string, documentId: string): Promise<{ success: boolean; error?: string }> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      try {
+        const rec = await AWS_DYNAMODB.getDocumentRecord(projectId, documentId, config.dynamoDB);
+        if (!rec) return { success: false, error: 'Document not found' };
+
+        const { ownerSub, s3Key } = rec;
+        const docTag = `[doc:${documentId} "${rec.documentName}"]`;
+
+        // Remove from DynamoDB first — makes it invisible to the rest of the app immediately
+        await AWS_DYNAMODB.deleteDocument(projectId, documentId, config.dynamoDB);
+        Logger.info(`${docTag} Deleted from DynamoDB`);
+
+        // Delete all S3 objects for this document in one batch request
+        await AWS_S3.deleteKeys(
+          [
+            s3Key,
+            `${ownerSub}/${projectId}/analysis/${documentId}.json`,
+            textS3Key(ownerSub, projectId, documentId),
+            embeddingS3Key(ownerSub, projectId, documentId),
+          ],
+          config.s3
+        );
+        Logger.info(`${docTag} Deleted from S3`);
+
+        await Neo4J.deleteDocument(documentId).catch((err: unknown) =>
+          Logger.warn(`${docTag} Neo4j cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        );
+
+        await Qdrant.deleteDocument(documentId).catch((err: unknown) =>
+          Logger.warn(`${docTag} Qdrant cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        );
+
+        Logger.info(`${docTag} Fully deleted`);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to delete document';
+        Logger.error(`document:delete error: ${message}`);
+        return { success: false, error: message };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'document:get-text',
+    async (_event, projectId: string, documentId: string): Promise<{ success: boolean; text?: string; error?: string }> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      try {
+        const rec = await AWS_DYNAMODB.getDocumentRecord(projectId, documentId, config.dynamoDB);
+        if (!rec) return { success: false, error: 'Document not found' };
+
+        const key = textS3Key(rec.ownerSub, projectId, documentId);
+        try {
+          const text = await AWS_S3.getObjectText(key, config.s3);
+          return { success: true, text };
+        } catch {
+          return { success: false, error: 'Full text not available for this document.' };
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch document text';
+        Logger.error(`document:get-text error: ${message}`);
         return { success: false, error: message };
       }
     }

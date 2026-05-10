@@ -34,28 +34,47 @@ export function registerGraphHandlers(
         const meta = await AWS_DYNAMODB.getProjectMeta(projectId, config.dynamoDB);
         if (!meta) return { success: false, error: 'Project not found' };
 
-        const prefix = `${meta.ownerSub}/${projectId}/analysis/`;
-        const keys = await AWS_S3.listKeys(prefix, config.s3);
-        Logger.info(`graph:sync-project: ${keys.length} analysis file(s) found for project ${projectId}`);
+        const documents = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
+        const complete  = documents.filter((d) => d.processingStatus === 'COMPLETE');
+        const total     = complete.length;
 
+        if (total === 0) {
+          Logger.info(`graph:sync-project: no complete documents for project ${projectId}`);
+          return { success: true, loaded: 0, failed: 0, total: 0 };
+        }
+
+        // Only download documents not already in Neo4j — avoids redundant S3 reads
+        const missing = await Neo4J.findMissingDocuments(complete.map((d) => d.documentId));
+        Logger.info(`graph:sync-project: ${missing.length}/${total} document(s) missing from Neo4j for project ${projectId}`);
+
+        if (missing.length === 0) {
+          return { success: true, loaded: 0, failed: 0, total };
+        }
+
+        const missingSet = new Set(missing);
         let loaded = 0;
         let failed = 0;
 
-        for (const key of keys) {
-          try {
-            const text = await AWS_S3.getObjectText(key, config.s3);
-            const graph = JSON.parse(text) as RelationshipGraph;
-            await Neo4J.loadGraph(graph);
-            loaded++;
-          } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            Logger.error(`graph:sync-project: failed to load ${key}: ${message}`);
-            failed++;
-          }
-        }
+        await Promise.all(
+          complete
+            .filter((d) => missingSet.has(d.documentId))
+            .map(async (doc) => {
+              const key = `${doc.ownerSub}/${projectId}/analysis/${doc.documentId}.json`;
+              try {
+                const text  = await AWS_S3.getObjectText(key, config.s3);
+                const graph = JSON.parse(text) as RelationshipGraph;
+                await Neo4J.loadGraph(graph);
+                loaded++;
+              } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
+                Logger.error(`graph:sync-project: failed to load ${key}: ${message}`);
+                failed++;
+              }
+            })
+        );
 
-        Logger.info(`graph:sync-project: loaded ${loaded}/${keys.length} graph(s) for project ${projectId}`);
-        return { success: true, loaded, failed, total: keys.length };
+        Logger.info(`graph:sync-project: loaded ${loaded}/${missing.length} missing graph(s) for project ${projectId}`);
+        return { success: true, loaded, failed, total };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Sync failed';
         Logger.error(`graph:sync-project error: ${message}`);

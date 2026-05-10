@@ -357,6 +357,57 @@ export class AWS_DYNAMODB {
     );
   }
 
+  public static async getDocumentRecord(
+    projectId:  string,
+    documentId: string,
+    config:     DynamoDBConfig
+  ): Promise<{ ownerSub: string; s3Key: string; documentName: string } | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: documentId },
+        ProjectionExpression: 'owner_sub, s3_key, document_name',
+      })
+    );
+    if (!result.Item) return null;
+    return {
+      ownerSub:     result.Item['owner_sub']     as string,
+      s3Key:        result.Item['s3_key']        as string,
+      documentName: result.Item['document_name'] as string,
+    };
+  }
+
+  public static async deleteDocument(
+    projectId:  string,
+    documentId: string,
+    config:     DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new DeleteCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: documentId },
+      })
+    );
+    // Reuse incrementDocumentCount with -1 (DynamoDB ADD supports negatives)
+    await this.incrementDocumentCount(projectId, -1, config);
+    Logger.info(`Document ${documentId} deleted from project ${projectId}`);
+  }
+
+  public static async getDocumentName(
+    projectId:  string,
+    documentId: string,
+    config:     DynamoDBConfig
+  ): Promise<string | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: documentId },
+        ProjectionExpression: 'document_name',
+      })
+    );
+    return result.Item ? (result.Item['document_name'] as string) : null;
+  }
+
   public static async listDocuments(
     projectId: string,
     config: DynamoDBConfig

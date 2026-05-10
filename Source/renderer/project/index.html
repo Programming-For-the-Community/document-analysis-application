@@ -130,9 +130,70 @@
             <div id="graph-canvas" class="hidden"></div>
           </section>
 
+          <section class="project-panel" id="search-panel">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M11.5 11.5L15 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <h2>Ask a Question</h2>
+              </div>
+            </div>
+
+            <div class="search-form">
+              <textarea id="search-query" class="search-textarea"
+                placeholder="Ask anything about your documents…" rows="2"></textarea>
+              <button id="search-submit-btn" class="btn-sm btn-primary" style="align-self:flex-end">Ask</button>
+            </div>
+
+            <div id="search-loading" class="panel-loading hidden">
+              <div class="spinner"></div>
+              <span>Searching…</span>
+            </div>
+
+            <div id="search-empty" class="panel-placeholder">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="13" cy="13" r="8" stroke="#d1d5db" stroke-width="1.8"/>
+                <path d="M19 19L27 27" stroke="#d1d5db" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <p class="placeholder-title">Ask a question</p>
+              <p class="placeholder-sub">Search across all analysed documents using natural language.</p>
+            </div>
+
+            <div id="search-results" class="search-results-area hidden">
+              <p id="search-answer" class="search-answer"></p>
+              <p id="search-citations-label" class="search-citations-label hidden">Sources</p>
+              <div id="search-citations" class="search-citations"></div>
+            </div>
+
+            <div id="search-error" class="upload-error hidden"></div>
+          </section>
+
         </div>
       </main>
     </div>
+    <!-- Document full-text modal -->
+    <div id="doc-text-modal-overlay" class="doc-text-overlay hidden" role="dialog" aria-modal="true">
+      <div class="doc-text-modal">
+        <div class="doc-text-modal-header">
+          <span id="doc-text-modal-title" class="doc-text-modal-title"></span>
+          <button id="doc-text-modal-close" class="btn-icon-danger" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div id="doc-text-modal-body" class="doc-text-modal-body">
+          <div id="doc-text-modal-loading" class="doc-text-modal-loading hidden">
+            <div class="spinner"></div>
+          </div>
+          <pre id="doc-text-modal-content" class="doc-text-modal-content"></pre>
+          <p id="doc-text-modal-error" class="doc-text-modal-error hidden"></p>
+        </div>
+      </div>
+    </div>
+
     <script src="../../node_modules/cytoscape/dist/cytoscape.min.js"></script>
     <script src="../../dist/renderer/project/index.js" defer></script>
   </body>

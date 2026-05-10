@@ -1,4 +1,4 @@
-import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, ConverseCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 import { Block } from '@aws-sdk/client-textract';
 
 import { AWS_STS } from './sts';
@@ -47,6 +47,8 @@ function extractDocumentText(blocks: Block[]): string {
     .join('\n');
 }
 
+const EMBED_MODEL_ID = 'amazon.titan-embed-text-v2:0';
+
 export class AWS_BEDROCK {
   private static client: BedrockRuntimeClient;
   private static modelId: string;
@@ -62,6 +64,39 @@ export class AWS_BEDROCK {
       }),
     });
     Logger.debug(`Bedrock client initialized (model: ${modelId})`);
+  }
+
+  public static extractText(blocks: Block[]): string {
+    return extractDocumentText(blocks);
+  }
+
+  public static async embedText(text: string): Promise<number[]> {
+    const body = JSON.stringify({ inputText: text });
+    const response = await this.client.send(
+      new InvokeModelCommand({
+        modelId:     EMBED_MODEL_ID,
+        body:        new TextEncoder().encode(body),
+        contentType: 'application/json',
+        accept:      'application/json',
+      })
+    );
+    const parsed = JSON.parse(new TextDecoder().decode(response.body)) as {
+      embedding: number[];
+    };
+    return parsed.embedding;
+  }
+
+  public static async synthesize(prompt: string): Promise<string> {
+    const result = await this.client.send(
+      new ConverseCommand({
+        modelId:  this.modelId,
+        messages: [{ role: 'user', content: [{ text: prompt }] }],
+        inferenceConfig: { maxTokens: 1024, temperature: 0.3 },
+      })
+    );
+    return (
+      result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? ''
+    );
   }
 
   public static async extractRelationships(

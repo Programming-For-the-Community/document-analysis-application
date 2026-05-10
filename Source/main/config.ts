@@ -49,7 +49,7 @@ export function buildAppConfig(secrets: SecretValues): AppConfig {
     },
     qdrant: {
       url: process.env['QDRANT_URL'] || '',
-      apiKey: secrets.QDRANT_API_KEY,
+      apiKey: secrets.QDRANT_KEY,
     },
   };
 }

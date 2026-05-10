@@ -10,6 +10,7 @@ import { AWS_SQS } from '../aws/sqs';
 import { AWS_TEXTRACT } from '../aws/textract';
 import { AWS_BEDROCK } from '../aws/bedrock';
 import { Neo4J } from '../aws/neo4j';
+import { Qdrant } from '../aws/qdrant';
 import { awsConfig, buildAppConfig } from './config';
 import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';
@@ -17,6 +18,7 @@ import { registerNavHandlers } from './handlers/nav';
 import { registerProjectHandlers } from './handlers/projects';
 import { registerDocumentHandlers } from './handlers/documents';
 import { registerGraphHandlers } from './handlers/graph';
+import { registerSearchHandlers } from './handlers/search';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -73,6 +75,10 @@ registerGraphHandlers(
   () => appConfig,
   () => currentTokens
 );
+registerSearchHandlers(
+  () => appConfig,
+  () => currentTokens
+);
 
 app.whenReady().then(async () => {
   Logger.info('Electron app ready — starting AWS initialization sequence');
@@ -94,6 +100,7 @@ app.whenReady().then(async () => {
     AWS_TEXTRACT.init();
     AWS_BEDROCK.init(appConfig.bedrock.modelId);
     Neo4J.init(appConfig.neo4j);
+    await Qdrant.init(appConfig.qdrant);
 
     createWindow();
     Logger.info('Application startup complete');

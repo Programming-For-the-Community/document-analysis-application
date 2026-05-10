@@ -75,6 +75,32 @@ export class Neo4J {
     }
   }
 
+  public static async deleteDocument(documentId: string): Promise<void> {
+    const session = this.driver.session();
+    try {
+      await session.executeWrite(async (tx: ManagedTransaction) => {
+        await tx.run(`MATCH (n:Entity {documentId: $documentId}) DETACH DELETE n`, { documentId });
+        await tx.run(`MATCH (d:Document {id: $documentId}) DETACH DELETE d`, { documentId });
+      });
+      Logger.info(`Neo4j: deleted document ${documentId} and its entities`);
+    } finally {
+      await session.close();
+    }
+  }
+
+  public static async deleteProject(projectId: string): Promise<void> {
+    const session = this.driver.session();
+    try {
+      await session.executeWrite(async (tx: ManagedTransaction) => {
+        await tx.run(`MATCH (n:Entity {projectId: $projectId}) DETACH DELETE n`, { projectId });
+        await tx.run(`MATCH (d:Document {projectId: $projectId}) DETACH DELETE d`, { projectId });
+      });
+      Logger.info(`Neo4j: deleted all nodes for project ${projectId}`);
+    } finally {
+      await session.close();
+    }
+  }
+
   // Returns the subset of documentIds that have no Document node in Neo4j.
   public static async findMissingDocuments(documentIds: string[]): Promise<string[]> {
     if (documentIds.length === 0) return [];
