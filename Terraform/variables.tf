@@ -39,9 +39,9 @@ variable "user_arn" {
 }
 
 variable "bedrock_model" {
-  description = "Bedrock model ID used for relationship extraction"
+  description = "Bedrock inference profile ID used for relationship extraction"
   type        = string
-  default     = "anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 }
 
 variable "secrets_manager_path" {

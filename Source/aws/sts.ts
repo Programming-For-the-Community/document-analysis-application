@@ -16,6 +16,15 @@ export class AWS_STS {
     Logger.info(`Role assumed successfully — session valid for 1h (keyId: ${this.credentials.accessKeyId})`);
   }
 
+  public static async maybeRefresh(): Promise<void> {
+    const fiveMin = 5 * 60 * 1000;
+    if (this.credentials.expiresAt.getTime() - Date.now() < fiveMin) {
+      Logger.info('STS credentials expiring soon — refreshing');
+      this.credentials = await this.assumeRole();
+      Logger.info(`STS credentials refreshed — new expiry: ${this.credentials.expiresAt.toISOString()}`);
+    }
+  }
+
   private static async assumeRole(): Promise<RoleCredentials> {
     const response: AssumeRoleCommandOutput = await this.client.send(
       new AssumeRoleCommand({
@@ -37,6 +46,7 @@ export class AWS_STS {
       accessKeyId: response.Credentials.AccessKeyId,
       secretAccessKey: response.Credentials.SecretAccessKey,
       sessionToken: response.Credentials.SessionToken,
+      expiresAt: response.Credentials.Expiration ?? new Date(Date.now() + 3_600_000),
     };
   }
 }

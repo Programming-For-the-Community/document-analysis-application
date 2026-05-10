@@ -28,11 +28,11 @@ export class AWS_DYNAMODB {
   public static init(): void {
     const rawClient = new DynamoDBClient({
       region: awsConfig.region,
-      credentials: {
+      credentials: () => Promise.resolve({
         accessKeyId: AWS_STS.credentials.accessKeyId,
         secretAccessKey: AWS_STS.credentials.secretAccessKey,
         sessionToken: AWS_STS.credentials.sessionToken,
-      },
+      }),
     });
     this.client = DynamoDBDocumentClient.from(rawClient);
     Logger.debug(`DynamoDB document client initialized (region: ${awsConfig.region})`);
@@ -276,16 +276,18 @@ export class AWS_DYNAMODB {
   ): Promise<void> {
     const now = new Date().toISOString();
     let expr = 'SET processing_status = :status';
-    const values: Record<string, unknown> = { ':status': status, ':now': now };
+    const values: Record<string, unknown> = { ':status': status };
 
     if (status === 'QUEUED') {
       expr += ', queued_at = :now';
+      values[':now'] = now;
       if (jobId) {
         expr += ', textract_job_id = :jobId';
         values[':jobId'] = jobId;
       }
     } else if (status === 'PROCESSING') {
       expr += ', processing_started_at = :now';
+      values[':now'] = now;
     }
 
     await this.client.send(
@@ -302,6 +304,7 @@ export class AWS_DYNAMODB {
   public static async writeSession(
     userSub: string,
     sessionId: string,
+    deviceId: string,
     config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(
@@ -311,24 +314,29 @@ export class AWS_DYNAMODB {
           user_sub: userSub,
           project_id: 'SESSION',
           session_id: sessionId,
+          device_id: deviceId,
           logged_in_at: new Date().toISOString(),
         },
       })
     );
-    Logger.debug(`Session written for user ${userSub}: ${sessionId}`);
+    Logger.debug(`Session written for user ${userSub} (device: ${deviceId}): ${sessionId}`);
   }
 
-  public static async getSessionId(
+  public static async getSession(
     userSub: string,
     config: DynamoDBConfig
-  ): Promise<string | null> {
+  ): Promise<{ sessionId: string; deviceId: string } | null> {
     const result = await this.client.send(
       new GetCommand({
         TableName: config.projectAccessTable,
         Key: { user_sub: userSub, project_id: 'SESSION' },
       })
     );
-    return (result.Item?.['session_id'] as string) ?? null;
+    if (!result.Item) return null;
+    return {
+      sessionId: result.Item['session_id'] as string,
+      deviceId: result.Item['device_id'] as string,
+    };
   }
 
   public static async incrementDocumentCount(

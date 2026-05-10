@@ -75,6 +75,7 @@ const STATUS_BADGE: Record<ProcessingStatus, { label: string; cls: string }> = {
 function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElement {
   const item = document.createElement('div');
   item.className = 'doc-item';
+  item.dataset['docId'] = doc.documentId;
   const duplicateBadge = isDuplicate
     ? `<span class="doc-duplicate-badge" title="Another document with this name exists in this project">duplicate</span>`
     : '';
@@ -269,6 +270,17 @@ async function initProjectPage(): Promise<void> {
   document.title = `${projectName} — Document Analysis`;
 
   await loadProjectDocuments();
+
+  window.electron.documents.onStatusUpdate((update) => {
+    if (update.projectId !== currentProjectId) return;
+    const item = document.querySelector<HTMLElement>(`.doc-item[data-doc-id="${update.documentId}"]`);
+    if (!item) return;
+    const badge = item.querySelector<HTMLElement>('[class*="doc-status-"]');
+    if (!badge) return;
+    const { label, cls } = STATUS_BADGE[update.status];
+    badge.className = cls;
+    badge.textContent = label;
+  });
 }
 
 void initProjectPage();

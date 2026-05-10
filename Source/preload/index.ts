@@ -45,6 +45,11 @@ contextBridge.exposeInMainWorld('electron', {
       files: Array<{ name: string; path: string; size: number }>
     ) => ipcRenderer.invoke('document:upload', projectId, files),
     list: (projectId: string) => ipcRenderer.invoke('document:list', projectId),
+    onStatusUpdate: (
+      callback: (update: { projectId: string; documentId: string; status: string }) => void
+    ) => {
+      ipcRenderer.on('document:status-update', (_event, update) => callback(update as { projectId: string; documentId: string; status: string }));
+    },
   },
   utils: {
     getFilePath: (file: File): string => webUtils.getPathForFile(file),

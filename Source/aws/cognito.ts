@@ -5,12 +5,14 @@ import {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
+  InitiateAuthCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
 import { CognitoConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
+import { CognitoCredentials } from '../interfaces/aws';
 import { Logger } from '../utils/logger';
 
 export class AWS_COGNITO {
@@ -21,11 +23,11 @@ export class AWS_COGNITO {
   public static init(): void {
     this.client = new CognitoIdentityProviderClient({
       region: awsConfig.region,
-      credentials: {
+      credentials: () => Promise.resolve({
         accessKeyId: AWS_STS.credentials.accessKeyId,
         secretAccessKey: AWS_STS.credentials.secretAccessKey,
         sessionToken: AWS_STS.credentials.sessionToken,
-      },
+      }),
     });
 
     Logger.debug(`Cognito client initialized (region: ${awsConfig.region})`);
@@ -98,5 +100,29 @@ export class AWS_COGNITO {
     Logger.debug(`Permanent password set for "${username}" — proceeding to sign in`);
 
     return await this.authenticate(username, password, config);
+  }
+
+  public static async refreshTokens(
+    refreshToken: string,
+    config: CognitoConfig
+  ): Promise<CognitoCredentials | null> {
+    const response = await this.client.send(
+      new InitiateAuthCommand({
+        AuthFlow: 'REFRESH_TOKEN_AUTH',
+        ClientId: config.clientId,
+        AuthParameters: { REFRESH_TOKEN: refreshToken },
+      })
+    );
+    const result: AuthenticationResultType | undefined = response.AuthenticationResult;
+    if (!result?.AccessToken || !result.IdToken) {
+      Logger.warn('Cognito token refresh returned incomplete tokens');
+      return null;
+    }
+    Logger.info('Cognito tokens refreshed successfully');
+    return {
+      accessToken: result.AccessToken,
+      idToken: result.IdToken,
+      refreshToken, // Cognito does not rotate the refresh token
+    };
   }
 }

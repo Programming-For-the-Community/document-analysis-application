@@ -5,14 +5,16 @@ import { AWS_STS } from '../../aws/sts';
 import { AWS_COGNITO } from '../../aws/cognito';
 import { AppConfig } from '../../interfaces/app';
 import { CognitoAuthResult } from '../../types/aws';
+import { CognitoCredentials } from '../../interfaces/aws';
 import { extractSub } from '../../utils/jwt';
-import { writeSession, startHeartbeat, stopHeartbeat } from '../services/session';
+import { writeSession, startHeartbeat, stopHeartbeat, HeartbeatOptions } from '../services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
 import { Logger } from '../../utils/logger';
 
 async function onLoginSuccess(
-  tokens: CognitoAuthResult,
+  tokens: CognitoCredentials,
   config: AppConfig,
+  getTokens: () => CognitoAuthResult | null,
   setTokens: (t: CognitoAuthResult | null) => void,
   win: BrowserWindow | null
 ): Promise<void> {
@@ -22,12 +24,24 @@ async function onLoginSuccess(
   await writeSession(userSub, config.dynamoDB);
 
   startPoller(userSub, config);
-  startHeartbeat(userSub, config.dynamoDB, () => {
-    Logger.warn('Session invalidated — logging out');
-    stopPoller();
-    setTokens(null);
-    win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
-  });
+
+  const heartbeatOpts: HeartbeatOptions = {
+    userSub,
+    dbConfig: config.dynamoDB,
+    cognitoConfig: config.cognito,
+    getRefreshToken: () => {
+      const t = getTokens();
+      return t && typeof t !== 'boolean' ? t.refreshToken : null;
+    },
+    setTokens: (fresh) => setTokens(fresh),
+    onInvalidated: () => {
+      Logger.warn('Session invalidated — logging out');
+      stopPoller();
+      setTokens(null);
+      win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
+    },
+  };
+  startHeartbeat(heartbeatOpts);
 }
 
 function onLogout(
@@ -68,7 +82,7 @@ export function registerAuthHandlers(
           return { success: false, error: 'Incomplete authentication response from Cognito' };
         }
 
-        await onLoginSuccess(tokens, getAppConfig()!, setTokens, getWindow());
+        await onLoginSuccess(tokens, getAppConfig()!, getTokens, setTokens, getWindow());
         Logger.info(`User "${credentials.username}" signed in — navigating to home`);
         getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
         return { success: true };
@@ -102,7 +116,7 @@ export function registerAuthHandlers(
           return { success: false, error: 'Account created but login failed — try signing in' };
         }
 
-        await onLoginSuccess(tokens, getAppConfig()!, setTokens, getWindow());
+        await onLoginSuccess(tokens, getAppConfig()!, getTokens, setTokens, getWindow());
         Logger.info(`User "${credentials.username}" registered and signed in — navigating to home`);
         getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
         return { success: true };

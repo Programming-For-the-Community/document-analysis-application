@@ -49,6 +49,9 @@ declare global {
           error?: string;
         }>;
         list: (projectId: string) => Promise<{ success: boolean; documents?: DocumentRecord[]; error?: string }>;
+        onStatusUpdate: (
+          callback: (update: { projectId: string; documentId: string; status: ProcessingStatus }) => void
+        ) => void;
       };
       utils: {
         getFilePath: (file: File) => string;

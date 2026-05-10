@@ -8,6 +8,7 @@ export interface RoleCredentials {
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken: string | undefined;
+  expiresAt: Date;
 }
 
 export interface CognitoCredentials {

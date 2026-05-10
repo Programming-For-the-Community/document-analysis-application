@@ -18,13 +18,20 @@ export class AWS_TEXTRACT {
   public static init(): void {
     this.client = new TextractClient({
       region: awsConfig.region,
-      credentials: {
+      credentials: () => Promise.resolve({
         accessKeyId: AWS_STS.credentials.accessKeyId,
         secretAccessKey: AWS_STS.credentials.secretAccessKey,
         sessionToken: AWS_STS.credentials.sessionToken,
-      },
+      }),
     });
     Logger.debug(`Textract client initialized (region: ${awsConfig.region})`);
+  }
+
+  public static async getJobStatus(jobId: string): Promise<'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS'> {
+    const result = await this.client.send(
+      new GetDocumentAnalysisCommand({ JobId: jobId, MaxResults: 1 })
+    );
+    return (result.JobStatus ?? 'FAILED') as 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS';
   }
 
   public static async getDocumentAnalysis(jobId: string): Promise<Block[]> {

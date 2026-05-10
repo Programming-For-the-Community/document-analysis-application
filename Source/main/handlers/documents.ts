@@ -68,7 +68,9 @@ async function enqueueDocument(
   doc: DocumentRecord,
   config: AppConfig
 ): Promise<void> {
+  const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
   try {
+    Logger.info(`${docTag} Submitting to Textract (s3Key: ${doc.s3Key})`);
     const jobId = await AWS_TEXTRACT.startDocumentAnalysis(
       doc.s3Key,
       config.s3.documentBucket,
@@ -82,9 +84,10 @@ async function enqueueDocument(
       config.dynamoDB,
       jobId
     );
+    Logger.info(`${docTag} QUEUED — Textract jobId: ${jobId}`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    Logger.error(`Failed to enqueue document ${doc.documentId}: ${message}`);
+    Logger.error(`${docTag} Enqueue FAILED: ${message}`);
   }
 }
 
@@ -131,7 +134,7 @@ export function registerDocumentHandlers(
             };
 
             await AWS_DYNAMODB.addDocumentRecord(record, config.dynamoDB);
-            Logger.info(`Uploaded document: ${file.name} → ${s3Key}`);
+            Logger.info(`[doc:${documentId} "${file.name}"] Uploaded → s3Key: ${s3Key}`);
 
             await enqueueDocument(record, config);
             uploaded.push({ ...record, processingStatus: 'QUEUED' });
@@ -207,14 +210,36 @@ export function registerDocumentHandlers(
       try {
         const documents = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
 
-        // Reset stale QUEUED docs to UNPROCESSED so they get re-enqueued below
+        // Resolve stale QUEUED docs: check Textract job status before deciding
+        // whether to re-enqueue. If the job already succeeded, the SQS message
+        // is still in the queue (7-day retention) — leave it QUEUED so the poller
+        // picks it up. Only re-enqueue on failure or when no job ID exists.
         const staleQueued = documents.filter(isStaleQueued);
         if (staleQueued.length > 0) {
-          Logger.warn(`Resetting ${staleQueued.length} stale QUEUED document(s) to UNPROCESSED for project ${projectId}`);
-          await Promise.all(
-            staleQueued.map((doc) => AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'UNPROCESSED', config.dynamoDB))
-          );
-          staleQueued.forEach((doc) => { doc.processingStatus = 'UNPROCESSED'; });
+          Logger.warn(`Resolving ${staleQueued.length} stale QUEUED document(s) for project ${projectId}`);
+          await Promise.all(staleQueued.map(async (doc) => {
+            const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
+            if (doc.textractJobId) {
+              try {
+                const jobStatus = await AWS_TEXTRACT.getJobStatus(doc.textractJobId);
+                if (jobStatus === 'SUCCEEDED') {
+                  Logger.info(`${docTag} Textract job already SUCCEEDED — leaving QUEUED, SQS poller will process`);
+                  return; // SQS message is in queue, poller will pick it up
+                }
+                if (jobStatus === 'IN_PROGRESS') {
+                  Logger.info(`${docTag} Textract job still IN_PROGRESS — leaving QUEUED`);
+                  return;
+                }
+                Logger.warn(`${docTag} Textract job status ${jobStatus} — resetting to UNPROCESSED`);
+              } catch {
+                Logger.warn(`${docTag} Textract job ${doc.textractJobId} not found (expired?) — resetting to UNPROCESSED`);
+              }
+            } else {
+              Logger.warn(`${docTag} QUEUED with no Textract job ID — resetting to UNPROCESSED`);
+            }
+            await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'UNPROCESSED', config.dynamoDB);
+            doc.processingStatus = 'UNPROCESSED';
+          }));
         }
 
         // Reset stale PROCESSING docs — back to QUEUED if Textract results still live, else UNPROCESSED

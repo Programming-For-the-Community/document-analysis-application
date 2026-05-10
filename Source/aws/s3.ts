@@ -20,11 +20,11 @@ export class AWS_S3 {
   public static init(): void {
     this.client = new S3Client({
       region: awsConfig.region,
-      credentials: {
+      credentials: () => Promise.resolve({
         accessKeyId: AWS_STS.credentials.accessKeyId,
         secretAccessKey: AWS_STS.credentials.secretAccessKey,
         sessionToken: AWS_STS.credentials.sessionToken,
-      },
+      }),
     });
     Logger.debug(`S3 client initialized (region: ${awsConfig.region})`);
   }

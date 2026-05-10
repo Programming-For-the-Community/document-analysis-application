@@ -8,6 +8,7 @@ import { AWS_DYNAMODB } from '../aws/dynamodb';
 import { AWS_S3 } from '../aws/s3';
 import { AWS_SQS } from '../aws/sqs';
 import { AWS_TEXTRACT } from '../aws/textract';
+import { AWS_BEDROCK } from '../aws/bedrock';
 import { awsConfig, buildAppConfig } from './config';
 import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';
@@ -85,6 +86,7 @@ app.whenReady().then(async () => {
     AWS_S3.init();
     AWS_SQS.init();
     AWS_TEXTRACT.init();
+    AWS_BEDROCK.init(appConfig.bedrock.modelId);
 
     createWindow();
     Logger.info('Application startup complete');

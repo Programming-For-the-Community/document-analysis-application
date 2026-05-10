@@ -150,7 +150,8 @@ resource "aws_iam_role_policy" "svc_role_sqs" {
         Action = [
           "sqs:ReceiveMessage",
           "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes"
+          "sqs:GetQueueAttributes",
+          "sqs:ChangeMessageVisibility"
         ]
         Resource = aws_sqs_queue.textract_results.arn
       }
@@ -209,7 +210,9 @@ resource "aws_iam_role_policy" "svc_role_bedrock" {
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream"
         ]
-        Resource = "arn:aws:bedrock:${var.region}::foundation-model/${var.bedrock_model}"
+        # Cross-region inference profiles route to models in multiple regions,
+        # so resource-level restriction to a single-region ARN won't cover them.
+        Resource = "*"
       }
     ]
   })
@@ -233,7 +236,8 @@ resource "aws_iam_role_policy" "svc_role_cognito" {
           "cognito-idp:AdminCreateUser",
           "cognito-idp:AdminSetUserPassword",
           "cognito-idp:AdminGetUser",
-          "cognito-idp:ListUsers"
+          "cognito-idp:ListUsers",
+          "cognito-idp:InitiateAuth"
         ]
         Resource = aws_cognito_user_pool.users.arn
       }
