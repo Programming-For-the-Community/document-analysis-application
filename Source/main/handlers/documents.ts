@@ -7,6 +7,7 @@ import { BrowserWindow, dialog, ipcMain } from 'electron';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
+import { AWS_BEDROCK } from '../../aws/bedrock';
 import { AppConfig } from '../../interfaces/app';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
@@ -64,31 +65,59 @@ function staleProcessingResetStatus(doc: DocumentRecord): 'QUEUED' | 'UNPROCESSE
   return age < TEXTRACT_TTL_MS ? 'QUEUED' : 'UNPROCESSED';
 }
 
+const TEXTRACT_EXTENSIONS = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.tif']);
+const TEXT_EXTENSIONS = new Set(['.txt', '.csv', '.md']);
+
 async function enqueueDocument(
   doc: DocumentRecord,
   config: AppConfig
 ): Promise<void> {
+  const ext = path.extname(doc.documentName).toLowerCase();
   const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
-  try {
-    Logger.info(`${docTag} Submitting to Textract (s3Key: ${doc.s3Key})`);
-    const jobId = await AWS_TEXTRACT.startDocumentAnalysis(
-      doc.s3Key,
-      config.s3.documentBucket,
-      config.sns.topicArn,
-      doc.documentId
-    );
-    await AWS_DYNAMODB.updateDocumentStatus(
-      doc.projectId,
-      doc.documentId,
-      'QUEUED',
-      config.dynamoDB,
-      jobId
-    );
-    Logger.info(`${docTag} QUEUED — Textract jobId: ${jobId}`);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    Logger.error(`${docTag} Enqueue FAILED: ${message}`);
+
+  if (TEXTRACT_EXTENSIONS.has(ext)) {
+    try {
+      Logger.info(`${docTag} Submitting to Textract (s3Key: ${doc.s3Key})`);
+      const jobId = await AWS_TEXTRACT.startDocumentAnalysis(
+        doc.s3Key,
+        config.s3.documentBucket,
+        config.sns.topicArn,
+        doc.documentId
+      );
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'QUEUED',
+        config.dynamoDB,
+        jobId
+      );
+      Logger.info(`${docTag} QUEUED — Textract jobId: ${jobId}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      Logger.error(`${docTag} Enqueue FAILED: ${message}`);
+    }
+    return;
   }
+
+  if (TEXT_EXTENSIONS.has(ext)) {
+    try {
+      Logger.info(`${docTag} Plain text file — bypassing Textract, processing directly`);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'PROCESSING', config.dynamoDB);
+      const text = await AWS_S3.getObjectText(doc.s3Key, config.s3);
+      const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
+      const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
+      await AWS_S3.putJson(analysisKey, graph, config.s3);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
+      Logger.info(`${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      Logger.error(`${docTag} Direct text processing FAILED: ${message}`);
+    }
+    return;
+  }
+
+  Logger.warn(`${docTag} Unsupported file type "${ext}" — marking FAILED`);
+  await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
 }
 
 export function registerDocumentHandlers(
@@ -221,7 +250,7 @@ export function registerDocumentHandlers(
             const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
             if (doc.textractJobId) {
               try {
-                const jobStatus = await AWS_TEXTRACT.getJobStatus(doc.textractJobId);
+                const { status: jobStatus, message: jobMessage } = await AWS_TEXTRACT.getJobStatus(doc.textractJobId);
                 if (jobStatus === 'SUCCEEDED') {
                   Logger.info(`${docTag} Textract job already SUCCEEDED — leaving QUEUED, SQS poller will process`);
                   return; // SQS message is in queue, poller will pick it up
@@ -230,7 +259,7 @@ export function registerDocumentHandlers(
                   Logger.info(`${docTag} Textract job still IN_PROGRESS — leaving QUEUED`);
                   return;
                 }
-                Logger.warn(`${docTag} Textract job status ${jobStatus} — resetting to UNPROCESSED`);
+                Logger.warn(`${docTag} Textract job status ${jobStatus}: ${jobMessage} — resetting to UNPROCESSED`);
               } catch {
                 Logger.warn(`${docTag} Textract job ${doc.textractJobId} not found (expired?) — resetting to UNPROCESSED`);
               }

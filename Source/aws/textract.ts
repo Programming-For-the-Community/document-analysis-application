@@ -27,11 +27,14 @@ export class AWS_TEXTRACT {
     Logger.debug(`Textract client initialized (region: ${awsConfig.region})`);
   }
 
-  public static async getJobStatus(jobId: string): Promise<'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS'> {
+  public static async getJobStatus(jobId: string): Promise<{ status: 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS'; message: string }> {
     const result = await this.client.send(
       new GetDocumentAnalysisCommand({ JobId: jobId, MaxResults: 1 })
     );
-    return (result.JobStatus ?? 'FAILED') as 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS';
+    return {
+      status: (result.JobStatus ?? 'FAILED') as 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS',
+      message: result.StatusMessage ?? 'no details',
+    };
   }
 
   public static async getDocumentAnalysis(jobId: string): Promise<Block[]> {

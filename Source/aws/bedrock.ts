@@ -1,4 +1,4 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { Block } from '@aws-sdk/client-textract';
 
 import { AWS_STS } from './sts';
@@ -25,14 +25,9 @@ export interface RelationshipGraph {
   relationships: Relationship[];
 }
 
-const PROMPT_TEMPLATE = `You are extracting structured information from a business document. The text below was extracted via OCR using AWS Textract.
+const SYSTEM_PROMPT = `You are an information extraction engine for business documents. Extract entities and relationships from OCR text and return them as a JSON object.
 
-Document text:
----
-{TEXT}
----
-
-Extract all entities and relationships present in this document. Return ONLY a valid JSON object — no explanation, no markdown fences — with exactly this structure:
+Return ONLY a valid JSON object with no explanation and no markdown fences, using exactly this structure:
 {
   "entities": [
     { "id": "e1", "type": "Person", "value": "John Smith" }
@@ -74,30 +69,43 @@ export class AWS_BEDROCK {
     documentId: string,
     projectId: string
   ): Promise<RelationshipGraph> {
-    const text = extractDocumentText(blocks);
-    const prompt = PROMPT_TEMPLATE.replace('{TEXT}', text);
+    return this.infer(extractDocumentText(blocks), documentId, projectId);
+  }
 
-    const requestBody = JSON.stringify({
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    });
+  public static async extractRelationshipsFromText(
+    text: string,
+    documentId: string,
+    projectId: string
+  ): Promise<RelationshipGraph> {
+    return this.infer(text, documentId, projectId);
+  }
+
+  private static async infer(
+    text: string,
+    documentId: string,
+    projectId: string
+  ): Promise<RelationshipGraph> {
 
     const result = await this.client.send(
-      new InvokeModelCommand({
+      new ConverseCommand({
         modelId: this.modelId,
-        body: requestBody,
-        contentType: 'application/json',
-        accept: 'application/json',
+        system: [{ text: SYSTEM_PROMPT }],
+        messages: [
+          {
+            role: 'user',
+            content: [{ text: `Document text:\n---\n${text}\n---` }],
+          },
+        ],
+        inferenceConfig: { maxTokens: 4096, temperature: 0 },
       })
     );
 
-    const responseText = new TextDecoder().decode(result.body);
-    const response = JSON.parse(responseText) as {
-      content: Array<{ type: string; text: string }>;
-    };
+    const rawText =
+      result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? '{}';
 
-    const rawJson = response.content.find((c) => c.type === 'text')?.text ?? '{}';
+    // Strip markdown code fences that models sometimes include despite instructions
+    const rawJson = rawText.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+
     const extracted = JSON.parse(rawJson) as {
       entities?: Entity[];
       relationships?: Relationship[];

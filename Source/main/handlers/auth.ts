@@ -7,7 +7,7 @@ import { AppConfig } from '../../interfaces/app';
 import { CognitoAuthResult } from '../../types/aws';
 import { CognitoCredentials } from '../../interfaces/aws';
 import { extractSub } from '../../utils/jwt';
-import { writeSession, startHeartbeat, stopHeartbeat, HeartbeatOptions } from '../services/session';
+import { writeSession, startHeartbeat, stopHeartbeat, clearSession, HeartbeatOptions } from '../services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
 import { Logger } from '../../utils/logger';
 
@@ -37,6 +37,7 @@ async function onLoginSuccess(
     onInvalidated: () => {
       Logger.warn('Session invalidated — logging out');
       stopPoller();
+      clearSession();
       setTokens(null);
       win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
     },
@@ -50,6 +51,7 @@ function onLogout(
 ): void {
   stopPoller();
   stopHeartbeat();
+  clearSession();
   setTokens(null);
   win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
 }

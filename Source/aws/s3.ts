@@ -4,6 +4,7 @@ import {
   S3Client,
   ListObjectsV2Command,
   DeleteObjectsCommand,
+  GetObjectCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 
@@ -61,6 +62,25 @@ export class AWS_S3 {
     } while (continuationToken);
 
     Logger.info(`Deleted ${totalDeleted} S3 object(s) under prefix: ${prefix}`);
+  }
+
+  public static async getObjectText(key: string, config: S3Config): Promise<string> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: config.documentBucket, Key: key })
+    );
+    return (await result.Body?.transformToString()) ?? '';
+  }
+
+  public static async putJson(key: string, data: unknown, config: S3Config): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: config.documentBucket,
+        Key: key,
+        Body: JSON.stringify(data),
+        ContentType: 'application/json',
+      })
+    );
+    Logger.debug(`Wrote JSON to S3: ${key}`);
   }
 
   public static async uploadDocument(

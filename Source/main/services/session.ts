@@ -84,6 +84,9 @@ export function stopHeartbeat(): void {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
+}
+
+export function clearSession(): void {
   sessionId = null;
 }
 
