@@ -9,12 +9,14 @@ import { AWS_S3 } from '../aws/s3';
 import { AWS_SQS } from '../aws/sqs';
 import { AWS_TEXTRACT } from '../aws/textract';
 import { AWS_BEDROCK } from '../aws/bedrock';
+import { Neo4J } from '../aws/neo4j';
 import { awsConfig, buildAppConfig } from './config';
 import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';
 import { registerNavHandlers } from './handlers/nav';
 import { registerProjectHandlers } from './handlers/projects';
 import { registerDocumentHandlers } from './handlers/documents';
+import { registerGraphHandlers } from './handlers/graph';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -67,6 +69,10 @@ registerDocumentHandlers(
   () => appConfig,
   () => currentTokens
 );
+registerGraphHandlers(
+  () => appConfig,
+  () => currentTokens
+);
 
 app.whenReady().then(async () => {
   Logger.info('Electron app ready — starting AWS initialization sequence');
@@ -87,6 +93,7 @@ app.whenReady().then(async () => {
     AWS_SQS.init();
     AWS_TEXTRACT.init();
     AWS_BEDROCK.init(appConfig.bedrock.modelId);
+    Neo4J.init(appConfig.neo4j);
 
     createWindow();
     Logger.info('Application startup complete');
@@ -103,6 +110,7 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   Logger.info('All windows closed — quitting application');
+  void Neo4J.close();
   if (process.platform !== 'darwin') app.quit();
 });
 

@@ -8,6 +8,7 @@ import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
 import { AWS_BEDROCK } from '../../aws/bedrock';
+import { Neo4J } from '../../aws/neo4j';
 import { AppConfig } from '../../interfaces/app';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
@@ -110,6 +111,11 @@ async function enqueueDocument(
       const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
       const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
       await AWS_S3.putJson(analysisKey, graph, config.s3);
+
+      await Neo4J.loadGraph(graph).catch((err: unknown) =>
+        Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+
       await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
         projectId: doc.projectId, documentId: doc.documentId, status: 'COMPLETE',
@@ -152,7 +158,17 @@ export function registerDocumentHandlers(
         const uploaded: DocumentRecord[] = [];
         const failed: { name: string; error: string }[] = [];
 
+        // Fetch existing documents once to detect duplicates without a per-file DB round-trip
+        const existing = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
+        const existingKey = (name: string, size: number) => `${name}::${size}`;
+        const existingSet = new Set(existing.map((d) => existingKey(d.documentName, d.fileSize)));
+
         for (const file of files) {
+          if (existingSet.has(existingKey(file.name, file.size))) {
+            Logger.warn(`Skipping duplicate upload: "${file.name}" (${file.size} bytes) already exists in project ${projectId}`);
+            failed.push({ name: file.name, error: 'A file with this name and size already exists in the project' });
+            continue;
+          }
           const documentId = crypto.randomUUID();
           const s3Key = `${s3Prefix}${documentId}`;
           const now = new Date().toISOString();

@@ -9,6 +9,7 @@ import { CognitoCredentials } from '../../interfaces/aws';
 import { extractSub } from '../../utils/jwt';
 import { writeSession, startHeartbeat, stopHeartbeat, clearSession, HeartbeatOptions } from '../services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
+import { syncNeo4jForUser } from '../services/neo4j-sync';
 import { Logger } from '../../utils/logger';
 
 async function onLoginSuccess(
@@ -24,6 +25,7 @@ async function onLoginSuccess(
   await writeSession(userSub, config.dynamoDB);
 
   startPoller(userSub, config);
+  void syncNeo4jForUser(userSub, config);
 
   const heartbeatOpts: HeartbeatOptions = {
     userSub,

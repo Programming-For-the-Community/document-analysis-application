@@ -53,6 +53,9 @@ declare global {
           callback: (update: { projectId: string; documentId: string; status: ProcessingStatus }) => void
         ) => void;
       };
+      graph: {
+        syncProject: (projectId: string) => Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }>;
+      };
       utils: {
         getFilePath: (file: File) => string;
       };

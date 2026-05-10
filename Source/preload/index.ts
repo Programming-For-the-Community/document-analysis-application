@@ -51,6 +51,10 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on('document:status-update', (_event, update) => callback(update as { projectId: string; documentId: string; status: string }));
     },
   },
+  graph: {
+    syncProject: (projectId: string): Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }> =>
+      ipcRenderer.invoke('graph:sync-project', projectId),
+  },
   utils: {
     getFilePath: (file: File): string => webUtils.getPathForFile(file),
   },

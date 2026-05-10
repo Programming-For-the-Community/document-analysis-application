@@ -5,6 +5,7 @@ import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
 import { AWS_BEDROCK } from '../../aws/bedrock';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
+import { Neo4J } from '../../aws/neo4j';
 import { AppConfig } from '../../interfaces/app';
 import { ProcessingStatus } from '../../interfaces/document';
 import { getSessionId } from './session';
@@ -80,6 +81,10 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
     const analysisKey = `${msg.ownerSub}/${msg.projectId}/analysis/${msg.documentId}.json`;
     await AWS_S3.putJson(analysisKey, graph, config.s3);
     Logger.info(`${docTag} Analysis written to S3 → ${analysisKey}`);
+
+    await Neo4J.loadGraph(graph).catch((err: unknown) =>
+      Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+    );
 
     await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, 'COMPLETE', config.dynamoDB);
     pushStatusUpdate(msg.projectId, msg.documentId, 'COMPLETE');

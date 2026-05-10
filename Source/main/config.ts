@@ -45,7 +45,7 @@ export function buildAppConfig(secrets: SecretValues): AppConfig {
     neo4j: {
       uri: process.env['NEO4J_URI'] || '',
       user: 'neo4j',
-      password: secrets.NEO4J_PASSWORD,
+      password: secrets.SVC_PWD,
     },
     qdrant: {
       url: process.env['QDRANT_URL'] || '',

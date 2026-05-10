@@ -26,6 +26,6 @@ export interface SecretValues {
   SQS_QUEUE_URL: string;
   SNS_TOPIC_ARN: string;
   BEDROCK_MODEL_ID: string;
-  NEO4J_PASSWORD: string;
   QDRANT_API_KEY: string;
+  SVC_PWD: string;
 }

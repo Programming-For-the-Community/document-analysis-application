@@ -64,6 +64,27 @@ export class AWS_S3 {
     Logger.info(`Deleted ${totalDeleted} S3 object(s) under prefix: ${prefix}`);
   }
 
+  public static async listKeys(prefix: string, config: S3Config): Promise<string[]> {
+    const keys: string[] = [];
+    let continuationToken: string | undefined;
+
+    do {
+      const result = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: config.documentBucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        })
+      );
+      for (const obj of result.Contents ?? []) {
+        if (obj.Key) keys.push(obj.Key);
+      }
+      continuationToken = result.IsTruncated ? result.NextContinuationToken : undefined;
+    } while (continuationToken);
+
+    return keys;
+  }
+
   public static async getObjectText(key: string, config: S3Config): Promise<string> {
     const result = await this.client.send(
       new GetObjectCommand({ Bucket: config.documentBucket, Key: key })
