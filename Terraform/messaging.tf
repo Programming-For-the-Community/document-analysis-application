@@ -22,7 +22,7 @@ resource "aws_sns_topic" "textract_results" {
 
 resource "aws_sqs_queue" "textract_results" {
   name                       = "${var.tf_project_name}-textract-results"
-  message_retention_seconds  = 86400 # 1 day
+  message_retention_seconds  = 604800 # 7 days — matches Textract result retention
   visibility_timeout_seconds = 300   # 5 min — enough time to process a result
   receive_wait_time_seconds  = 20    # long polling, reduces empty responses
 

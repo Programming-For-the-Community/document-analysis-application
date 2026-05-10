@@ -5,7 +5,40 @@ import { AWS_STS } from '../../aws/sts';
 import { AWS_COGNITO } from '../../aws/cognito';
 import { AppConfig } from '../../interfaces/app';
 import { CognitoAuthResult } from '../../types/aws';
+import { extractSub } from '../../utils/jwt';
+import { writeSession, startHeartbeat, stopHeartbeat } from '../services/session';
+import { startPoller, stopPoller } from '../services/sqs-poller';
 import { Logger } from '../../utils/logger';
+
+async function onLoginSuccess(
+  tokens: CognitoAuthResult,
+  config: AppConfig,
+  setTokens: (t: CognitoAuthResult | null) => void,
+  win: BrowserWindow | null
+): Promise<void> {
+  setTokens(tokens);
+
+  const userSub = extractSub(tokens.idToken);
+  await writeSession(userSub, config.dynamoDB);
+
+  startPoller(userSub, config);
+  startHeartbeat(userSub, config.dynamoDB, () => {
+    Logger.warn('Session invalidated — logging out');
+    stopPoller();
+    setTokens(null);
+    win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
+  });
+}
+
+function onLogout(
+  setTokens: (t: CognitoAuthResult | null) => void,
+  win: BrowserWindow | null
+): void {
+  stopPoller();
+  stopHeartbeat();
+  setTokens(null);
+  win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
+}
 
 export function registerAuthHandlers(
   getWindow: () => BrowserWindow | null,
@@ -32,13 +65,10 @@ export function registerAuthHandlers(
 
         if (!tokens || typeof tokens === 'boolean') {
           Logger.warn(`Sign-in for "${credentials.username}" returned incomplete tokens`);
-          return {
-            success: false,
-            error: 'Incomplete authentication response from Cognito',
-          };
+          return { success: false, error: 'Incomplete authentication response from Cognito' };
         }
 
-        setTokens(tokens);
+        await onLoginSuccess(tokens, getAppConfig()!, setTokens, getWindow());
         Logger.info(`User "${credentials.username}" signed in — navigating to home`);
         getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
         return { success: true };
@@ -69,13 +99,10 @@ export function registerAuthHandlers(
 
         if (!tokens || typeof tokens === 'boolean') {
           Logger.warn(`Sign-up for "${credentials.username}" succeeded but sign-in returned incomplete tokens`);
-          return {
-            success: false,
-            error: 'Account created but login failed — try signing in',
-          };
+          return { success: false, error: 'Account created but login failed — try signing in' };
         }
 
-        setTokens(tokens);
+        await onLoginSuccess(tokens, getAppConfig()!, setTokens, getWindow());
         Logger.info(`User "${credentials.username}" registered and signed in — navigating to home`);
         getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
         return { success: true };
@@ -93,8 +120,7 @@ export function registerAuthHandlers(
   });
 
   ipcMain.handle('auth:logout', () => {
-    Logger.info('User signed out — clearing tokens and returning to login');
-    setTokens(null);
-    getWindow()?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
+    Logger.info('User signed out');
+    onLogout(setTokens, getWindow());
   });
 }

@@ -271,19 +271,64 @@ export class AWS_DYNAMODB {
     projectId: string,
     documentId: string,
     status: ProcessingStatus,
-    config: DynamoDBConfig
+    config: DynamoDBConfig,
+    jobId?: string
   ): Promise<void> {
     const now = new Date().toISOString();
-    const setQueued = status === 'QUEUED' ? ', queued_at = :now' : '';
+    let expr = 'SET processing_status = :status';
+    const values: Record<string, unknown> = { ':status': status, ':now': now };
+
+    if (status === 'QUEUED') {
+      expr += ', queued_at = :now';
+      if (jobId) {
+        expr += ', textract_job_id = :jobId';
+        values[':jobId'] = jobId;
+      }
+    } else if (status === 'PROCESSING') {
+      expr += ', processing_started_at = :now';
+    }
+
     await this.client.send(
       new UpdateCommand({
         TableName: config.projectStateTable,
         Key: { project_id: projectId, document_id: documentId },
-        UpdateExpression: `SET processing_status = :status${setQueued}`,
-        ExpressionAttributeValues: { ':status': status, ':now': now },
+        UpdateExpression: expr,
+        ExpressionAttributeValues: values,
       })
     );
     Logger.debug(`Document ${documentId} status → ${status}`);
+  }
+
+  public static async writeSession(
+    userSub: string,
+    sessionId: string,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new PutCommand({
+        TableName: config.projectAccessTable,
+        Item: {
+          user_sub: userSub,
+          project_id: 'SESSION',
+          session_id: sessionId,
+          logged_in_at: new Date().toISOString(),
+        },
+      })
+    );
+    Logger.debug(`Session written for user ${userSub}: ${sessionId}`);
+  }
+
+  public static async getSessionId(
+    userSub: string,
+    config: DynamoDBConfig
+  ): Promise<string | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.projectAccessTable,
+        Key: { user_sub: userSub, project_id: 'SESSION' },
+      })
+    );
+    return (result.Item?.['session_id'] as string) ?? null;
   }
 
   public static async incrementDocumentCount(
@@ -329,6 +374,8 @@ export class AWS_DYNAMODB {
       uploadedAt: item['uploaded_at'] as string,
       processingStatus: ((item['processing_status'] as ProcessingStatus) ?? 'UNPROCESSED'),
       queuedAt: item['queued_at'] as string | undefined,
+      textractJobId: item['textract_job_id'] as string | undefined,
+      processingStartedAt: item['processing_started_at'] as string | undefined,
     }));
   }
 }

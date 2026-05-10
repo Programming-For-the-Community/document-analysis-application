@@ -76,5 +76,7 @@ declare global {
     uploadedAt: string;
     processingStatus: ProcessingStatus;
     queuedAt?: string;
+    textractJobId?: string;
+    processingStartedAt?: string;
   }
 }

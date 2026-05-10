@@ -11,6 +11,8 @@ export interface DocumentRecord {
   uploadedAt: string;
   processingStatus: ProcessingStatus;
   queuedAt?: string;
+  textractJobId?: string;
+  processingStartedAt?: string;
 }
 
 export interface UploadFileInfo {

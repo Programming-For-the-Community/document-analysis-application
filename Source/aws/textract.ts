@@ -1,8 +1,12 @@
 import {
   TextractClient,
   StartDocumentAnalysisCommand,
+  GetDocumentAnalysisCommand,
   FeatureType,
+  Block,
 } from '@aws-sdk/client-textract';
+
+export type { Block };
 
 import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
@@ -21,6 +25,22 @@ export class AWS_TEXTRACT {
       },
     });
     Logger.debug(`Textract client initialized (region: ${awsConfig.region})`);
+  }
+
+  public static async getDocumentAnalysis(jobId: string): Promise<Block[]> {
+    const blocks: Block[] = [];
+    let nextToken: string | undefined;
+
+    do {
+      const result = await this.client.send(
+        new GetDocumentAnalysisCommand({ JobId: jobId, NextToken: nextToken })
+      );
+      blocks.push(...(result.Blocks ?? []));
+      nextToken = result.NextToken;
+    } while (nextToken);
+
+    Logger.debug(`GetDocumentAnalysis ${jobId}: retrieved ${blocks.length} block(s)`);
+    return blocks;
   }
 
   public static async startDocumentAnalysis(

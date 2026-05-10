@@ -39,12 +39,29 @@ function collectFiles(
   }
 }
 
-const STALE_QUEUE_MS = 30 * 60 * 1000; // 30 minutes
+const STALE_QUEUE_MS      = 30 * 60 * 1000; // 30 min — Textract normally completes in < 5 min
+const STALE_PROCESSING_MS =  2 * 60 * 60 * 1000; // 2 hr — generous for any batch window
+const TEXTRACT_TTL_MS     =  7 * 24 * 60 * 60 * 1000; // 7 days — Textract result retention
 
 function isStaleQueued(doc: DocumentRecord): boolean {
   if (doc.processingStatus !== 'QUEUED') return false;
-  if (!doc.queuedAt) return true; // queued before we tracked timestamps
+  if (!doc.queuedAt) return true;
   return Date.now() - new Date(doc.queuedAt).getTime() > STALE_QUEUE_MS;
+}
+
+function isStaleProcessing(doc: DocumentRecord): boolean {
+  if (doc.processingStatus !== 'PROCESSING') return false;
+  if (!doc.processingStartedAt) return true;
+  return Date.now() - new Date(doc.processingStartedAt).getTime() > STALE_PROCESSING_MS;
+}
+
+// Returns the status to reset a stale PROCESSING doc to:
+// - QUEUED if Textract results are still available (within 7-day TTL)
+// - UNPROCESSED if results have expired and Textract must be re-run
+function staleProcessingResetStatus(doc: DocumentRecord): 'QUEUED' | 'UNPROCESSED' {
+  if (!doc.queuedAt) return 'UNPROCESSED';
+  const age = Date.now() - new Date(doc.queuedAt).getTime();
+  return age < TEXTRACT_TTL_MS ? 'QUEUED' : 'UNPROCESSED';
 }
 
 async function enqueueDocument(
@@ -52,7 +69,7 @@ async function enqueueDocument(
   config: AppConfig
 ): Promise<void> {
   try {
-    await AWS_TEXTRACT.startDocumentAnalysis(
+    const jobId = await AWS_TEXTRACT.startDocumentAnalysis(
       doc.s3Key,
       config.s3.documentBucket,
       config.sns.topicArn,
@@ -62,7 +79,8 @@ async function enqueueDocument(
       doc.projectId,
       doc.documentId,
       'QUEUED',
-      config.dynamoDB
+      config.dynamoDB,
+      jobId
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -189,14 +207,27 @@ export function registerDocumentHandlers(
       try {
         const documents = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
 
-        // Reset stale QUEUED docs back to UNPROCESSED so they get re-enqueued below
-        const stale = documents.filter(isStaleQueued);
-        if (stale.length > 0) {
-          Logger.warn(`Resetting ${stale.length} stale QUEUED document(s) to UNPROCESSED for project ${projectId}`);
+        // Reset stale QUEUED docs to UNPROCESSED so they get re-enqueued below
+        const staleQueued = documents.filter(isStaleQueued);
+        if (staleQueued.length > 0) {
+          Logger.warn(`Resetting ${staleQueued.length} stale QUEUED document(s) to UNPROCESSED for project ${projectId}`);
           await Promise.all(
-            stale.map((doc) => AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'UNPROCESSED', config.dynamoDB))
+            staleQueued.map((doc) => AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'UNPROCESSED', config.dynamoDB))
           );
-          stale.forEach((doc) => { doc.processingStatus = 'UNPROCESSED'; });
+          staleQueued.forEach((doc) => { doc.processingStatus = 'UNPROCESSED'; });
+        }
+
+        // Reset stale PROCESSING docs — back to QUEUED if Textract results still live, else UNPROCESSED
+        const staleProcessing = documents.filter(isStaleProcessing);
+        if (staleProcessing.length > 0) {
+          Logger.warn(`Resetting ${staleProcessing.length} stale PROCESSING document(s) for project ${projectId}`);
+          await Promise.all(
+            staleProcessing.map((doc) => {
+              const resetTo = staleProcessingResetStatus(doc);
+              return AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, resetTo, config.dynamoDB);
+            })
+          );
+          staleProcessing.forEach((doc) => { doc.processingStatus = staleProcessingResetStatus(doc); });
         }
 
         // Fire-and-forget: enqueue any UNPROCESSED documents (including just-reset ones)
