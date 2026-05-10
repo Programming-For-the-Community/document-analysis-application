@@ -49,8 +49,6 @@ function extractDocumentText(blocks: Block[]): string {
 
 const EMBED_MODEL_ID = 'amazon.titan-embed-text-v2:0';
 
-export type BedrockDocFormat = 'pdf' | 'csv' | 'doc' | 'docx' | 'xls' | 'xlsx' | 'html' | 'txt' | 'md';
-
 export class AWS_BEDROCK {
   private static client: BedrockRuntimeClient;
   private static modelId: string;
@@ -86,31 +84,6 @@ export class AWS_BEDROCK {
       embedding: number[];
     };
     return parsed.embedding;
-  }
-
-  public static async extractTextFromDocument(
-    bytes: Uint8Array,
-    format: BedrockDocFormat,
-    documentName: string
-  ): Promise<string> {
-    const name = documentName
-      .replace(/\.[^.]+$/, '')
-      .replace(/[^a-zA-Z0-9 _-]/g, '_')
-      .slice(0, 100) || 'document';
-    const result = await this.client.send(
-      new ConverseCommand({
-        modelId: this.modelId,
-        messages: [{
-          role: 'user',
-          content: [
-            { document: { format, name, source: { bytes } } },
-            { text: 'Extract all text content from this document. Return only the plain text, preserving paragraphs and logical structure. Do not summarize, add commentary, or omit any text.' },
-          ],
-        }],
-        inferenceConfig: { maxTokens: 8192, temperature: 0 },
-      })
-    );
-    return result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? '';
   }
 
   public static async synthesize(prompt: string): Promise<string> {
