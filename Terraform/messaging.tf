@@ -23,8 +23,8 @@ resource "aws_sns_topic" "textract_results" {
 resource "aws_sqs_queue" "textract_results" {
   name                       = "${var.tf_project_name}-textract-results"
   message_retention_seconds  = 604800 # 7 days — matches Textract result retention
-  visibility_timeout_seconds = 300   # 5 min — enough time to process a result
-  receive_wait_time_seconds  = 20    # long polling, reduces empty responses
+  visibility_timeout_seconds = 300    # 5 min — enough time to process a result
+  receive_wait_time_seconds  = 20     # long polling, reduces empty responses
 
   tags = {
     Owner       = var.owner
@@ -84,12 +84,3 @@ resource "aws_sns_topic_subscription" "textract_results" {
   endpoint  = aws_sqs_queue.textract_results.arn
 }
 
-output "textract_sns_topic_arn" {
-  description = "Pass this to StartDocumentAnalysis as the NotificationChannel SNS topic ARN"
-  value       = aws_sns_topic.textract_results.arn
-}
-
-output "textract_sqs_queue_url" {
-  description = "Electron app polls this queue URL for Textract completion events"
-  value       = aws_sqs_queue.textract_results.url
-}
