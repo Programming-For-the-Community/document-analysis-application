@@ -103,15 +103,25 @@ async function enqueueDocument(
     try {
       Logger.info(`${docTag} Plain text file — bypassing Textract, processing directly`);
       await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'PROCESSING', config.dynamoDB);
+      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+        projectId: doc.projectId, documentId: doc.documentId, status: 'PROCESSING',
+      });
       const text = await AWS_S3.getObjectText(doc.s3Key, config.s3);
       const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
       const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
       await AWS_S3.putJson(analysisKey, graph, config.s3);
       await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
+      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+        projectId: doc.projectId, documentId: doc.documentId, status: 'COMPLETE',
+      });
       Logger.info(`${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       Logger.error(`${docTag} Direct text processing FAILED: ${message}`);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
+      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+        projectId: doc.projectId, documentId: doc.documentId, status: 'FAILED',
+      });
     }
     return;
   }

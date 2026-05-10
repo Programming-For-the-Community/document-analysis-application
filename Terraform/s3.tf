@@ -45,7 +45,7 @@ resource "aws_s3_bucket_policy" "documents" {
       {
         Effect    = "Allow"
         Principal = { Service = "textract.amazonaws.com" }
-        Action    = "s3:GetObject"
+        Action    = ["s3:GetObject", "s3:GetObjectVersion"]
         Resource  = "${aws_s3_bucket.documents.arn}/*"
         Condition = {
           StringEquals = {

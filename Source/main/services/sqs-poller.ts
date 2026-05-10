@@ -1,14 +1,12 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { BrowserWindow } from 'electron';
 
 import { AWS_SQS, Message } from '../../aws/sqs';
+import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
 import { AWS_BEDROCK } from '../../aws/bedrock';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
-import { AWS_STS } from '../../aws/sts';
 import { AppConfig } from '../../interfaces/app';
 import { ProcessingStatus } from '../../interfaces/document';
-import { awsConfig } from '../config';
 import { getSessionId } from './session';
 import { Logger } from '../../utils/logger';
 
@@ -23,15 +21,19 @@ function pushStatusUpdate(projectId: string, documentId: string, status: Process
 const TRAILING_WINDOW_MS = 2 * 60 * 1000;  // 2 min after last completion
 const MAX_BATCH_WAIT_MS  = 10 * 60 * 1000; // 10 min hard cap
 
-interface PendingMessage {
+interface ParsedMessage {
   receiptHandle: string;
   jobId: string;
-  jobTag: string;       // documentId
   s3Key: string;        // owner_sub/project_id/document_id
   ownerSub: string;
   projectId: string;
   documentId: string;
+  status: string;
+  statusMessage: string;
 }
+
+// Subset used for the SUCCEEDED batch pipeline
+type PendingMessage = ParsedMessage;
 
 let running = false;
 let currentUserSub: string | null = null;
@@ -43,6 +45,55 @@ let maxBatchTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── Batch processing ─────────────────────────────────────────────────────────
 
+const BEDROCK_CONCURRENCY = 5; // max parallel Bedrock requests
+
+// Runs fn over every item with at most `limit` concurrent in-flight promises.
+async function withConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  const active = new Set<Promise<void>>();
+  for (const item of items) {
+    const p: Promise<void> = fn(item).finally(() => active.delete(p));
+    active.add(p);
+    if (active.size >= limit) await Promise.race(active);
+  }
+  await Promise.all(active);
+}
+
+async function processOneDocument(msg: PendingMessage, config: AppConfig): Promise<void> {
+  const docTag = `[doc:${msg.documentId} project:${msg.projectId}]`;
+  const batchStart = Date.now();
+  Logger.info(`${docTag} Processing started (Textract job: ${msg.jobId})`);
+
+  try {
+    await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, 'PROCESSING', config.dynamoDB);
+    pushStatusUpdate(msg.projectId, msg.documentId, 'PROCESSING');
+
+    const textractStart = Date.now();
+    const blocks = await AWS_TEXTRACT.getDocumentAnalysis(msg.jobId);
+    Logger.info(`${docTag} Textract results fetched — ${blocks.length} block(s) in ${Date.now() - textractStart}ms`);
+
+    const bedrockStart = Date.now();
+    const graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId);
+    Logger.info(
+      `${docTag} Bedrock inference complete — ${graph.entities.length} entity/entities, ${graph.relationships.length} relationship(s) in ${Date.now() - bedrockStart}ms`
+    );
+
+    const analysisKey = `${msg.ownerSub}/${msg.projectId}/analysis/${msg.documentId}.json`;
+    await AWS_S3.putJson(analysisKey, graph, config.s3);
+    Logger.info(`${docTag} Analysis written to S3 → ${analysisKey}`);
+
+    await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, 'COMPLETE', config.dynamoDB);
+    pushStatusUpdate(msg.projectId, msg.documentId, 'COMPLETE');
+
+    // Only delete the SQS message after a successful write to S3
+    await AWS_SQS.deleteMessage(config.sqs.queueUrl, msg.receiptHandle);
+    Logger.info(`${docTag} COMPLETE — total processing time: ${Date.now() - batchStart}ms`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    Logger.error(`${docTag} Processing FAILED: ${message}`);
+    // Do not delete the SQS message — it will reappear after visibility timeout
+  }
+}
+
 async function processBatch(): Promise<void> {
   clearTimers();
   if (pending.size === 0) return;
@@ -53,70 +104,8 @@ async function processBatch(): Promise<void> {
   const config = currentConfig;
   if (!config) return;
 
-  Logger.info(`Processing Textract batch: ${batch.length} document(s)`);
-
-  // Lazy S3 client for writing analysis output
-  const s3 = new S3Client({
-    region: awsConfig.region,
-    credentials: {
-      accessKeyId: AWS_STS.credentials.accessKeyId,
-      secretAccessKey: AWS_STS.credentials.secretAccessKey,
-      sessionToken: AWS_STS.credentials.sessionToken,
-    },
-  });
-
-  for (const msg of batch) {
-    const docTag = `[doc:${msg.documentId} project:${msg.projectId}]`;
-    const batchStart = Date.now();
-    Logger.info(`${docTag} Processing started (Textract job: ${msg.jobId})`);
-
-    try {
-      await AWS_DYNAMODB.updateDocumentStatus(
-        msg.projectId,
-        msg.documentId,
-        'PROCESSING',
-        config.dynamoDB
-      );
-      pushStatusUpdate(msg.projectId, msg.documentId, 'PROCESSING');
-
-      const textractStart = Date.now();
-      const blocks = await AWS_TEXTRACT.getDocumentAnalysis(msg.jobId);
-      Logger.info(`${docTag} Textract results fetched — ${blocks.length} block(s) in ${Date.now() - textractStart}ms`);
-
-      const bedrockStart = Date.now();
-      const graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId);
-      Logger.info(
-        `${docTag} Bedrock inference complete — ${graph.entities.length} entity/entities, ${graph.relationships.length} relationship(s) in ${Date.now() - bedrockStart}ms`
-      );
-
-      const analysisKey = `${msg.ownerSub}/${msg.projectId}/analysis/${msg.documentId}.json`;
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: config.s3.documentBucket,
-          Key: analysisKey,
-          Body: JSON.stringify(graph),
-          ContentType: 'application/json',
-        })
-      );
-      Logger.info(`${docTag} Analysis written to S3 → ${analysisKey}`);
-
-      await AWS_DYNAMODB.updateDocumentStatus(
-        msg.projectId,
-        msg.documentId,
-        'COMPLETE',
-        config.dynamoDB
-      );
-      pushStatusUpdate(msg.projectId, msg.documentId, 'COMPLETE');
-
-      // Only delete the SQS message after a successful write to S3
-      await AWS_SQS.deleteMessage(config.sqs.queueUrl, msg.receiptHandle);
-      Logger.info(`${docTag} COMPLETE — total processing time: ${Date.now() - batchStart}ms`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      Logger.error(`${docTag} Processing FAILED: ${message}`);
-      // Do not delete the SQS message — it will reappear after visibility timeout
-    }
-  }
+  Logger.info(`Processing Textract batch: ${batch.length} document(s) (concurrency: ${BEDROCK_CONCURRENCY})`);
+  await withConcurrency(batch, BEDROCK_CONCURRENCY, (msg) => processOneDocument(msg, config));
 }
 
 function clearTimers(): void {
@@ -135,22 +124,16 @@ function scheduleTrailingWindow(): void {
 
 // ── Message parsing ──────────────────────────────────────────────────────────
 
-function parseMessage(msg: Message): PendingMessage | null {
+function parseMessage(msg: Message): ParsedMessage | null {
   try {
     const outer = JSON.parse(msg.Body ?? '{}') as Record<string, unknown>;
     const inner = JSON.parse(outer['Message'] as string) as Record<string, unknown>;
 
     const jobId  = inner['JobId'] as string;
     const status = inner['Status'] as string;
-    const jobTag = inner['JobTag'] as string; // documentId
     const loc    = inner['DocumentLocation'] as Record<string, string>;
     const s3Key  = loc?.['S3ObjectName'] ?? '';
-
-    if (status !== 'SUCCEEDED') {
-      const statusMessage = (inner['StatusMessage'] as string | undefined) ?? 'no details';
-      Logger.warn(`Textract job ${jobId} completed with status ${status}: ${statusMessage} (document: ${jobTag})`);
-      return null;
-    }
+    const statusMessage = (inner['StatusMessage'] as string | undefined) ?? 'no details';
 
     // S3 key format: owner_sub/project_id/document_id
     const parts = s3Key.split('/');
@@ -164,11 +147,12 @@ function parseMessage(msg: Message): PendingMessage | null {
     return {
       receiptHandle: msg.ReceiptHandle!,
       jobId,
-      jobTag,
       s3Key,
       ownerSub,
       projectId,
       documentId,
+      status,
+      statusMessage,
     };
   } catch (err) {
     Logger.error(`Failed to parse SQS message: ${err}`);
@@ -200,6 +184,16 @@ async function poll(): Promise<void> {
         if (parsed.ownerSub !== currentUserSub) {
           Logger.debug(`SQS: returning message for user ${parsed.ownerSub} to queue immediately`);
           void AWS_SQS.returnToQueue(currentConfig!.sqs.queueUrl, msg.ReceiptHandle!);
+          continue;
+        }
+
+        // Delete failed Textract jobs immediately rather than waiting for the 30-min stale check
+        if (parsed.status !== 'SUCCEEDED') {
+          const docTag = `[doc:${parsed.documentId} project:${parsed.projectId}]`;
+          Logger.warn(`${docTag} Textract job ${parsed.status}: ${parsed.statusMessage} — deleting SQS message, resetting to UNPROCESSED`);
+          void AWS_SQS.deleteMessage(currentConfig!.sqs.queueUrl, parsed.receiptHandle);
+          void AWS_DYNAMODB.updateDocumentStatus(parsed.projectId, parsed.documentId, 'UNPROCESSED', currentConfig!.dynamoDB);
+          pushStatusUpdate(parsed.projectId, parsed.documentId, 'UNPROCESSED');
           continue;
         }
 
