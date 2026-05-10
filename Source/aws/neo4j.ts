@@ -26,6 +26,55 @@ export class Neo4J {
     await this.driver?.close();
   }
 
+  public static async getProjectGraph(projectId: string): Promise<{
+    nodes: Array<{ data: { id: string; label: string; type: string; documentId: string } }>;
+    edges: Array<{ data: { id: string; source: string; target: string; label: string } }>;
+  }> {
+    const session = this.driver.session();
+    try {
+      const nodeResult = await session.run(
+        `MATCH (e:Entity {projectId: $projectId})
+         RETURN e.id AS id, e.name AS name, e.type AS type, e.documentId AS documentId`,
+        { projectId }
+      );
+
+      const edgeResult = await session.run(
+        `MATCH (a:Entity {projectId: $projectId})-[r]->(b:Entity {projectId: $projectId})
+         RETURN a.id AS source, b.id AS target, type(r) AS label`,
+        { projectId }
+      );
+
+      const nodes = nodeResult.records.map((r) => ({
+        data: {
+          id:         r.get('id')         as string,
+          label:      r.get('name')       as string,
+          type:       r.get('type')       as string,
+          documentId: r.get('documentId') as string,
+        },
+      }));
+
+      // Deduplicate edges: same type between same pair across multiple documents
+      // shows as a single edge in the visualisation
+      const seen = new Set<string>();
+      const edges: Array<{ data: { id: string; source: string; target: string; label: string } }> = [];
+      for (const r of edgeResult.records) {
+        const source = r.get('source') as string;
+        const target = r.get('target') as string;
+        const label  = r.get('label')  as string;
+        const key    = `${source}→${label}→${target}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          edges.push({ data: { id: key, source, target, label } });
+        }
+      }
+
+      Logger.debug(`Neo4j graph for project ${projectId}: ${nodes.length} node(s), ${edges.length} edge(s)`);
+      return { nodes, edges };
+    } finally {
+      await session.close();
+    }
+  }
+
   // Returns the subset of documentIds that have no Document node in Neo4j.
   public static async findMissingDocuments(documentIds: string[]): Promise<string[]> {
     if (documentIds.length === 0) return [];

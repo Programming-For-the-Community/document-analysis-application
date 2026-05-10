@@ -63,4 +63,22 @@ export function registerGraphHandlers(
       }
     }
   );
+
+  ipcMain.handle('graph:get-project-graph', async (_event, projectId: string) => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+
+    if (!config || !tokens || typeof tokens === 'boolean') {
+      return { success: false, error: 'App not ready' };
+    }
+
+    try {
+      const graph = await Neo4J.getProjectGraph(projectId);
+      return { success: true, nodes: graph.nodes, edges: graph.edges };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load graph';
+      Logger.error(`graph:get-project-graph error: ${message}`);
+      return { success: false, error: message };
+    }
+  });
 }

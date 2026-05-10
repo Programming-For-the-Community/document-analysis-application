@@ -1,4 +1,11 @@
+// Cytoscape is loaded via <script> tag; declare it as an ambient global.
+declare function cytoscape(options: Record<string, unknown>): {
+  destroy(): void;
+  layout(opts: Record<string, unknown>): { run(): void };
+};
+
 let currentProjectId = '';
+let cytoscapeInstance: ReturnType<typeof cytoscape> | null = null;
 
 function parseProjectJwt(token: string): Record<string, unknown> {
   const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
@@ -60,6 +67,127 @@ function showProjectUploadError(message: string): void {
     el.classList.remove('hidden');
   }
   setTimeout(() => el?.classList.add('hidden'), 5000);
+}
+
+// ── Graph panel state helpers ─────────────────────────────────────────────────
+
+function showGraphLoading(): void {
+  document.getElementById('graph-loading')?.classList.remove('hidden');
+  document.getElementById('graph-empty')?.classList.add('hidden');
+  document.getElementById('graph-canvas')?.classList.add('hidden');
+}
+
+function showGraphEmpty(): void {
+  document.getElementById('graph-loading')?.classList.add('hidden');
+  document.getElementById('graph-empty')?.classList.remove('hidden');
+  document.getElementById('graph-canvas')?.classList.add('hidden');
+}
+
+function showGraphCanvas(): void {
+  document.getElementById('graph-loading')?.classList.add('hidden');
+  document.getElementById('graph-empty')?.classList.add('hidden');
+  document.getElementById('graph-canvas')?.classList.remove('hidden');
+}
+
+// Map entity types to colours for visual distinction
+const ENTITY_COLORS: Record<string, string> = {
+  Person:       '#3b82f6',
+  Organization: '#10b981',
+  Date:         '#f59e0b',
+  Amount:       '#8b5cf6',
+  Location:     '#ef4444',
+  Product:      '#06b6d4',
+  Role:         '#f97316',
+  Account:      '#ec4899',
+  Other:        '#6b7280',
+};
+
+async function loadProjectGraph(): Promise<void> {
+  if (!currentProjectId) return;
+  showGraphLoading();
+
+  try {
+    const result = await window.electron.graph.getProjectGraph(currentProjectId);
+    if (!result.success || !result.nodes || !result.edges || result.nodes.length === 0) {
+      showGraphEmpty();
+      return;
+    }
+
+    const container = document.getElementById('graph-canvas');
+    if (!container) { showGraphEmpty(); return; }
+
+    // Destroy previous instance before mounting a new one
+    if (cytoscapeInstance) {
+      cytoscapeInstance.destroy();
+      cytoscapeInstance = null;
+    }
+
+    showGraphCanvas();
+
+    cytoscapeInstance = cytoscape({
+      container,
+      elements: [
+        ...result.nodes.map((n) => ({
+          data: {
+            id:    n.data.id,
+            label: n.data.label,
+            type:  n.data.type,
+            color: ENTITY_COLORS[n.data.type] ?? ENTITY_COLORS['Other'],
+          },
+        })),
+        ...result.edges.map((e) => ({
+          data: {
+            id:     e.data.id,
+            source: e.data.source,
+            target: e.data.target,
+            label:  e.data.label,
+          },
+        })),
+      ],
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'background-color': 'data(color)',
+            'label':            'data(label)',
+            'color':            '#ffffff',
+            'font-size':        '10px',
+            'text-valign':      'center',
+            'text-halign':      'center',
+            'width':            60,
+            'height':           60,
+            'text-wrap':        'wrap',
+            'text-max-width':   '54px',
+          },
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width':                    1.5,
+            'line-color':               '#94a3b8',
+            'target-arrow-color':       '#94a3b8',
+            'target-arrow-shape':       'triangle',
+            'curve-style':              'bezier',
+            'label':                    'data(label)',
+            'font-size':                '9px',
+            'color':                    '#64748b',
+            'text-rotation':            'autorotate',
+            'text-margin-y':            -8,
+          },
+        },
+      ],
+      layout: {
+        name:           'cose',
+        animate:        false,
+        nodeRepulsion:  () => 4096,
+        idealEdgeLength: () => 100,
+        padding:        24,
+      },
+    });
+
+  } catch {
+    showGraphEmpty();
+  }
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────
@@ -270,6 +398,7 @@ async function initProjectPage(): Promise<void> {
   document.title = `${projectName} — Document Analysis`;
 
   await loadProjectDocuments();
+  void loadProjectGraph();
 
   window.electron.documents.onStatusUpdate((update) => {
     if (update.projectId !== currentProjectId) return;
@@ -280,6 +409,7 @@ async function initProjectPage(): Promise<void> {
     const { label, cls } = STATUS_BADGE[update.status];
     badge.className = cls;
     badge.textContent = label;
+    if (update.status === 'COMPLETE') void loadProjectGraph();
   });
 }
 

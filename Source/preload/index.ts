@@ -54,6 +54,12 @@ contextBridge.exposeInMainWorld('electron', {
   graph: {
     syncProject: (projectId: string): Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }> =>
       ipcRenderer.invoke('graph:sync-project', projectId),
+    getProjectGraph: (projectId: string): Promise<{
+      success: boolean;
+      nodes?: Array<{ data: { id: string; label: string; type: string; documentId: string } }>;
+      edges?: Array<{ data: { id: string; source: string; target: string; label: string } }>;
+      error?: string;
+    }> => ipcRenderer.invoke('graph:get-project-graph', projectId),
   },
   utils: {
     getFilePath: (file: File): string => webUtils.getPathForFile(file),

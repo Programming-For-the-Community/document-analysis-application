@@ -55,6 +55,12 @@ declare global {
       };
       graph: {
         syncProject: (projectId: string) => Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }>;
+        getProjectGraph: (projectId: string) => Promise<{
+          success: boolean;
+          nodes?: GraphNode[];
+          edges?: GraphEdge[];
+          error?: string;
+        }>;
       };
       utils: {
         getFilePath: (file: File) => string;
@@ -70,6 +76,14 @@ declare global {
   }
 
   type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED';
+
+  interface GraphNode {
+    data: { id: string; label: string; type: string; documentId: string };
+  }
+
+  interface GraphEdge {
+    data: { id: string; source: string; target: string; label: string };
+  }
 
   interface DocumentRecord {
     documentId: string;
