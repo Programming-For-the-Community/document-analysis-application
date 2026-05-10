@@ -39,6 +39,14 @@ function collectFiles(
   }
 }
 
+const STALE_QUEUE_MS = 30 * 60 * 1000; // 30 minutes
+
+function isStaleQueued(doc: DocumentRecord): boolean {
+  if (doc.processingStatus !== 'QUEUED') return false;
+  if (!doc.queuedAt) return true; // queued before we tracked timestamps
+  return Date.now() - new Date(doc.queuedAt).getTime() > STALE_QUEUE_MS;
+}
+
 async function enqueueDocument(
   doc: DocumentRecord,
   config: AppConfig
@@ -181,7 +189,17 @@ export function registerDocumentHandlers(
       try {
         const documents = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
 
-        // Fire-and-forget: enqueue any documents that were never sent to Textract
+        // Reset stale QUEUED docs back to UNPROCESSED so they get re-enqueued below
+        const stale = documents.filter(isStaleQueued);
+        if (stale.length > 0) {
+          Logger.warn(`Resetting ${stale.length} stale QUEUED document(s) to UNPROCESSED for project ${projectId}`);
+          await Promise.all(
+            stale.map((doc) => AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'UNPROCESSED', config.dynamoDB))
+          );
+          stale.forEach((doc) => { doc.processingStatus = 'UNPROCESSED'; });
+        }
+
+        // Fire-and-forget: enqueue any UNPROCESSED documents (including just-reset ones)
         const unprocessed = documents.filter((d) => d.processingStatus === 'UNPROCESSED');
         if (unprocessed.length > 0) {
           Logger.info(`Enqueueing ${unprocessed.length} unprocessed document(s) for project ${projectId}`);

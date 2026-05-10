@@ -10,6 +10,7 @@ export interface DocumentRecord {
   fileSize: number;
   uploadedAt: string;
   processingStatus: ProcessingStatus;
+  queuedAt?: string;
 }
 
 export interface UploadFileInfo {

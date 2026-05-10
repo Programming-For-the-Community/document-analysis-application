@@ -273,12 +273,14 @@ export class AWS_DYNAMODB {
     status: ProcessingStatus,
     config: DynamoDBConfig
   ): Promise<void> {
+    const now = new Date().toISOString();
+    const setQueued = status === 'QUEUED' ? ', queued_at = :now' : '';
     await this.client.send(
       new UpdateCommand({
         TableName: config.projectStateTable,
         Key: { project_id: projectId, document_id: documentId },
-        UpdateExpression: 'SET processing_status = :status',
-        ExpressionAttributeValues: { ':status': status },
+        UpdateExpression: `SET processing_status = :status${setQueued}`,
+        ExpressionAttributeValues: { ':status': status, ':now': now },
       })
     );
     Logger.debug(`Document ${documentId} status → ${status}`);
@@ -326,6 +328,7 @@ export class AWS_DYNAMODB {
       fileSize: item['file_size'] as number,
       uploadedAt: item['uploaded_at'] as string,
       processingStatus: ((item['processing_status'] as ProcessingStatus) ?? 'UNPROCESSED'),
+      queuedAt: item['queued_at'] as string | undefined,
     }));
   }
 }

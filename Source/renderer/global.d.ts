@@ -75,5 +75,6 @@ declare global {
     fileSize: number;
     uploadedAt: string;
     processingStatus: ProcessingStatus;
+    queuedAt?: string;
   }
 }
