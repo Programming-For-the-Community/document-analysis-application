@@ -54,6 +54,12 @@ contextBridge.exposeInMainWorld('electron', {
     ) => {
       ipcRenderer.on('document:status-update', (_event, update) => callback(update as { projectId: string; documentId: string; status: string }));
     },
+    onDocumentAdded: (callback: (doc: unknown) => void) => {
+      ipcRenderer.on('document:added', (_event, doc) => callback(doc));
+    },
+    onDocumentRemoved: (callback: (data: { projectId: string; documentId: string }) => void) => {
+      ipcRenderer.on('document:removed', (_event, data) => callback(data as { projectId: string; documentId: string }));
+    },
   },
   search: {
     query: (

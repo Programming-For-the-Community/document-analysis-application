@@ -818,6 +818,23 @@ async function initProjectPage(): Promise<void> {
     badge.textContent = label;
     if (update.status === 'COMPLETE') void loadProjectGraph();
   });
+
+  window.electron.documents.onDocumentAdded((doc) => {
+    if (doc.projectId !== currentProjectId) return;
+    void loadProjectDocuments();
+    if (doc.processingStatus === 'COMPLETE') void loadProjectGraph();
+  });
+
+  window.electron.documents.onDocumentRemoved((data) => {
+    if (data.projectId !== currentProjectId) return;
+    const item = document.querySelector<HTMLElement>(`.doc-item[data-doc-id="${data.documentId}"]`);
+    if (item) {
+      item.remove();
+      const listEl = document.getElementById('docs-list');
+      if (listEl && listEl.children.length === 0) showProjectDocumentsEmpty();
+    }
+    void loadProjectGraph();
+  });
 }
 
 void initProjectPage();

@@ -9,6 +9,7 @@ import { CognitoCredentials } from '../../interfaces/aws';
 import { extractSub } from '../../utils/jwt';
 import { writeSession, startHeartbeat, stopHeartbeat, clearSession, HeartbeatOptions } from '../services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
+import { startProjectPoller, stopProjectPoller } from '../services/project-poller';
 import { syncNeo4jForUser } from '../services/neo4j-sync';
 import { syncQdrantForUser } from '../services/qdrant-sync';
 import { Logger } from '../../utils/logger';
@@ -26,6 +27,7 @@ async function onLoginSuccess(
   await writeSession(userSub, config.dynamoDB);
 
   startPoller(userSub, config);
+  startProjectPoller(userSub, config);
   void syncNeo4jForUser(userSub, config);
   void syncQdrantForUser(userSub, config);
 
@@ -54,6 +56,7 @@ function onLogout(
   win: BrowserWindow | null
 ): void {
   stopPoller();
+  stopProjectPoller();
   stopHeartbeat();
   clearSession();
   setTokens(null);

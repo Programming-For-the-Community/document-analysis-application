@@ -54,6 +54,8 @@ declare global {
         onStatusUpdate: (
           callback: (update: { projectId: string; documentId: string; status: ProcessingStatus }) => void
         ) => void;
+        onDocumentAdded: (callback: (doc: DocumentRecord) => void) => void;
+        onDocumentRemoved: (callback: (data: { projectId: string; documentId: string }) => void) => void;
       };
       search: {
         query: (
