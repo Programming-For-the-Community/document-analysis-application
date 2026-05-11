@@ -10,9 +10,11 @@ import { Logger } from '../../utils/logger';
 
 const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;  // 2 minutes
 const TOKEN_REFRESH_THRESHOLD_MS = 50 * 60 * 1000; // refresh Cognito tokens after 50 min
+const MAX_REFRESH_FAILURES = 3; // force logout after this many consecutive Cognito refresh failures
 
 let sessionId: string | null = null;
 let tokenIssuedAt = 0;
+let consecutiveRefreshFailures = 0;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 export async function writeSession(userSub: string, config: DynamoDBConfig): Promise<string> {
@@ -35,6 +37,7 @@ export interface HeartbeatOptions {
 
 export function startHeartbeat(opts: HeartbeatOptions): void {
   stopHeartbeat();
+  consecutiveRefreshFailures = 0;
   const myDeviceId = getDeviceId();
 
   heartbeatTimer = setInterval(() => {
@@ -52,10 +55,20 @@ export function startHeartbeat(opts: HeartbeatOptions): void {
               if (fresh) {
                 opts.setTokens(fresh);
                 tokenIssuedAt = Date.now();
+                consecutiveRefreshFailures = 0;
               }
             } catch (err) {
+              consecutiveRefreshFailures++;
               const message = err instanceof Error ? err.message : String(err);
-              Logger.error(`Cognito token refresh failed: ${message}`);
+              Logger.error(
+                `Cognito token refresh failed (${consecutiveRefreshFailures}/${MAX_REFRESH_FAILURES}): ${message}`
+              );
+              if (consecutiveRefreshFailures >= MAX_REFRESH_FAILURES) {
+                Logger.error('Cognito refresh failed too many times — invalidating session');
+                stopHeartbeat();
+                opts.onInvalidated();
+                return;
+              }
             }
           }
         }

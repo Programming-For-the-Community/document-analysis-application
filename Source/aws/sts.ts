@@ -9,6 +9,7 @@ export class AWS_STS {
   // it uses the local AWS CLI session that is already authenticated.
   private static client: STSClient = new STSClient({ region: awsConfig.region });
   public static credentials: RoleCredentials;
+  private static refreshPromise: Promise<void> | null = null;
 
   public static async init(): Promise<void> {
     Logger.info(`Assuming IAM role: ${awsConfig.roleArn}`);
@@ -16,13 +17,23 @@ export class AWS_STS {
     Logger.info(`Role assumed successfully — session valid for 1h (keyId: ${this.credentials.accessKeyId})`);
   }
 
+  // Refreshes credentials if expiring within 5 minutes or already expired.
+  // Concurrent callers share a single in-flight assumeRole to avoid thundering-herd
+  // on resume from sleep when many API calls fire simultaneously.
   public static async maybeRefresh(): Promise<void> {
     const fiveMin = 5 * 60 * 1000;
-    if (this.credentials.expiresAt.getTime() - Date.now() < fiveMin) {
-      Logger.info('STS credentials expiring soon — refreshing');
-      this.credentials = await this.assumeRole();
-      Logger.info(`STS credentials refreshed — new expiry: ${this.credentials.expiresAt.toISOString()}`);
+    if (this.credentials.expiresAt.getTime() - Date.now() >= fiveMin) return;
+
+    if (!this.refreshPromise) {
+      this.refreshPromise = this.assumeRole()
+        .then((creds) => {
+          this.credentials = creds;
+          Logger.info(`STS credentials refreshed — new expiry: ${creds.expiresAt.toISOString()}`);
+        })
+        .finally(() => { this.refreshPromise = null; });
     }
+
+    await this.refreshPromise;
   }
 
   private static async assumeRole(): Promise<RoleCredentials> {

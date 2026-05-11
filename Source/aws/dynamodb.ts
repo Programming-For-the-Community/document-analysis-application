@@ -28,11 +28,14 @@ export class AWS_DYNAMODB {
   public static init(): void {
     const rawClient = new DynamoDBClient({
       region: awsConfig.region,
-      credentials: () => Promise.resolve({
-        accessKeyId: AWS_STS.credentials.accessKeyId,
-        secretAccessKey: AWS_STS.credentials.secretAccessKey,
-        sessionToken: AWS_STS.credentials.sessionToken,
-      }),
+      credentials: async () => {
+        await AWS_STS.maybeRefresh();
+        return {
+          accessKeyId: AWS_STS.credentials.accessKeyId,
+          secretAccessKey: AWS_STS.credentials.secretAccessKey,
+          sessionToken: AWS_STS.credentials.sessionToken,
+        };
+      },
     });
     this.client = DynamoDBDocumentClient.from(rawClient);
     Logger.debug(`DynamoDB document client initialized (region: ${awsConfig.region})`);

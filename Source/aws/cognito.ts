@@ -5,7 +5,6 @@ import {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
-  InitiateAuthCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { AWS_STS } from './sts';
@@ -23,11 +22,14 @@ export class AWS_COGNITO {
   public static init(): void {
     this.client = new CognitoIdentityProviderClient({
       region: awsConfig.region,
-      credentials: () => Promise.resolve({
-        accessKeyId: AWS_STS.credentials.accessKeyId,
-        secretAccessKey: AWS_STS.credentials.secretAccessKey,
-        sessionToken: AWS_STS.credentials.sessionToken,
-      }),
+      credentials: async () => {
+        await AWS_STS.maybeRefresh();
+        return {
+          accessKeyId: AWS_STS.credentials.accessKeyId,
+          secretAccessKey: AWS_STS.credentials.secretAccessKey,
+          sessionToken: AWS_STS.credentials.sessionToken,
+        };
+      },
     });
 
     Logger.debug(`Cognito client initialized (region: ${awsConfig.region})`);
@@ -107,8 +109,9 @@ export class AWS_COGNITO {
     config: CognitoConfig
   ): Promise<CognitoCredentials | null> {
     const response = await this.client.send(
-      new InitiateAuthCommand({
+      new AdminInitiateAuthCommand({
         AuthFlow: 'REFRESH_TOKEN_AUTH',
+        UserPoolId: config.userPoolId,
         ClientId: config.clientId,
         AuthParameters: { REFRESH_TOKEN: refreshToken },
       })
@@ -122,7 +125,7 @@ export class AWS_COGNITO {
     return {
       accessToken: result.AccessToken,
       idToken: result.IdToken,
-      refreshToken, // Cognito does not rotate the refresh token
+      refreshToken, // Cognito does not rotate the refresh token on REFRESH_TOKEN_AUTH
     };
   }
 }
