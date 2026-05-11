@@ -70,23 +70,23 @@ flowchart TB
 ## High-Level Workflow
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph Boot ["App Startup"]
-        direction LR
+        direction TB
         B1["Launch"] --> B2["Secrets Manager\nlocal AWS creds"]
         B2 --> B3["STS AssumeRole\nvia SVC_ROLE_ARN"]
         B3 --> B4["Temp Credentials\nauto-refresh at 55 min"]
     end
 
     subgraph Login ["Authentication"]
-        direction LR
+        direction TB
         L1["User Login"] --> L2["Cognito"]
         L2 --> L3["JWT + Session"]
         L3 --> L4["30s Sync Poll\nstarts"]
     end
 
     subgraph Ingest ["Document Processing"]
-        direction LR
+        direction TB
         I1["Upload to S3"] --> I2{"File Type"}
         I2 --> I3["Textract\nPDF / Image"]
         I2 --> I4["Local Extract\nDOCX / XLSX / HTML"]
@@ -101,7 +101,7 @@ flowchart LR
     end
 
     subgraph Query ["Search"]
-        direction LR
+        direction TB
         Q1["Ask Question"] --> Q2["Qdrant\nvector search"]
         Q2 --> Q3["Bedrock\nanswer synthesis"]
         Q3 --> Q4["Answer + Citations"]
