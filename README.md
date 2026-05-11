@@ -42,36 +42,84 @@ flowchart TB
         Qdrant["Qdrant\nVector Database"]
     end
 
-    User -->|"login"| Cognito
-    Cognito -->|"JWT"| UI
-    UI -->|"assume role"| IAM
-    IAM -->|"temp credentials"| Electron
-    SecretsManager -->|"DB credentials"| Docker
+    Electron --> SecretsManager
+    SecretsManager --> IAM
+    IAM --> Electron
+    User --> Cognito
+    Cognito --> UI
 
-    UI -->|"upload document"| S3
-    Pipeline -->|"start job"| Textract
-    Textract -->|"reads from"| S3
-    Textract -->|"job complete"| SNS
+    UI --> S3
+    Pipeline --> Textract
+    Textract --> S3
+    Textract --> SNS
     SNS --> SQS
-    Pipeline -->|"poll"| SQS
-    Pipeline -->|"extract relationships"| Bedrock
-    Pipeline -->|"write results"| S3
-    Pipeline -->|"update state"| DynamoDB
-    Pipeline -->|"store graph"| Neo4j
-    Pipeline -->|"store vectors"| Qdrant
+    Pipeline --> SQS
+    Pipeline --> Bedrock
+    Pipeline --> S3
+    Pipeline --> DynamoDB
+    Pipeline --> Neo4j
+    Pipeline --> Qdrant
 
-    Sync -->|"query state"| DynamoDB
-    Sync -->|"fetch results"| S3
-    Sync -->|"update local"| Neo4j
+    Sync --> DynamoDB
+    Sync --> S3
+    Sync --> Neo4j
+```
+
+---
+
+## High-Level Workflow
+
+```mermaid
+flowchart LR
+    subgraph Boot ["App Startup"]
+        direction LR
+        B1["Launch"] --> B2["Secrets Manager\nlocal AWS creds"]
+        B2 --> B3["STS AssumeRole\nvia SVC_ROLE_ARN"]
+        B3 --> B4["Temp Credentials\nauto-refresh at 55 min"]
+    end
+
+    subgraph Login ["Authentication"]
+        direction LR
+        L1["User Login"] --> L2["Cognito"]
+        L2 --> L3["JWT + Session"]
+        L3 --> L4["30s Sync Poll\nstarts"]
+    end
+
+    subgraph Ingest ["Document Processing"]
+        direction LR
+        I1["Upload to S3"] --> I2{"File Type"}
+        I2 --> I3["Textract\nPDF / Image"]
+        I2 --> I4["Local Extract\nDOCX / XLSX / HTML"]
+        I2 --> I5["Read Text\nTXT / CSV / MD"]
+        I3 --> I6["Bedrock\nRelationship Extraction"]
+        I4 --> I6
+        I5 --> I6
+        I6 --> I7["S3\nanalysis JSON"]
+        I6 --> I8["DynamoDB\nstatus = COMPLETE"]
+        I6 --> I9["Neo4j\nentity graph"]
+        I6 --> I10["Qdrant\nvectors"]
+    end
+
+    subgraph Query ["Search"]
+        direction LR
+        Q1["Ask Question"] --> Q2["Qdrant\nvector search"]
+        Q2 --> Q3["Bedrock\nanswer synthesis"]
+        Q3 --> Q4["Answer + Citations"]
+    end
+
+    Boot --> Login
+    Login --> Ingest
+    Login --> Query
 ```
 
 ### How it works
 
-1. **Auth** — User logs in via Cognito. The app assumes `doc-analysis-svc-role` for all AWS resource access.
-2. **Upload** — Documents are uploaded to S3. A Textract async job is started with an SNS notification channel.
-3. **Processing** — Textract extracts text and structure. The app polls SQS for job completion, then calls Bedrock (Claude) to extract entity relationships.
-4. **Storage** — Results are written to S3 (JSON), DynamoDB (project state), Neo4j (graph), and Qdrant (vectors).
-5. **Sync** — On any device, the app compares DynamoDB project state against local Neo4j and fetches missing results from S3 to sync.
+1. **Startup** — On launch the app reads `doc-analysis-secret` from Secrets Manager using the local AWS CLI credentials. The secret contains the service role ARN (`SVC_ROLE_ARN`) along with all other app configuration. The app then assumes `doc-analysis-svc-role` via STS and uses the resulting temporary credentials for all subsequent AWS calls. Credentials auto-refresh before their 1-hour expiry.
+2. **Auth** — The user logs in via Cognito. A 30-second background poll starts, syncing project and document state across devices.
+3. **Upload** — Documents are uploaded to S3. Textract-compatible files (PDF, images) start an async Textract job with an SNS notification channel. Office files (DOCX, XLSX, HTML) are extracted locally via mammoth/ExcelJS. Plain-text files are read directly from S3.
+4. **Processing** — Extracted text is passed to Bedrock (Claude) for entity and relationship extraction. Results are written to S3 (analysis JSON), DynamoDB (status), Neo4j (graph), and Qdrant (vector embeddings).
+5. **Search** — Questions are answered by vector-searching Qdrant for relevant chunks and synthesising an answer via Bedrock, with source citations.
+6. **Sync** — Every 30 seconds the app polls DynamoDB for new, deleted, or status-changed documents and reconciles local Neo4j and Qdrant accordingly, enabling multi-device and future multi-user project sharing.
 
 ---
 
@@ -79,6 +127,13 @@ flowchart TB
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured with a valid IAM user (`aws configure`)
+
+Your local IAM user needs two permissions:
+
+| Permission | Purpose |
+|---|---|
+| `secretsmanager:GetSecretValue` on `doc-analysis-secret` | Read app config and role ARN at startup and when running `deploy.sh` |
+| `sts:AssumeRole` on `doc-analysis-svc-role` | Assume the service role for all AWS resource operations |
 
 ---
 
@@ -124,17 +179,17 @@ terraform apply \
   -var="secrets_manager_path=doc-analysis-secret"
 ```
 
-After a successful apply, note the `svc_role_arn` output — you will need it when running `deploy.sh`.
+Terraform will populate `SVC_ROLE_ARN` and all other AWS resource identifiers directly into the secret on apply — no manual note-taking required.
 
 ---
 
 ## Local Services (Docker Compose)
 
-Neo4j and Qdrant run locally via Docker Compose. Credentials are stored in a single AWS Secrets Manager secret and fetched at deploy time by [deploy.sh](deploy.sh).
+Neo4j and Qdrant run locally via Docker Compose. The `deploy.sh` script pulls all credentials from Secrets Manager using your local AWS credentials and starts the containers.
 
 ### First-time setup
 
-1. **Create the secret in AWS Secrets Manager** with the following key/value pairs:
+1. **Create the secret in AWS Secrets Manager** with the Neo4j and Qdrant credentials. Terraform will add all remaining keys (including `SVC_ROLE_ARN`) on first apply.
 
    ```bash
    aws secretsmanager create-secret \
@@ -150,7 +205,9 @@ Neo4j and Qdrant run locally via Docker Compose. Credentials are stored in a sin
      --secret-string '{"SVC_USER":"your-username","SVC_PWD":"your-password","QDRANT_KEY":"your-qdrant-api-key"}'
    ```
 
-2. **Ensure your IAM user has permission** to assume the `doc-analysis-svc-role` created by Terraform.
+2. **Run Terraform** (via GitHub Actions or locally) to provision all AWS resources. Terraform will merge `SVC_ROLE_ARN` and all other resource identifiers into the secret automatically.
+
+3. **Ensure your local IAM user** has `secretsmanager:GetSecretValue` on `doc-analysis-secret` and `sts:AssumeRole` on `doc-analysis-svc-role`.
 
 ### Starting the services
 
@@ -159,19 +216,11 @@ chmod +x deploy.sh   # first time only
 ./deploy.sh
 ```
 
-When prompted, enter the IAM role ARN output by Terraform:
-
-```
-Enter the IAM Role ARN to assume: arn:aws:iam::YOUR_ACCOUNT_ID:role/doc-analysis-svc-role
-```
-
 The script will:
-1. Prompt for the IAM role ARN
-2. Assume the role via `sts:AssumeRole`
-3. Fetch all credentials from the `doc-analysis-secret` Secrets Manager secret
-4. Write a temporary `.env` file
-5. Start all containers via `docker compose up -d`
-6. Delete the `.env` file immediately after
+1. Read `SVC_PWD` and `QDRANT_KEY` from the `doc-analysis-secret` secret using your local AWS credentials
+2. Write a temporary `.env` file
+3. Start all containers via `docker compose up -d`
+4. Delete the `.env` file immediately after
 
 ### Stopping the services
 
@@ -189,6 +238,21 @@ The script uses the primary path if it exists, otherwise falls back to the Docke
 | Fallback | `C:/ProgramData/docker/volumes/doc-analysis` |
 
 > **Note:** Neo4j credentials are only applied on first initialisation. If you rotate the secret in AWS, run `docker compose down -v` to wipe the volumes before restarting so the new credentials take effect.
+
+---
+
+## App Configuration (.env)
+
+The application reads two values from `Source/.env` at startup. Everything else comes from Secrets Manager.
+
+```env
+AWS_REGION=us-east-2
+AWS_SECRET_NAME=doc-analysis-secret
+
+# Local services — device-specific
+NEO4J_URI=bolt://localhost:7687
+QDRANT_URL=http://localhost:6333
+```
 
 ---
 
