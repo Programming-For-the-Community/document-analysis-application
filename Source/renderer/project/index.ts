@@ -1,11 +1,44 @@
-// Cytoscape is loaded via <script> tag; declare it as an ambient global.
-declare function cytoscape(options: Record<string, unknown>): {
+// Cytoscape is loaded via <script> tag; declare ambient globals with the subset we use.
+interface CyEvent {
+  target: CyElement;
+  renderedPosition?: { x: number; y: number };
+}
+interface CyElement {
+  data(key: string): string | number;
+  connectedEdges(): CyCollection;
+  neighborhood(): CyCollection;
+  addClass(classes: string): CyElement;
+  removeClass(classes: string): CyElement;
+}
+interface CyCollection {
+  not(selector: string | CyElement | CyCollection): CyCollection;
+  filter(fn: (el: CyElement, i: number) => boolean): CyCollection;
+  forEach(fn: (el: CyElement, i: number) => void): void;
+  has(el: CyElement): boolean;
+  union(other: CyCollection | CyElement): CyCollection;
+  components(): CyCollection[];
+  edges(): CyCollection;
+  addClass(classes: string): CyCollection;
+  removeClass(classes: string): CyCollection;
+  length: number;
+}
+interface CyInstance {
   destroy(): void;
   layout(opts: Record<string, unknown>): { run(): void };
-};
+  on(event: string, selector: string, handler: (e: CyEvent) => void): void;
+  on(event: string, handler: (e: CyEvent) => void): void;
+  fit(padding?: number): void;
+  elements(): CyCollection;
+  nodes(): CyCollection;
+  edges(): CyCollection;
+}
+declare function cytoscape(options: Record<string, unknown>): CyInstance;
+
 
 let currentProjectId = '';
-let cytoscapeInstance: ReturnType<typeof cytoscape> | null = null;
+let cytoscapeInstance: CyInstance | null = null;
+let expandedCyInstance: CyInstance | null = null;
+let graphData: { nodes: GraphNode[]; edges: GraphEdge[] } | null = null;
 
 function parseProjectJwt(token: string): Record<string, unknown> {
   const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
@@ -75,21 +108,26 @@ function showGraphLoading(): void {
   document.getElementById('graph-loading')?.classList.remove('hidden');
   document.getElementById('graph-empty')?.classList.add('hidden');
   document.getElementById('graph-canvas')?.classList.add('hidden');
+  document.getElementById('graph-legend')?.classList.add('hidden');
+  document.getElementById('graph-controls')?.classList.add('hidden');
 }
 
 function showGraphEmpty(): void {
   document.getElementById('graph-loading')?.classList.add('hidden');
   document.getElementById('graph-empty')?.classList.remove('hidden');
   document.getElementById('graph-canvas')?.classList.add('hidden');
+  document.getElementById('graph-legend')?.classList.add('hidden');
+  document.getElementById('graph-controls')?.classList.add('hidden');
 }
 
 function showGraphCanvas(): void {
   document.getElementById('graph-loading')?.classList.add('hidden');
   document.getElementById('graph-empty')?.classList.add('hidden');
   document.getElementById('graph-canvas')?.classList.remove('hidden');
+  document.getElementById('graph-controls')?.classList.remove('hidden');
+  // graph-legend shown by buildGraphLegend() once populated
 }
 
-// Map entity types to colours for visual distinction
 const ENTITY_COLORS: Record<string, string> = {
   Person:       '#3b82f6',
   Organization: '#10b981',
@@ -99,8 +137,175 @@ const ENTITY_COLORS: Record<string, string> = {
   Product:      '#06b6d4',
   Role:         '#f97316',
   Account:      '#ec4899',
+  Event:        '#14b8a6',
+  Technology:   '#6366f1',
+  Concept:      '#84cc16',
+  Regulation:   '#f43f5e',
+  Agreement:    '#a855f7',
+  Asset:        '#0ea5e9',
+  Task:         '#fb923c',
   Other:        '#6b7280',
 };
+
+const GRAPH_STYLE = [
+  {
+    selector: 'node',
+    style: {
+      'background-color':  'data(color)',
+      'label':             'data(label)',
+      'color':             '#ffffff',
+      'font-size':         '10px',
+      'text-valign':       'center',
+      'text-halign':       'center',
+      'width':             'data(size)',
+      'height':            'data(size)',
+      'text-wrap':         'wrap',
+      'text-max-width':    'data(textMaxWidth)',
+    },
+  },
+  { selector: 'node.faded',       style: { opacity: 0.12 } },
+  { selector: 'node.highlighted', style: { 'border-width': 3, 'border-color': '#ffffff', 'border-opacity': 0.7 } },
+  {
+    selector: 'edge',
+    style: {
+      'width':                    1.5,
+      'line-color':               '#94a3b8',
+      'target-arrow-color':       '#94a3b8',
+      'target-arrow-shape':       'triangle',
+      'curve-style':              'bezier',
+      'label':                    '',
+      'font-size':                '9px',
+      'color':                    '#475569',
+      'text-rotation':            'autorotate',
+      'text-margin-y':            -8,
+      'text-background-color':    '#ffffff',
+      'text-background-opacity':  0.75,
+      'text-background-padding':  '2px',
+    },
+  },
+  { selector: 'edge.faded',    style: { opacity: 0.05 } },
+  { selector: 'edge.labelled', style: { 'label': 'data(label)' } },
+];
+
+const GRAPH_LAYOUT = {
+  name:            'cose',
+  animate:         false,
+  nodeRepulsion:   () => 4096,
+  idealEdgeLength: () => 100,
+  padding:         24,
+};
+
+function buildGraphElements(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  degreeMap: Map<string, number>,
+  maxDeg: number
+): unknown[] {
+  return [
+    ...nodes.map((n) => {
+      const deg  = degreeMap.get(n.data.id) ?? 0;
+      const size = 36 + Math.round((deg / maxDeg) * 44);
+      return {
+        data: {
+          id:          n.data.id,
+          label:       n.data.label,
+          type:        n.data.type,
+          color:       ENTITY_COLORS[n.data.type] ?? ENTITY_COLORS['Other'],
+          size,
+          textMaxWidth: `${size - 8}px`,
+        },
+      };
+    }),
+    ...edges.map((e) => ({
+      data: { id: e.data.id, source: e.data.source, target: e.data.target, label: e.data.label },
+    })),
+  ];
+}
+
+function buildGraphLegend(nodes: GraphNode[], legendElId: string): void {
+  const legendEl = document.getElementById(legendElId);
+  if (!legendEl) return;
+  const typesPresent = [...new Set(nodes.map((n) => n.data.type))].sort();
+  if (typesPresent.length === 0) { legendEl.classList.add('hidden'); return; }
+  legendEl.innerHTML = typesPresent
+    .map((type) => {
+      const color = ENTITY_COLORS[type] ?? ENTITY_COLORS['Other'];
+      return `<div class="graph-legend-item">
+        <span class="graph-legend-swatch" style="background:${color}"></span>
+        <span class="graph-legend-label">${type}</span>
+      </div>`;
+    })
+    .join('');
+  legendEl.classList.remove('hidden');
+}
+
+function wireGraphEvents(cy: CyInstance, container: HTMLElement): void {
+  const tooltip = document.getElementById('graph-tooltip');
+
+  cy.on('mouseover', 'node', (e) => {
+    const node         = e.target;
+    const rendPos      = e.renderedPosition!;
+    const rect         = container.getBoundingClientRect();
+    const hoveredLabel = String(node.data('label'));
+
+    if (tooltip) {
+      tooltip.innerHTML = `
+        <div class="graph-tooltip-type">${node.data('type')}</div>
+        <div class="graph-tooltip-value">${node.data('label')}</div>`;
+      tooltip.style.left = `${rect.left + rendPos.x}px`;
+      tooltip.style.top  = `${rect.top  + rendPos.y}px`;
+      tooltip.classList.remove('hidden');
+    }
+
+    // All nodes that represent the same real-world entity (any document)
+    const sameEntityNodes = cy.nodes().filter(
+      (n) => String(n.data('label')) === hoveredLabel
+    );
+
+    // Collect IDs of nodes to highlight, seeded with the same-entity matches
+    const highlightedIds = new Set<string>();
+    sameEntityNodes.forEach((n) => highlightedIds.add(String(n.data('id'))));
+
+    // Expand to every connected component that contains any same-entity node
+    for (const comp of cy.elements().components()) {
+      let matchFound = false;
+      sameEntityNodes.forEach((n) => { if (comp.has(n)) matchFound = true; });
+      if (matchFound) {
+        // Add all NODES in this component (filter avoids adding edges from comp)
+        cy.nodes().filter((n) => comp.has(n))
+          .forEach((n) => highlightedIds.add(String(n.data('id'))));
+      }
+    }
+
+    // Build the final highlight set: nodes + edges whose both endpoints are highlighted
+    const highlightNodes = cy.nodes().filter((n) => highlightedIds.has(String(n.data('id'))));
+    const highlightEdges = cy.edges().filter((e) =>
+      highlightedIds.has(String(e.data('source'))) &&
+      highlightedIds.has(String(e.data('target')))
+    );
+    const highlightEles = highlightNodes.union(highlightEdges);
+
+    cy.elements().not(highlightEles).addClass('faded');
+    highlightEles.edges().addClass('labelled');
+  });
+
+  cy.on('mouseout', 'node', () => {
+    tooltip?.classList.add('hidden');
+    cy.elements().removeClass('faded labelled');
+  });
+
+  cy.on('mouseover', 'edge', (e) => { e.target.addClass('labelled'); });
+  cy.on('mouseout',  'edge', (e) => { e.target.removeClass('labelled'); });
+}
+
+function degreeMap(edges: GraphEdge[]): { map: Map<string, number>; max: number } {
+  const map = new Map<string, number>();
+  edges.forEach((e) => {
+    map.set(e.data.source, (map.get(e.data.source) ?? 0) + 1);
+    map.set(e.data.target, (map.get(e.data.target) ?? 0) + 1);
+  });
+  return { map, max: Math.max(1, ...map.values()) };
+}
 
 async function loadProjectGraph(): Promise<void> {
   if (!currentProjectId) return;
@@ -120,78 +325,59 @@ async function loadProjectGraph(): Promise<void> {
     const container = document.getElementById('graph-canvas');
     if (!container) { showGraphEmpty(); return; }
 
-    // Destroy previous instance before mounting a new one
-    if (cytoscapeInstance) {
-      cytoscapeInstance.destroy();
-      cytoscapeInstance = null;
-    }
+    if (cytoscapeInstance) { cytoscapeInstance.destroy(); cytoscapeInstance = null; }
+
+    const { nodes, edges } = result;
+    graphData = { nodes, edges };
+    const { map, max } = degreeMap(edges);
 
     showGraphCanvas();
 
     cytoscapeInstance = cytoscape({
       container,
-      elements: [
-        ...result.nodes.map((n) => ({
-          data: {
-            id:    n.data.id,
-            label: n.data.label,
-            type:  n.data.type,
-            color: ENTITY_COLORS[n.data.type] ?? ENTITY_COLORS['Other'],
-          },
-        })),
-        ...result.edges.map((e) => ({
-          data: {
-            id:     e.data.id,
-            source: e.data.source,
-            target: e.data.target,
-            label:  e.data.label,
-          },
-        })),
-      ],
-      style: [
-        {
-          selector: 'node',
-          style: {
-            'background-color': 'data(color)',
-            'label':            'data(label)',
-            'color':            '#ffffff',
-            'font-size':        '10px',
-            'text-valign':      'center',
-            'text-halign':      'center',
-            'width':            60,
-            'height':           60,
-            'text-wrap':        'wrap',
-            'text-max-width':   '54px',
-          },
-        },
-        {
-          selector: 'edge',
-          style: {
-            'width':                    1.5,
-            'line-color':               '#94a3b8',
-            'target-arrow-color':       '#94a3b8',
-            'target-arrow-shape':       'triangle',
-            'curve-style':              'bezier',
-            'label':                    'data(label)',
-            'font-size':                '9px',
-            'color':                    '#64748b',
-            'text-rotation':            'autorotate',
-            'text-margin-y':            -8,
-          },
-        },
-      ],
-      layout: {
-        name:           'cose',
-        animate:        false,
-        nodeRepulsion:  () => 4096,
-        idealEdgeLength: () => 100,
-        padding:        24,
-      },
+      elements: buildGraphElements(nodes, edges, map, max),
+      style:    GRAPH_STYLE,
+      layout:   GRAPH_LAYOUT,
     });
+
+    wireGraphEvents(cytoscapeInstance, container);
+    buildGraphLegend(nodes, 'graph-legend');
 
   } catch {
     showGraphEmpty();
   }
+}
+
+function openGraphExpand(): void {
+  if (!graphData) return;
+  const overlay      = document.getElementById('graph-expand-overlay');
+  const expandCanvas = document.getElementById('graph-expand-canvas');
+  if (!overlay || !expandCanvas) return;
+
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  if (expandedCyInstance) { expandedCyInstance.destroy(); expandedCyInstance = null; }
+
+  const { nodes, edges } = graphData;
+  const { map, max } = degreeMap(edges);
+
+  expandedCyInstance = cytoscape({
+    container: expandCanvas,
+    elements:  buildGraphElements(nodes, edges, map, max),
+    style:     GRAPH_STYLE,
+    layout:    GRAPH_LAYOUT,
+  });
+
+  wireGraphEvents(expandedCyInstance, expandCanvas);
+  buildGraphLegend(nodes, 'graph-expand-legend');
+}
+
+function closeGraphExpand(): void {
+  document.getElementById('graph-expand-overlay')?.classList.add('hidden');
+  document.getElementById('graph-expand-legend')?.classList.add('hidden');
+  document.body.style.overflow = '';
+  if (expandedCyInstance) { expandedCyInstance.destroy(); expandedCyInstance = null; }
 }
 
 // ── Document deletion ─────────────────────────────────────────────────────────
@@ -479,7 +665,22 @@ document.getElementById('doc-text-modal-overlay')?.addEventListener('click', (e)
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeDocTextModal();
+  if (e.key === 'Escape') {
+    closeDocTextModal();
+    closeGraphExpand();
+  }
+});
+
+document.getElementById('graph-fit-btn')?.addEventListener('click', () => {
+  cytoscapeInstance?.fit(24);
+});
+
+document.getElementById('graph-expand-btn')?.addEventListener('click', openGraphExpand);
+
+document.getElementById('graph-expand-close')?.addEventListener('click', closeGraphExpand);
+
+document.getElementById('graph-expand-overlay')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeGraphExpand();
 });
 
 // ── Search panel ─────────────────────────────────────────────────────────────

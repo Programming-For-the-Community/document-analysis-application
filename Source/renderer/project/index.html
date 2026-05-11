@@ -104,6 +104,19 @@
                 </svg>
                 <h2>Relationship Graph</h2>
               </div>
+              <div class="graph-controls hidden" id="graph-controls">
+                <button class="btn-icon" id="graph-fit-btn" title="Fit graph to view">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="7" cy="7" r="3.5" stroke="currentColor" stroke-width="1.3"/>
+                    <path d="M7 1v2M7 11v2M1 7h2M11 7h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <button class="btn-icon" id="graph-expand-btn" title="Expand to full screen">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div id="graph-loading" class="panel-loading hidden">
@@ -128,6 +141,7 @@
             </div>
 
             <div id="graph-canvas" class="hidden"></div>
+            <div id="graph-legend" class="graph-legend hidden"></div>
           </section>
 
           <section class="project-panel" id="search-panel">
@@ -190,6 +204,27 @@
           </div>
           <pre id="doc-text-modal-content" class="doc-text-modal-content"></pre>
           <p id="doc-text-modal-error" class="doc-text-modal-error hidden"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graph node tooltip -->
+    <div id="graph-tooltip" class="graph-tooltip hidden"></div>
+
+    <!-- Graph expand overlay -->
+    <div id="graph-expand-overlay" class="graph-expand-overlay hidden" role="dialog" aria-modal="true">
+      <div class="graph-expand-modal">
+        <div class="graph-expand-header">
+          <span class="graph-expand-title">Relationship Graph</span>
+          <button id="graph-expand-close" class="btn-icon-danger" aria-label="Close expanded graph">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="graph-expand-body">
+          <div id="graph-expand-canvas" class="graph-expand-canvas"></div>
+          <div id="graph-expand-legend" class="graph-legend hidden"></div>
         </div>
       </div>
     </div>
