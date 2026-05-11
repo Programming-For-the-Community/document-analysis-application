@@ -1,6 +1,5 @@
 export interface AWSConfig {
   region: string;
-  roleArn: string;
   secretName: string;
 }
 
@@ -18,6 +17,7 @@ export interface CognitoCredentials {
 }
 
 export interface SecretValues {
+  SVC_ROLE_ARN: string;
   COGNITO_USER_POOL_ID: string;
   COGNITO_CLIENT_ID: string;
   S3_BUCKET: string;

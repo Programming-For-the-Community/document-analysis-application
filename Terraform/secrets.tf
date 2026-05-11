@@ -6,6 +6,7 @@ resource "aws_secretsmanager_secret_version" "app_config" {
   secret_id = data.aws_secretsmanager_secret.app_config.id
 
   secret_string = jsonencode({
+    SVC_ROLE_ARN                  = aws_iam_role.svc_role.arn
     COGNITO_USER_POOL_ID          = aws_cognito_user_pool.users.id
     COGNITO_CLIENT_ID             = aws_cognito_user_pool_client.electron_app.id
     S3_BUCKET                     = aws_s3_bucket.documents.bucket

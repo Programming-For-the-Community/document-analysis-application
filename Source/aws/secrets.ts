@@ -1,31 +1,20 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
 import { SecretValues } from '../interfaces/aws';
 import { Logger } from '../utils/logger';
 
 export class AWS_SECRETS {
-  // Client is created inside init() rather than as a static field initializer because
-  // it needs STS credentials that aren't available until AWS_STS.init() has completed.
   private static client: SecretsManagerClient;
   public static secrets: SecretValues;
 
+  // Uses the local AWS credential chain (CLI profile / env vars / IAM instance role)
+  // rather than the assumed service role — this is intentional, because the role ARN
+  // itself lives inside the secret and must be retrieved before the role can be assumed.
   public static async init(): Promise<void> {
     Logger.debug(`Building Secrets Manager client (region: ${awsConfig.region})`);
 
-    this.client = new SecretsManagerClient({
-      region: awsConfig.region,
-      credentials: {
-        accessKeyId: AWS_STS.credentials.accessKeyId,
-        secretAccessKey: AWS_STS.credentials.secretAccessKey,
-        sessionToken: AWS_STS.credentials.sessionToken,
-      },
-    });
-
-    if (!this.client) {
-      throw new Error('AWS_SECRETS not initialized — call init() first');
-    }
+    this.client = new SecretsManagerClient({ region: awsConfig.region });
 
     Logger.info(`Fetching secret: "${awsConfig.secretName}"`);
 
@@ -38,6 +27,11 @@ export class AWS_SECRETS {
     }
 
     this.secrets = JSON.parse(response.SecretString) as SecretValues;
+
+    if (!this.secrets.SVC_ROLE_ARN) {
+      throw new Error(`Secret "${awsConfig.secretName}" is missing required key: SVC_ROLE_ARN`);
+    }
+
     Logger.info(`Secret "${awsConfig.secretName}" loaded — ${Object.keys(this.secrets).length} keys`);
   }
 }

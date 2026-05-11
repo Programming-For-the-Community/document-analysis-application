@@ -12,7 +12,7 @@
       },
       "args": [".", "--remote-debugging-port=9222"],
       "env": {
-        "NODE_ENV": "${workspaceFolder}/Source/.env.dev"
+        "NODE_ENV": "${workspaceFolder}/Source/.env"
       },
       "outputCapture": "std",
       "preLaunchTask": "Build TypeScript",

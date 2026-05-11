@@ -5,11 +5,10 @@ import { AppConfig } from '../interfaces/app';
 import { DBConnectionsConfig } from '../interfaces/db';
 import { AWSConfig, SecretValues } from '../interfaces/aws';
 
-dotenv.config({ path: process.env['NODE_ENV'] ?? path.join(__dirname, '../../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 export const awsConfig: AWSConfig = {
   region: process.env['AWS_REGION'] || '',
-  roleArn: process.env['AWS_ROLE_ARN'] || '',
   secretName: process.env['AWS_SECRET_NAME'] || '',
 };
 

@@ -84,11 +84,11 @@ app.whenReady().then(async () => {
   Logger.info('Electron app ready — starting AWS initialization sequence');
 
   try {
-    Logger.info('Assuming IAM service role...');
-    await AWS_STS.init();
-
-    Logger.info('Fetching application secrets...');
+    Logger.info('Fetching application secrets with local credentials...');
     await AWS_SECRETS.init();
+
+    Logger.info('Assuming IAM service role...');
+    await AWS_STS.init(AWS_SECRETS.secrets.SVC_ROLE_ARN);
 
     appConfig = buildAppConfig(AWS_SECRETS.secrets);
     Logger.info('App config assembled from Secrets Manager values');
@@ -109,7 +109,7 @@ app.whenReady().then(async () => {
     Logger.error(`Startup failed: ${message}`);
     dialog.showErrorBox(
       'Startup Error',
-      `Failed to start the application:\n\n${message}\n\nEnsure your AWS CLI is configured and ${awsConfig.roleArn || 'the configured role'} is accessible.`
+      `Failed to start the application:\n\n${message}\n\nEnsure your AWS CLI is configured with access to Secrets Manager secret "${awsConfig.secretName}".`
     );
     app.quit();
   }

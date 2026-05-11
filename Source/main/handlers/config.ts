@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 
 import { awsConfig } from '../config';
+import { AWS_SECRETS } from '../../aws/secrets';
 import { AppConfig } from '../../interfaces/app';
 import { Logger } from '../../utils/logger';
 
@@ -16,7 +17,7 @@ export function registerConfigHandlers(getAppConfig: () => AppConfig | null): vo
 
     return {
       region: awsConfig.region,
-      roleArn: awsConfig.roleArn,
+      roleArn: AWS_SECRETS.secrets?.SVC_ROLE_ARN,
       s3Bucket: config?.s3.documentBucket,
       dynamoProjectStateTable: config?.dynamoDB.projectStateTable,
       dynamoProjectAccessTable: config?.dynamoDB.projectAccessTable,

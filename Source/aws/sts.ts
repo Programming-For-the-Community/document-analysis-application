@@ -9,10 +9,14 @@ export class AWS_STS {
   // it uses the local AWS CLI session that is already authenticated.
   private static client: STSClient = new STSClient({ region: awsConfig.region });
   public static credentials: RoleCredentials;
+  private static roleArn: string;
   private static refreshPromise: Promise<void> | null = null;
 
-  public static async init(): Promise<void> {
-    Logger.info(`Assuming IAM role: ${awsConfig.roleArn}`);
+  // roleArn is passed in from the secret rather than read from .env,
+  // so the secret can be fetched before the role is assumed.
+  public static async init(roleArn: string): Promise<void> {
+    this.roleArn = roleArn;
+    Logger.info(`Assuming IAM role: ${roleArn}`);
     this.credentials = await this.assumeRole();
     Logger.info(`Role assumed successfully — session valid for 1h (keyId: ${this.credentials.accessKeyId})`);
   }
@@ -39,7 +43,7 @@ export class AWS_STS {
   private static async assumeRole(): Promise<RoleCredentials> {
     const response: AssumeRoleCommandOutput = await this.client.send(
       new AssumeRoleCommand({
-        RoleArn: awsConfig.roleArn,
+        RoleArn: this.roleArn,
         RoleSessionName: 'doc-analysis-electron',
         DurationSeconds: 3600,
       })

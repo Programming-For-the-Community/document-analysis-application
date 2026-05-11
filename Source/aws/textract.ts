@@ -9,6 +9,7 @@ import {
 export type { Block };
 
 import { AWS_STS } from './sts';
+import { AWS_SECRETS } from './secrets';
 import { awsConfig } from '../main/config';
 import { Logger } from '../utils/logger';
 
@@ -70,7 +71,7 @@ export class AWS_TEXTRACT {
         FeatureTypes: [FeatureType.FORMS, FeatureType.TABLES],
         NotificationChannel: {
           SNSTopicArn: snsTopicArn,
-          RoleArn: awsConfig.roleArn,
+          RoleArn: AWS_SECRETS.secrets.SVC_ROLE_ARN,
         },
         JobTag: documentId,
       })

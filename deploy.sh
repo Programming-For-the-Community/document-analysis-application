@@ -3,34 +3,18 @@ set -e  # exit on any error
 
 trap 'echo "ERROR: Script failed at line $LINENO with exit code $?"' ERR
 
-read -rp "Enter the IAM Role ARN to assume: " ROLE_ARN
+SECRET_NAME="doc-analysis-secret"
 
-if [ -z "${ROLE_ARN}" ]; then
-  echo "Error: Role ARN cannot be empty."
-  exit 1
-fi
-
-echo "Assuming IAM role..."
-CREDS=$(aws sts assume-role \
-  --role-arn "${ROLE_ARN}" \
-  --role-session-name "doc-analysis-deploy" \
-  --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+echo "Fetching secrets from Secrets Manager..."
+SECRET=$(aws secretsmanager get-secret-value \
+  --secret-id "${SECRET_NAME}" \
+  --query SecretString \
   --output text)
 
-export AWS_ACCESS_KEY_ID=$(echo "${CREDS}" | cut -f1)
-export AWS_SECRET_ACCESS_KEY=$(echo "${CREDS}" | cut -f2)
-export AWS_SESSION_TOKEN=$(echo "${CREDS}" | cut -f3)
-
-echo "Fetching secrets from AWS Secrets Manager..."
-
-SECRET=$(aws secretsmanager get-secret-value --secret-id "doc-analysis-secret" --query SecretString --output text)
-
-NEO4J_USER=$(echo "${SECRET}" | grep -oP '"SVC_USER"\s*:\s*"\K[^"]+')
-NEO4J_PASSWORD=$(echo "${SECRET}" | grep -oP '"SVC_PWD"\s*:\s*"\K[^"]+')
-QDRANT_API_KEY=$(echo "${SECRET}" | grep -oP '"QDRANT_KEY"\s*:\s*"\K[^"]+')
+NEO4J_PASSWORD=$(echo "${SECRET}" | python3 -c "import json,sys; print(json.load(sys.stdin)['SVC_PWD'])")
+QDRANT_API_KEY=$(echo "${SECRET}" | python3 -c "import json,sys; print(json.load(sys.stdin)['QDRANT_KEY'])")
 
 cat <<EOF > .env
-NEO4J_USER=${NEO4J_USER}
 NEO4J_PASSWORD=${NEO4J_PASSWORD}
 QDRANT_API_KEY=${QDRANT_API_KEY}
 EOF
