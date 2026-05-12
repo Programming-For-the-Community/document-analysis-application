@@ -9,6 +9,7 @@ import { AppConfig } from '../../interfaces/app';
 import { ProjectListItem } from '../../interfaces/project';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';
+import { userFacingError } from '../../utils/errors';
 
 function extractSub(idToken: string): string {
   const base64 = idToken.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
@@ -43,8 +44,8 @@ export function registerProjectHandlers(
       const projects = await AWS_DYNAMODB.listProjectsForUser(userSub, config.dynamoDB);
       return { success: true, projects };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load projects';
-      Logger.error(`project:list error: ${message}`);
+      const message = userFacingError(err, 'Failed to load projects');
+      Logger.error(`project:list error: ${err instanceof Error ? err.message : String(err)}`);
       return { success: false, error: message };
     }
   });
@@ -69,8 +70,8 @@ export function registerProjectHandlers(
       Logger.info(`Project "${project.name}" created via IPC`);
       return { success: true, project };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create project';
-      Logger.error(`project:create error: ${message}`);
+      const message = userFacingError(err, 'Failed to create project');
+      Logger.error(`project:create error: ${err instanceof Error ? err.message : String(err)}`);
       return { success: false, error: message };
     }
   });
@@ -97,8 +98,8 @@ export function registerProjectHandlers(
       Logger.info(`Project ${projectId} renamed to "${newName.trim()}" via IPC`);
       return { success: true };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to rename project';
-      Logger.error(`project:rename error: ${message}`);
+      const message = userFacingError(err, 'Failed to rename project');
+      Logger.error(`project:rename error: ${err instanceof Error ? err.message : String(err)}`);
       return { success: false, error: message };
     }
   });
@@ -130,8 +131,8 @@ export function registerProjectHandlers(
       Logger.info(`Project ${projectId} deleted via IPC`);
       return { success: true };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete project';
-      Logger.error(`project:delete error: ${message}`);
+      const message = userFacingError(err, 'Failed to delete project');
+      Logger.error(`project:delete error: ${err instanceof Error ? err.message : String(err)}`);
       return { success: false, error: message };
     }
   });
@@ -149,8 +150,8 @@ export function registerProjectHandlers(
       const role = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
       return { success: true, role: role ?? 'VIEW' };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to get project role';
-      Logger.error(`project:get-role error: ${message}`);
+      const message = userFacingError(err, 'Failed to get project role');
+      Logger.error(`project:get-role error: ${err instanceof Error ? err.message : String(err)}`);
       return { success: false, error: message };
     }
   });
@@ -196,8 +197,8 @@ export function registerProjectHandlers(
         Logger.info(`project:share: ${targetUsername} granted ${role} on project ${projectId}`);
         return { success: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to share project';
-        Logger.error(`project:share error: ${message}`);
+        const message = userFacingError(err, 'Failed to share project');
+        Logger.error(`project:share error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
@@ -236,8 +237,8 @@ export function registerProjectHandlers(
         Logger.info(`project:unshare: user ${targetSub} removed from project ${projectId}`);
         return { success: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to remove access';
-        Logger.error(`project:unshare error: ${message}`);
+        const message = userFacingError(err, 'Failed to remove access');
+        Logger.error(`project:unshare error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
@@ -262,8 +263,8 @@ export function registerProjectHandlers(
       const members = await AWS_DYNAMODB.listProjectMembers(projectId, config.dynamoDB);
       return { success: true, members };
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to list members';
-      Logger.error(`project:list-members error: ${message}`);
+      const message = userFacingError(err, 'Failed to list members');
+      Logger.error(`project:list-members error: ${err instanceof Error ? err.message : String(err)}`);
       return { success: false, error: message };
     }
   });
@@ -286,8 +287,8 @@ export function registerProjectHandlers(
         const usernames = await AWS_COGNITO.searchUsersByPrefix(prefix.trim(), config.cognito);
         return { success: true, usernames };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Search failed';
-        Logger.error(`project:search-users error: ${message}`);
+        const message = userFacingError(err, 'User search is temporarily unavailable');
+        Logger.error(`project:search-users error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
@@ -323,8 +324,8 @@ export function registerProjectHandlers(
         Logger.info(`project:update-role: user ${targetSub} on project ${projectId} → ${newRole}`);
         return { success: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to update role';
-        Logger.error(`project:update-role error: ${message}`);
+        const message = userFacingError(err, 'Failed to update role');
+        Logger.error(`project:update-role error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }

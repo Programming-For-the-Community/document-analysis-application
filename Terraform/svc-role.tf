@@ -128,7 +128,8 @@ resource "aws_iam_role_policy" "svc_role_dynamodb" {
           aws_dynamodb_table.project_state.arn,
           "${aws_dynamodb_table.project_state.arn}/index/*",
           aws_dynamodb_table.project_access.arn,
-          "${aws_dynamodb_table.project_access.arn}/index/*"
+          "${aws_dynamodb_table.project_access.arn}/index/*",
+          aws_dynamodb_table.user_sessions.arn
         ]
       }
     ]

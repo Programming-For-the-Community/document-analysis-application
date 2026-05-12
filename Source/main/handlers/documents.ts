@@ -16,6 +16,7 @@ import { extractTextFromBuffer } from '../services/doc-extractor';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';
+import { userFacingError } from '../../utils/errors';
 
 type DocumentUploadResult = {
   success: boolean;
@@ -278,8 +279,8 @@ export function registerDocumentHandlers(
             await enqueueDocument(record, config);
             uploaded.push({ ...record, processingStatus: 'QUEUED' });
           } catch (err) {
-            const message = err instanceof Error ? err.message : 'Upload failed';
-            Logger.error(`Failed to upload "${file.name}": ${message}`);
+            const message = userFacingError(err, 'Upload failed');
+            Logger.error(`Failed to upload "${file.name}": ${err instanceof Error ? err.message : String(err)}`);
             failed.push({ name: file.name, error: message });
           }
         }
@@ -290,8 +291,8 @@ export function registerDocumentHandlers(
 
         return { success: true, uploaded, failed };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Upload failed';
-        Logger.error(`document:upload error: ${message}`);
+        const message = userFacingError(err, 'Upload failed. Please try again.');
+        Logger.error(`document:upload error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
@@ -403,8 +404,8 @@ export function registerDocumentHandlers(
 
         return { success: true, documents };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load documents';
-        Logger.error(`document:list error: ${message}`);
+        const message = userFacingError(err, 'Failed to load documents. Please try again.');
+        Logger.error(`document:list error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
@@ -460,8 +461,8 @@ export function registerDocumentHandlers(
         Logger.info(`${docTag} Fully deleted`);
         return { success: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to delete document';
-        Logger.error(`document:delete error: ${message}`);
+        const message = userFacingError(err, 'Failed to delete document. Please try again.');
+        Logger.error(`document:delete error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
@@ -489,8 +490,8 @@ export function registerDocumentHandlers(
           return { success: false, error: 'Full text not available for this document.' };
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to fetch document text';
-        Logger.error(`document:get-text error: ${message}`);
+        const message = userFacingError(err, 'Failed to fetch document text. Please try again.');
+        Logger.error(`document:get-text error: ${err instanceof Error ? err.message : String(err)}`);
         return { success: false, error: message };
       }
     }
