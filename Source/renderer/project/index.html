@@ -21,6 +21,15 @@
             <path d="M10 12h20M10 18h14M10 24h20M10 30h10" stroke="white" stroke-width="2.5" stroke-linecap="round" />
           </svg>
           <span class="brand-name" id="project-name">Project</span>
+          <button id="share-btn" class="btn-sm btn-secondary hidden" style="-webkit-app-region:no-drag">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px">
+              <circle cx="10.5" cy="2.5" r="1.5" stroke="currentColor" stroke-width="1.3"/>
+              <circle cx="10.5" cy="10.5" r="1.5" stroke="currentColor" stroke-width="1.3"/>
+              <circle cx="2.5" cy="6.5" r="1.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M4 6.5h3M7 6.5l2.5-3.5M7 6.5l2.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Share
+          </button>
         </div>
         <div class="topbar-user">
           <span id="user-email" class="user-email"></span>
@@ -32,6 +41,15 @@
         <div class="project-panels">
 
           <section class="project-panel" id="documents-panel">
+            <!-- View-only access banner -->
+            <div id="view-only-banner" class="view-only-banner hidden">
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M7.5 4.5v4M7.5 10v1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              You have view-only access to this project. Contact the owner to upload or manage documents.
+            </div>
+
             <div class="panel-header">
               <div class="panel-title-group">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -187,6 +205,7 @@
         </div>
       </main>
     </div>
+
     <!-- Document full-text modal -->
     <div id="doc-text-modal-overlay" class="doc-text-overlay hidden" role="dialog" aria-modal="true">
       <div class="doc-text-modal">
@@ -225,6 +244,35 @@
         <div class="graph-expand-body">
           <div id="graph-expand-canvas" class="graph-expand-canvas"></div>
           <div id="graph-expand-legend" class="graph-legend hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share modal -->
+    <div id="share-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+      <div class="modal-card share-modal-card">
+        <h2 class="modal-title">Share Project</h2>
+
+        <div class="form-group">
+          <label>Add people</label>
+          <div class="share-form-row">
+            <input type="text" id="share-username-input" placeholder="Enter username" autocomplete="off" />
+            <select id="share-role-select" class="share-role-select">
+              <option value="VIEW">View</option>
+              <option value="EDIT">Edit</option>
+            </select>
+            <button id="share-submit-btn" class="btn-primary btn-sm">Share</button>
+          </div>
+        </div>
+        <p id="share-error" class="error-msg hidden"></p>
+
+        <p class="share-members-label">People with access</p>
+        <div id="share-members-list" class="members-list">
+          <p class="members-empty">Loading…</p>
+        </div>
+
+        <div class="modal-actions">
+          <button id="share-modal-close" class="btn-secondary">Done</button>
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ import {
 import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
 import { DynamoDBConfig } from '../interfaces/app';
-import { ProjectListItem } from '../interfaces/project';
+import { ProjectListItem, ProjectMember, ProjectRole } from '../interfaces/project';
 import { DocumentRecord, ProcessingStatus } from '../interfaces/document';
 import { Logger } from '../utils/logger';
 
@@ -55,8 +55,17 @@ export class AWS_DYNAMODB {
       })
     );
 
-    const accessItems = accessResult.Items ?? [];
+    // Filter out the SESSION sentinel record
+    const accessItems = (accessResult.Items ?? []).filter(
+      (item) => item['project_id'] !== 'SESSION'
+    );
     if (accessItems.length === 0) return [];
+
+    // Build a map of project_id → role for shared projects (owners have no role attribute)
+    const roleByProjectId = new Map<string, string>();
+    for (const item of accessItems) {
+      if (item['role']) roleByProjectId.set(item['project_id'] as string, item['role'] as string);
+    }
 
     const keys = accessItems.map((item) => ({
       project_id: item['project_id'] as string,
@@ -74,12 +83,118 @@ export class AWS_DYNAMODB {
     const metaItems = metaResult.Responses?.[config.projectStateTable] ?? [];
     Logger.info(`Found ${metaItems.length} project(s) for user: ${userSub}`);
 
-    return metaItems.map((item) => ({
-      id: item['project_id'] as string,
-      name: item['project_name'] as string,
-      documentCount: (item['document_count'] as number) ?? 0,
-      lastModified: formatDate(item['updated_at'] as string),
+    return metaItems.map((item) => {
+      const projectId = item['project_id'] as string;
+      const ownerSub  = item['owner_sub']  as string;
+      let role: ProjectRole;
+      if (ownerSub === userSub) {
+        role = 'OWNER';
+      } else {
+        role = (roleByProjectId.get(projectId) as 'VIEW' | 'EDIT') ?? 'VIEW';
+      }
+      return {
+        id:            projectId,
+        name:          item['project_name']   as string,
+        documentCount: (item['document_count'] as number) ?? 0,
+        lastModified:  formatDate(item['updated_at'] as string),
+        role,
+      };
+    });
+  }
+
+  public static async getProjectRole(
+    userSub:   string,
+    projectId: string,
+    config:    DynamoDBConfig
+  ): Promise<ProjectRole | null> {
+    const meta = await this.getProjectMeta(projectId, config);
+    if (!meta) return null;
+    if (meta.ownerSub === userSub) return 'OWNER';
+
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.projectAccessTable,
+        Key: { user_sub: userSub, project_id: projectId },
+      })
+    );
+    if (!result.Item || !result.Item['role']) return null;
+    return result.Item['role'] as 'VIEW' | 'EDIT';
+  }
+
+  public static async shareProject(
+    projectId:      string,
+    targetSub:      string,
+    targetUsername: string,
+    role:           'VIEW' | 'EDIT',
+    config:         DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new PutCommand({
+        TableName: config.projectAccessTable,
+        Item: {
+          user_sub:   targetSub,
+          project_id: projectId,
+          role,
+          username:   targetUsername,
+        },
+        ConditionExpression: 'attribute_not_exists(user_sub)',
+      })
+    );
+    Logger.info(`Project ${projectId} shared with user ${targetUsername} (${targetSub}) as ${role}`);
+  }
+
+  public static async unshareProject(
+    projectId: string,
+    targetSub: string,
+    config:    DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new DeleteCommand({
+        TableName: config.projectAccessTable,
+        Key: { user_sub: targetSub, project_id: projectId },
+      })
+    );
+    Logger.info(`Access to project ${projectId} removed for user ${targetSub}`);
+  }
+
+  public static async listProjectMembers(
+    projectId: string,
+    config:    DynamoDBConfig
+  ): Promise<ProjectMember[]> {
+    const result = await this.client.send(
+      new QueryCommand({
+        TableName: config.projectAccessTable,
+        IndexName: 'project-index',
+        KeyConditionExpression: 'project_id = :pid',
+        // Only return shared-access records (owner's record has no 'role' attribute)
+        FilterExpression: 'attribute_exists(#r)',
+        ExpressionAttributeNames: { '#r': 'role' },
+        ExpressionAttributeValues: { ':pid': projectId },
+      })
+    );
+    return (result.Items ?? []).map((item) => ({
+      userSub:  item['user_sub']  as string,
+      username: item['username']  as string,
+      role:     item['role']      as 'VIEW' | 'EDIT',
     }));
+  }
+
+  public static async updateProjectRole(
+    projectId: string,
+    targetSub: string,
+    newRole:   'VIEW' | 'EDIT',
+    config:    DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new UpdateCommand({
+        TableName: config.projectAccessTable,
+        Key: { user_sub: targetSub, project_id: projectId },
+        UpdateExpression: 'SET #r = :role',
+        ExpressionAttributeNames: { '#r': 'role' },
+        ExpressionAttributeValues: { ':role': newRole },
+      })
+    );
+    Logger.info(`Role for user ${targetSub} on project ${projectId} updated to ${newRole}`);
   }
 
   public static async createProject(
@@ -139,6 +254,7 @@ export class AWS_DYNAMODB {
       name: projectName,
       documentCount: 0,
       lastModified: formatDate(now),
+      role: 'OWNER',
     };
   }
 
@@ -218,12 +334,21 @@ export class AWS_DYNAMODB {
       );
     }
 
-    await this.client.send(
-      new DeleteCommand({
+    // Delete all access records for this project (owner + all shared users)
+    const members = await this.listProjectMembers(projectId, config);
+    const accessDeletePromises = [
+      this.client.send(new DeleteCommand({
         TableName: config.projectAccessTable,
         Key: { user_sub: userSub, project_id: projectId },
-      })
-    );
+      })),
+      ...members.map((m) =>
+        this.client.send(new DeleteCommand({
+          TableName: config.projectAccessTable,
+          Key: { user_sub: m.userSub, project_id: projectId },
+        }))
+      ),
+    ];
+    await Promise.all(accessDeletePromises);
 
     Logger.info(`Project ${projectId} removed from DynamoDB`);
     return s3Prefix;

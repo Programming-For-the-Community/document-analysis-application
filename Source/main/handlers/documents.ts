@@ -24,6 +24,16 @@ type DocumentUploadResult = {
   error?: string;
 };
 
+function extractSub(idToken: string): string {
+  const base64 = idToken.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
+  const payload = JSON.parse(
+    Buffer.from(base64, 'base64').toString('utf-8')
+  ) as Record<string, unknown>;
+  const sub = payload['sub'];
+  if (typeof sub !== 'string' || !sub) throw new Error('ID token missing sub claim');
+  return sub;
+}
+
 type DocumentListResult = {
   success: boolean;
   documents?: DocumentRecord[];
@@ -213,6 +223,12 @@ export function registerDocumentHandlers(
       }
 
       try {
+        const userSub = extractSub(tokens.idToken);
+        const callerRole = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
+        if (callerRole !== 'OWNER' && callerRole !== 'EDIT') {
+          return { success: false, error: 'Not authorized to upload documents to this project' };
+        }
+
         const meta = await AWS_DYNAMODB.getProjectMeta(projectId, config.dynamoDB);
         if (!meta) return { success: false, error: 'Project not found' };
 
@@ -406,6 +422,12 @@ export function registerDocumentHandlers(
       }
 
       try {
+        const userSub = extractSub(tokens.idToken);
+        const callerRole = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
+        if (callerRole !== 'OWNER' && callerRole !== 'EDIT') {
+          return { success: false, error: 'Not authorized to delete documents from this project' };
+        }
+
         const rec = await AWS_DYNAMODB.getDocumentRecord(projectId, documentId, config.dynamoDB);
         if (!rec) return { success: false, error: 'Document not found' };
 

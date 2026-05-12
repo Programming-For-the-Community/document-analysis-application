@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
+import { AWS_COGNITO } from '../../aws/cognito';
 import { AWS_S3 } from '../../aws/s3';
 import { Neo4J } from '../../aws/neo4j';
 import { Qdrant } from '../../aws/qdrant';
@@ -23,6 +24,7 @@ type ProjectListResult   = { success: boolean; projects?: ProjectListItem[]; err
 type ProjectCreateResult = { success: boolean; project?: ProjectListItem; error?: string };
 type ProjectRenameResult = { success: boolean; error?: string };
 type ProjectDeleteResult = { success: boolean; error?: string };
+type SimpleResult        = { success: boolean; error?: string };
 
 export function registerProjectHandlers(
   getAppConfig: () => AppConfig | null,
@@ -87,6 +89,10 @@ export function registerProjectHandlers(
 
     try {
       const userSub = extractSub(tokens.idToken);
+      const role = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
+      if (role !== 'OWNER') {
+        return { success: false, error: 'Only the project owner can rename this project' };
+      }
       await AWS_DYNAMODB.renameProject(projectId, newName.trim(), userSub, config.dynamoDB);
       Logger.info(`Project ${projectId} renamed to "${newName.trim()}" via IPC`);
       return { success: true };
@@ -107,6 +113,10 @@ export function registerProjectHandlers(
 
     try {
       const userSub = extractSub(tokens.idToken);
+      const role = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
+      if (role !== 'OWNER') {
+        return { success: false, error: 'Only the project owner can delete this project' };
+      }
       const s3Prefix = await AWS_DYNAMODB.deleteProject(projectId, userSub, config.dynamoDB);
       await AWS_S3.deleteProjectObjects(s3Prefix, config.s3);
 
@@ -125,4 +135,173 @@ export function registerProjectHandlers(
       return { success: false, error: message };
     }
   });
+
+  ipcMain.handle('project:get-role', async (_event, projectId: string): Promise<{ success: boolean; role?: string; error?: string }> => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+
+    if (!config || !tokens || typeof tokens === 'boolean') {
+      return { success: false, error: 'App not ready' };
+    }
+
+    try {
+      const userSub = extractSub(tokens.idToken);
+      const role = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
+      return { success: true, role: role ?? 'VIEW' };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to get project role';
+      Logger.error(`project:get-role error: ${message}`);
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle(
+    'project:share',
+    async (_event, projectId: string, targetUsername: string, role: 'VIEW' | 'EDIT'): Promise<SimpleResult> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      try {
+        const callerSub  = extractSub(tokens.idToken);
+        const callerRole = await AWS_DYNAMODB.getProjectRole(callerSub, projectId, config.dynamoDB);
+
+        if (!callerRole || callerRole === 'VIEW') {
+          return { success: false, error: 'Not authorized to share this project' };
+        }
+        if (callerRole === 'EDIT' && role === 'EDIT') {
+          return { success: false, error: 'You can only share projects in view mode' };
+        }
+
+        const targetUser = await AWS_COGNITO.findUserByUsername(targetUsername, config.cognito);
+        if (!targetUser) {
+          return { success: false, error: `User "${targetUsername}" not found` };
+        }
+        if (targetUser.sub === callerSub) {
+          return { success: false, error: 'Cannot share a project with yourself' };
+        }
+
+        const existingRole = await AWS_DYNAMODB.getProjectRole(targetUser.sub, projectId, config.dynamoDB);
+        if (existingRole === 'OWNER') {
+          return { success: false, error: 'This user is the project owner' };
+        }
+        if (existingRole) {
+          return { success: false, error: `"${targetUsername}" already has access to this project` };
+        }
+
+        await AWS_DYNAMODB.shareProject(projectId, targetUser.sub, targetUser.username, role, config.dynamoDB);
+        Logger.info(`project:share: ${targetUsername} granted ${role} on project ${projectId}`);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to share project';
+        Logger.error(`project:share error: ${message}`);
+        return { success: false, error: message };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'project:unshare',
+    async (_event, projectId: string, targetSub: string): Promise<SimpleResult> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      try {
+        const callerSub  = extractSub(tokens.idToken);
+        const callerRole = await AWS_DYNAMODB.getProjectRole(callerSub, projectId, config.dynamoDB);
+
+        if (!callerRole) {
+          return { success: false, error: 'Not authorized' };
+        }
+        if (callerRole !== 'OWNER' && targetSub !== callerSub) {
+          return { success: false, error: 'Not authorized to remove this user' };
+        }
+
+        const targetRole = await AWS_DYNAMODB.getProjectRole(targetSub, projectId, config.dynamoDB);
+        if (targetRole === 'OWNER') {
+          return { success: false, error: 'Cannot remove the project owner' };
+        }
+        if (!targetRole) {
+          return { success: false, error: 'User does not have access to this project' };
+        }
+
+        await AWS_DYNAMODB.unshareProject(projectId, targetSub, config.dynamoDB);
+        Logger.info(`project:unshare: user ${targetSub} removed from project ${projectId}`);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to remove access';
+        Logger.error(`project:unshare error: ${message}`);
+        return { success: false, error: message };
+      }
+    }
+  );
+
+  ipcMain.handle('project:list-members', async (_event, projectId: string) => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+
+    if (!config || !tokens || typeof tokens === 'boolean') {
+      return { success: false, error: 'App not ready' };
+    }
+
+    try {
+      const callerSub  = extractSub(tokens.idToken);
+      const callerRole = await AWS_DYNAMODB.getProjectRole(callerSub, projectId, config.dynamoDB);
+
+      if (!callerRole) {
+        return { success: false, error: 'Not authorized' };
+      }
+
+      const members = await AWS_DYNAMODB.listProjectMembers(projectId, config.dynamoDB);
+      return { success: true, members };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to list members';
+      Logger.error(`project:list-members error: ${message}`);
+      return { success: false, error: message };
+    }
+  });
+
+  ipcMain.handle(
+    'project:update-role',
+    async (_event, projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT'): Promise<SimpleResult> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      try {
+        const callerSub  = extractSub(tokens.idToken);
+        const callerRole = await AWS_DYNAMODB.getProjectRole(callerSub, projectId, config.dynamoDB);
+
+        if (callerRole !== 'OWNER') {
+          return { success: false, error: 'Only the project owner can change roles' };
+        }
+
+        const targetRole = await AWS_DYNAMODB.getProjectRole(targetSub, projectId, config.dynamoDB);
+        if (targetRole === 'OWNER') {
+          return { success: false, error: "Cannot change the owner's role" };
+        }
+        if (!targetRole) {
+          return { success: false, error: 'User does not have access to this project' };
+        }
+
+        await AWS_DYNAMODB.updateProjectRole(projectId, targetSub, newRole, config.dynamoDB);
+        Logger.info(`project:update-role: user ${targetSub} on project ${projectId} → ${newRole}`);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to update role';
+        Logger.error(`project:update-role error: ${message}`);
+        return { success: false, error: message };
+      }
+    }
+  );
 }

@@ -8,8 +8,26 @@ function formatDocumentCount(count: number): string {
 }
 
 function createProjectCard(project: ProjectListItem): HTMLElement {
+  const isOwner = project.role === 'OWNER';
   const card = document.createElement('div');
   card.className = 'project-card';
+
+  const ownerActions = `
+    <button class="btn-card-action" title="Rename project" aria-label="Rename ${project.name}">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9.5 1.5a1.414 1.414 0 012 2L4 11H2v-2L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="btn-card-action btn-card-delete" title="Delete project" aria-label="Delete ${project.name}">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 1h5M1 3h13M6 6v5M9 6v5M2 3l1 10a1 1 0 001 1h7a1 1 0 001-1l1-10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  `;
+  const sharedBadge = project.role === 'EDIT'
+    ? `<span class="project-role-badge project-role-edit">Can edit</span>`
+    : `<span class="project-role-badge project-role-view">View only</span>`;
+
   card.innerHTML = `
     <div class="project-card-header">
       <div class="project-card-icon">
@@ -20,16 +38,7 @@ function createProjectCard(project: ProjectListItem): HTMLElement {
           <path d="M14 17h3M15.5 15.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
       </div>
-      <button class="btn-card-action" title="Rename project" aria-label="Rename ${project.name}">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9.5 1.5a1.414 1.414 0 012 2L4 11H2v-2L9.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <button class="btn-card-action btn-card-delete" title="Delete project" aria-label="Delete ${project.name}">
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 1h5M1 3h13M6 6v5M9 6v5M2 3l1 10a1 1 0 001 1h7a1 1 0 001-1l1-10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      ${isOwner ? ownerActions : sharedBadge}
     </div>
     <div class="project-card-body">
       <h3 class="project-card-name">${project.name}</h3>
@@ -39,15 +48,17 @@ function createProjectCard(project: ProjectListItem): HTMLElement {
   card.addEventListener('click', () => {
     void window.electron.nav.openProject({ id: project.id, name: project.name });
   });
-  const [renameBtn, deleteBtn] = card.querySelectorAll('.btn-card-action');
-  renameBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openRenameModal(project.id, project.name);
-  });
-  deleteBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openDeleteModal(project.id, project.name);
-  });
+  if (isOwner) {
+    const [renameBtn, deleteBtn] = card.querySelectorAll('.btn-card-action');
+    renameBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openRenameModal(project.id, project.name);
+    });
+    deleteBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDeleteModal(project.id, project.name);
+    });
+  }
   return card;
 }
 

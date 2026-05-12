@@ -5,6 +5,22 @@ declare global {
     readonly path: string;
   }
 
+  type ProjectRole = 'OWNER' | 'VIEW' | 'EDIT';
+
+  interface ProjectListItem {
+    id: string;
+    name: string;
+    documentCount: number;
+    lastModified: string;
+    role: ProjectRole;
+  }
+
+  interface ProjectMember {
+    userSub: string;
+    username: string;
+    role: 'VIEW' | 'EDIT';
+  }
+
   interface Window {
     electron: {
       auth: {
@@ -35,6 +51,11 @@ declare global {
         create: (projectName: string) => Promise<{ success: boolean; project?: ProjectListItem; error?: string }>;
         rename: (projectId: string, newName: string) => Promise<{ success: boolean; error?: string }>;
         delete: (projectId: string) => Promise<{ success: boolean; error?: string }>;
+        getRole: (projectId: string) => Promise<{ success: boolean; role?: ProjectRole; error?: string }>;
+        share: (projectId: string, username: string, role: 'VIEW' | 'EDIT') => Promise<{ success: boolean; error?: string }>;
+        unshare: (projectId: string, targetSub: string) => Promise<{ success: boolean; error?: string }>;
+        listMembers: (projectId: string) => Promise<{ success: boolean; members?: ProjectMember[]; error?: string }>;
+        updateRole: (projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT') => Promise<{ success: boolean; error?: string }>;
       };
       documents: {
         selectFiles: () => Promise<{ success: boolean; files: Array<{ name: string; path: string; size: number }> }>;
@@ -81,13 +102,6 @@ declare global {
         getFilePath: (file: File) => string;
       };
     };
-  }
-
-  interface ProjectListItem {
-    id: string;
-    name: string;
-    documentCount: number;
-    lastModified: string;
   }
 
   type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED';

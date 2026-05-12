@@ -11,8 +11,8 @@ SECRET=$(aws secretsmanager get-secret-value \
   --query SecretString \
   --output text)
 
-NEO4J_PASSWORD=$(echo "${SECRET}" | python3 -c "import json,sys; print(json.load(sys.stdin)['SVC_PWD'])")
-QDRANT_API_KEY=$(echo "${SECRET}" | python3 -c "import json,sys; print(json.load(sys.stdin)['QDRANT_KEY'])")
+NEO4J_PASSWORD=$(echo "${SECRET}" | grep -oP '"SVC_PWD"\s*:\s*"\K[^"]+')
+QDRANT_API_KEY=$(echo "${SECRET}" | grep -oP '"QDRANT_KEY"\s*:\s*"\K[^"]+')
 
 cat <<EOF > .env
 NEO4J_PASSWORD=${NEO4J_PASSWORD}

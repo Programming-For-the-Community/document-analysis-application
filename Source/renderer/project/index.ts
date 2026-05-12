@@ -35,8 +35,9 @@ interface CyInstance {
 declare function cytoscape(options: Record<string, unknown>): CyInstance;
 
 
-let currentProjectId = '';
-let cytoscapeInstance: CyInstance | null = null;
+let currentProjectId   = '';
+let currentProjectRole: ProjectRole = 'VIEW';
+let cytoscapeInstance:  CyInstance | null = null;
 let expandedCyInstance: CyInstance | null = null;
 let graphData: { nodes: GraphNode[]; edges: GraphEdge[] } | null = null;
 
@@ -70,16 +71,25 @@ function showProjectDocumentsLoading(): void {
 
 function showProjectDocumentsEmpty(): void {
   document.getElementById('docs-loading')?.classList.add('hidden');
-  document.getElementById('docs-upload-zone')?.classList.remove('hidden');
   document.getElementById('docs-list-container')?.classList.add('hidden');
-  document.getElementById('doc-header-actions')?.classList.remove('hidden');
+
+  if (currentProjectRole === 'VIEW') {
+    document.getElementById('docs-upload-zone')?.classList.add('hidden');
+    document.getElementById('doc-header-actions')?.classList.add('hidden');
+  } else {
+    document.getElementById('docs-upload-zone')?.classList.remove('hidden');
+    document.getElementById('doc-header-actions')?.classList.remove('hidden');
+  }
 }
 
 function showProjectDocumentsList(): void {
   document.getElementById('docs-loading')?.classList.add('hidden');
   document.getElementById('docs-upload-zone')?.classList.add('hidden');
   document.getElementById('docs-list-container')?.classList.remove('hidden');
-  document.getElementById('doc-header-actions')?.classList.remove('hidden');
+
+  if (currentProjectRole !== 'VIEW') {
+    document.getElementById('doc-header-actions')?.classList.remove('hidden');
+  }
 }
 
 function showProjectUploadStatus(message: string): void {
@@ -257,27 +267,22 @@ function wireGraphEvents(cy: CyInstance, container: HTMLElement): void {
       tooltip.classList.remove('hidden');
     }
 
-    // All nodes that represent the same real-world entity (any document)
     const sameEntityNodes = cy.nodes().filter(
       (n) => String(n.data('label')) === hoveredLabel
     );
 
-    // Collect IDs of nodes to highlight, seeded with the same-entity matches
     const highlightedIds = new Set<string>();
     sameEntityNodes.forEach((n) => highlightedIds.add(String(n.data('id'))));
 
-    // Expand to every connected component that contains any same-entity node
     for (const comp of cy.elements().components()) {
       let matchFound = false;
       sameEntityNodes.forEach((n) => { if (comp.has(n)) matchFound = true; });
       if (matchFound) {
-        // Add all NODES in this component (filter avoids adding edges from comp)
         cy.nodes().filter((n) => comp.has(n))
           .forEach((n) => highlightedIds.add(String(n.data('id'))));
       }
     }
 
-    // Build the final highlight set: nodes + edges whose both endpoints are highlighted
     const highlightNodes = cy.nodes().filter((n) => highlightedIds.has(String(n.data('id'))));
     const highlightEdges = cy.edges().filter((e) =>
       highlightedIds.has(String(e.data('source'))) &&
@@ -312,8 +317,6 @@ async function loadProjectGraph(): Promise<void> {
   showGraphLoading();
 
   try {
-    // Sync any documents not yet in the local Neo4j before reading the graph.
-    // findMissingDocuments makes this a no-op when everything is already loaded.
     await window.electron.graph.syncProject(currentProjectId);
 
     const result = await window.electron.graph.getProjectGraph(currentProjectId);
@@ -425,6 +428,7 @@ const STATUS_BADGE: Record<ProcessingStatus, { label: string; cls: string }> = {
 };
 
 function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElement {
+  const canDelete = currentProjectRole === 'OWNER' || currentProjectRole === 'EDIT';
   const item = document.createElement('div');
   item.className = 'doc-item';
   item.dataset['docId'] = doc.documentId;
@@ -433,6 +437,16 @@ function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElem
     : '';
   const { label, cls } = STATUS_BADGE[doc.processingStatus];
   const statusBadge = `<span class="${cls}">${label}</span>`;
+  const deleteBtn = canDelete
+    ? `<div class="doc-item-actions">
+        <button class="btn-icon-danger btn-delete-doc" title="Delete document" aria-label="Delete ${doc.documentName}">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M11.5 3.5l-.75 8a1 1 0 01-1 .9H4.25a1 1 0 01-1-.9L2.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>`
+    : '';
+
   item.innerHTML = `
     <div class="doc-item-icon">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -448,19 +462,15 @@ function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElem
       </div>
       <span class="doc-item-meta">${formatProjectFileSize(doc.fileSize)} · Uploaded ${formatProjectUploadDate(doc.uploadedAt)}</span>
     </div>
-    <div class="doc-item-actions">
-      <button class="btn-icon-danger btn-delete-doc" title="Delete document" aria-label="Delete ${doc.documentName}">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M11.5 3.5l-.75 8a1 1 0 01-1 .9H4.25a1 1 0 01-1-.9L2.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
+    ${deleteBtn}
   `;
 
-  item.querySelector('.btn-delete-doc')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    void handleDeleteDocument(doc.documentId, doc.documentName, item);
-  });
+  if (canDelete) {
+    item.querySelector('.btn-delete-doc')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void handleDeleteDocument(doc.documentId, doc.documentName, item);
+    });
+  }
 
   return item;
 }
@@ -523,7 +533,6 @@ async function uploadFiles(files: Array<{ name: string; path: string; size: numb
         lines.push(`${uploadedCount} file${uploadedCount !== 1 ? 's' : ''} uploaded successfully.`);
       }
 
-      // Group failures by error reason so each distinct reason is one line
       const byError = new Map<string, string[]>();
       for (const f of result.failed) {
         const group = byError.get(f.error) ?? [];
@@ -567,6 +576,7 @@ function closeAddDocsMenu(): void {
 }
 
 function handleDropUpload(fileList: FileList): void {
+  if (currentProjectRole === 'VIEW') return;
   const files = Array.from(fileList).map((f) => ({
     name: f.name,
     path: window.electron.utils.getFilePath(f),
@@ -580,6 +590,7 @@ function handleDropUpload(fileList: FileList): void {
 const docsPanel = document.getElementById('documents-panel');
 
 docsPanel?.addEventListener('dragover', (e) => {
+  if (currentProjectRole === 'VIEW') return;
   e.preventDefault();
   document.getElementById('docs-upload-zone')?.classList.add('drag-over');
 });
@@ -668,6 +679,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeDocTextModal();
     closeGraphExpand();
+    closeShareModal();
   }
 });
 
@@ -713,7 +725,7 @@ function showSearchResults(answer: string, citations: SearchCitation[]): void {
   const answerEl = document.getElementById('search-answer');
   if (answerEl) answerEl.textContent = answer;
 
-  const citationsEl   = document.getElementById('search-citations');
+  const citationsEl    = document.getElementById('search-citations');
   const citationsLabel = document.getElementById('search-citations-label');
 
   if (citationsEl) {
@@ -782,6 +794,165 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
   await window.electron.auth.logout();
 });
 
+// ── Share modal ───────────────────────────────────────────────────────────────
+
+function setShareError(message: string): void {
+  const el = document.getElementById('share-error');
+  if (el) { el.textContent = message; el.classList.remove('hidden'); }
+}
+
+function clearShareError(): void {
+  document.getElementById('share-error')?.classList.add('hidden');
+}
+
+function renderMembersList(members: ProjectMember[], callerRole: ProjectRole): void {
+  const listEl = document.getElementById('share-members-list');
+  if (!listEl) return;
+
+  if (members.length === 0) {
+    listEl.innerHTML = '<p class="members-empty">No one else has access yet.</p>';
+    return;
+  }
+
+  listEl.innerHTML = '';
+  for (const member of members) {
+    const item = document.createElement('div');
+    item.className = 'member-item';
+
+    const isOwner     = callerRole === 'OWNER';
+    const isSelf      = false; // self-remove handled separately if needed
+
+    const roleOptions = isOwner
+      ? `<select class="member-role-select" data-sub="${member.userSub}">
+           <option value="VIEW" ${member.role === 'VIEW' ? 'selected' : ''}>View</option>
+           <option value="EDIT" ${member.role === 'EDIT' ? 'selected' : ''}>Edit</option>
+         </select>`
+      : `<select class="member-role-select" disabled>
+           <option>${member.role === 'EDIT' ? 'Edit' : 'View'}</option>
+         </select>`;
+
+    const removeBtn = (isOwner || isSelf)
+      ? `<button class="btn-member-remove" data-sub="${member.userSub}" title="Remove access" aria-label="Remove ${member.username}">
+           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+           </svg>
+         </button>`
+      : '';
+
+    item.innerHTML = `
+      <span class="member-username">${member.username}</span>
+      ${roleOptions}
+      ${removeBtn}
+    `;
+
+    // Role change
+    if (isOwner) {
+      item.querySelector<HTMLSelectElement>('.member-role-select')?.addEventListener('change', async (e) => {
+        const sel     = e.target as HTMLSelectElement;
+        const newRole = sel.value as 'VIEW' | 'EDIT';
+        const result  = await window.electron.projects.updateRole(currentProjectId, member.userSub, newRole);
+        if (!result.success) {
+          sel.value = member.role; // revert
+          setShareError(result.error ?? 'Failed to update role.');
+        } else {
+          member.role = newRole;
+          clearShareError();
+        }
+      });
+    }
+
+    // Remove access
+    item.querySelector<HTMLButtonElement>('.btn-member-remove')?.addEventListener('click', async () => {
+      const result = await window.electron.projects.unshare(currentProjectId, member.userSub);
+      if (!result.success) {
+        setShareError(result.error ?? 'Failed to remove access.');
+      } else {
+        item.remove();
+        const remainingEl = listEl.querySelector('.member-item');
+        if (!remainingEl) {
+          listEl.innerHTML = '<p class="members-empty">No one else has access yet.</p>';
+        }
+        clearShareError();
+      }
+    });
+
+    listEl.appendChild(item);
+  }
+}
+
+async function loadShareMembers(): Promise<void> {
+  const listEl = document.getElementById('share-members-list');
+  if (listEl) listEl.innerHTML = '<p class="members-empty">Loading…</p>';
+
+  const result = await window.electron.projects.listMembers(currentProjectId);
+  if (result.success && result.members) {
+    renderMembersList(result.members, currentProjectRole);
+  } else {
+    if (listEl) listEl.innerHTML = '<p class="members-empty">Failed to load members.</p>';
+  }
+}
+
+function openShareModal(): void {
+  clearShareError();
+  const input = document.getElementById('share-username-input') as HTMLInputElement | null;
+  if (input) input.value = '';
+
+  // EDIT users can only grant VIEW — hide the EDIT option
+  const roleSelect = document.getElementById('share-role-select') as HTMLSelectElement | null;
+  if (roleSelect) {
+    const editOption = roleSelect.querySelector<HTMLOptionElement>('option[value="EDIT"]');
+    if (editOption) editOption.hidden = currentProjectRole !== 'OWNER';
+    roleSelect.value = 'VIEW';
+  }
+
+  document.getElementById('share-modal')?.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  void loadShareMembers();
+  input?.focus();
+}
+
+function closeShareModal(): void {
+  document.getElementById('share-modal')?.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('share-btn')?.addEventListener('click', openShareModal);
+document.getElementById('share-modal-close')?.addEventListener('click', closeShareModal);
+document.getElementById('share-modal')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeShareModal();
+});
+
+document.getElementById('share-submit-btn')?.addEventListener('click', async () => {
+  const input      = document.getElementById('share-username-input') as HTMLInputElement | null;
+  const roleSelect = document.getElementById('share-role-select')    as HTMLSelectElement | null;
+  const submitBtn  = document.getElementById('share-submit-btn')     as HTMLButtonElement | null;
+
+  const username = input?.value.trim() ?? '';
+  const role     = (roleSelect?.value ?? 'VIEW') as 'VIEW' | 'EDIT';
+
+  if (!username) { setShareError('Please enter a username.'); return; }
+
+  clearShareError();
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sharing…'; }
+
+  const result = await window.electron.projects.share(currentProjectId, username, role);
+
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Share'; }
+
+  if (!result.success) {
+    setShareError(result.error ?? 'Failed to share project.');
+  } else {
+    if (input) input.value = '';
+    void loadShareMembers();
+  }
+});
+
+document.getElementById('share-username-input')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') (document.getElementById('share-submit-btn') as HTMLButtonElement | null)?.click();
+});
+
+// ── Navigation listeners ──────────────────────────────────────────────────────
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function initProjectPage(): Promise<void> {
@@ -794,7 +965,11 @@ async function initProjectPage(): Promise<void> {
 
   const payload = parseProjectJwt(tokens.idToken);
   const emailEl = document.getElementById('user-email');
-  if (emailEl) emailEl.textContent = String(payload['email'] ?? '');
+  if (emailEl) {
+    emailEl.textContent = String(
+      payload['email'] ?? payload['cognito:username'] ?? ''
+    );
+  }
 
   const params = new URLSearchParams(window.location.search);
   currentProjectId = params.get('id') ?? '';
@@ -803,6 +978,20 @@ async function initProjectPage(): Promise<void> {
   const nameEl = document.getElementById('project-name');
   if (nameEl) nameEl.textContent = projectName;
   document.title = `${projectName} — Document Analysis`;
+
+  // Fetch current user's role for this project
+  const roleResult = await window.electron.projects.getRole(currentProjectId);
+  currentProjectRole = (roleResult.role as ProjectRole | undefined) ?? 'VIEW';
+
+  // Show view-only banner and hide upload controls for VIEW users
+  if (currentProjectRole === 'VIEW') {
+    document.getElementById('view-only-banner')?.classList.remove('hidden');
+  }
+
+  // Show Share button for OWNER and EDIT users
+  if (currentProjectRole === 'OWNER' || currentProjectRole === 'EDIT') {
+    document.getElementById('share-btn')?.classList.remove('hidden');
+  }
 
   await loadProjectDocuments();
   void loadProjectGraph();

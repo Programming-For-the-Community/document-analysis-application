@@ -5,6 +5,7 @@ import {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
+  AdminGetUserCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { AWS_STS } from './sts';
@@ -102,6 +103,26 @@ export class AWS_COGNITO {
     Logger.debug(`Permanent password set for "${username}" — proceeding to sign in`);
 
     return await this.authenticate(username, password, config);
+  }
+
+  public static async findUserByUsername(
+    username: string,
+    config: CognitoConfig
+  ): Promise<{ sub: string; username: string } | null> {
+    try {
+      const response = await this.client.send(
+        new AdminGetUserCommand({
+          UserPoolId: config.userPoolId,
+          Username: username,
+        })
+      );
+      const sub = response.UserAttributes?.find((a) => a.Name === 'sub')?.Value;
+      if (!sub) return null;
+      return { sub, username: response.Username ?? username };
+    } catch (err) {
+      if (err instanceof Error && err.name === 'UserNotFoundException') return null;
+      throw err;
+    }
   }
 
   public static async refreshTokens(

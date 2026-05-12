@@ -28,14 +28,24 @@ contextBridge.exposeInMainWorld('electron', {
     goHome: (): Promise<void> => ipcRenderer.invoke('nav:go-home'),
   },
   projects: {
-    list: (): Promise<{ success: boolean; projects?: { id: string; name: string; documentCount: number; lastModified: string }[]; error?: string }> =>
+    list: (): Promise<{ success: boolean; projects?: { id: string; name: string; documentCount: number; lastModified: string; role: string }[]; error?: string }> =>
       ipcRenderer.invoke('project:list'),
-    create: (projectName: string): Promise<{ success: boolean; project?: { id: string; name: string; documentCount: number; lastModified: string }; error?: string }> =>
+    create: (projectName: string): Promise<{ success: boolean; project?: { id: string; name: string; documentCount: number; lastModified: string; role: string }; error?: string }> =>
       ipcRenderer.invoke('project:create', projectName),
     rename: (projectId: string, newName: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:rename', projectId, newName),
     delete: (projectId: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:delete', projectId),
+    getRole: (projectId: string): Promise<{ success: boolean; role?: string; error?: string }> =>
+      ipcRenderer.invoke('project:get-role', projectId),
+    share: (projectId: string, username: string, role: 'VIEW' | 'EDIT'): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:share', projectId, username, role),
+    unshare: (projectId: string, targetSub: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:unshare', projectId, targetSub),
+    listMembers: (projectId: string): Promise<{ success: boolean; members?: { userSub: string; username: string; role: string }[]; error?: string }> =>
+      ipcRenderer.invoke('project:list-members', projectId),
+    updateRole: (projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT'): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:update-role', projectId, targetSub, newRole),
   },
   documents: {
     selectFiles: () => ipcRenderer.invoke('document:select-files'),

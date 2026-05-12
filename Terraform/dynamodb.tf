@@ -70,6 +70,13 @@ resource "aws_dynamodb_table" "project_access" {
     type = "S"
   }
 
+  # GSI: look up all users who have access to a project (for share dialog and delete cleanup)
+  global_secondary_index {
+    name            = "project-index"
+    hash_key        = "project_id"
+    projection_type = "ALL"
+  }
+
   tags = {
     Owner       = var.owner
     Project     = var.project
