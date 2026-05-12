@@ -92,7 +92,7 @@ declare global {
       };
       graph: {
         syncProject: (projectId: string) => Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }>;
-        getProjectGraph: (projectId: string) => Promise<{
+        getProjectGraph: (projectId: string, minDocCount: number) => Promise<{
           success: boolean;
           nodes?: GraphNode[];
           edges?: GraphEdge[];
@@ -115,7 +115,7 @@ declare global {
   }
 
   interface GraphNode {
-    data: { id: string; label: string; type: string; documentId: string };
+    data: { id: string; label: string; type: string; docCount: number };
   }
 
   interface GraphEdge {

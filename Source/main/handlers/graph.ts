@@ -55,10 +55,12 @@ export function registerGraphHandlers(
         let loaded = 0;
         let failed = 0;
 
-        await Promise.all(
-          complete
-            .filter((d) => missingSet.has(d.documentId))
-            .map(async (doc) => {
+        const docsToLoad = complete.filter((d) => missingSet.has(d.documentId));
+        const BATCH_SIZE = 5;
+        for (let i = 0; i < docsToLoad.length; i += BATCH_SIZE) {
+          const batch = docsToLoad.slice(i, i + BATCH_SIZE);
+          await Promise.all(
+            batch.map(async (doc) => {
               const key = `${doc.ownerSub}/${projectId}/analysis/${doc.documentId}.json`;
               try {
                 const text  = await AWS_S3.getObjectText(key, config.s3);
@@ -71,7 +73,8 @@ export function registerGraphHandlers(
                 failed++;
               }
             })
-        );
+          );
+        }
 
         Logger.info(`graph:sync-project: loaded ${loaded}/${missing.length} missing graph(s) for project ${projectId}`);
         return { success: true, loaded, failed, total };
@@ -83,7 +86,7 @@ export function registerGraphHandlers(
     }
   );
 
-  ipcMain.handle('graph:get-project-graph', async (_event, projectId: string) => {
+  ipcMain.handle('graph:get-project-graph', async (_event, projectId: string, minDocCount: number) => {
     const config = getAppConfig();
     const tokens = getTokens();
 
@@ -91,8 +94,10 @@ export function registerGraphHandlers(
       return { success: false, error: 'App not ready' };
     }
 
+    const safeMinDocCount = Math.max(2, Number.isFinite(minDocCount) ? minDocCount : 2);
+
     try {
-      const graph = await Neo4J.getProjectGraph(projectId);
+      const graph = await Neo4J.getProjectGraph(projectId, safeMinDocCount);
       return { success: true, nodes: graph.nodes, edges: graph.edges };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load graph';

@@ -35,6 +35,10 @@ CREATE INDEX entity_type IF NOT EXISTS
 CREATE INDEX entity_document IF NOT EXISTS
   FOR (e:Entity) ON (e.documentId);
 
+// List / filter all entities in a project (used by graph queries)
+CREATE INDEX entity_project IF NOT EXISTS
+  FOR (e:Entity) ON (e.projectId);
+
 // Filter documents by project
 CREATE INDEX document_project IF NOT EXISTS
   FOR (d:Document) ON (d.projectId);

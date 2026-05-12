@@ -1,4 +1,4 @@
-import neo4j, { Driver, ManagedTransaction } from 'neo4j-driver';
+import neo4j, { Driver, Integer, ManagedTransaction } from 'neo4j-driver';
 
 import { RelationshipGraph } from './bedrock';
 import { Neo4JConfig } from '../interfaces/app';
@@ -26,49 +26,57 @@ export class Neo4J {
     await this.driver?.close();
   }
 
-  public static async getProjectGraph(projectId: string): Promise<{
-    nodes: Array<{ data: { id: string; label: string; type: string; documentId: string } }>;
+  public static async getProjectGraph(projectId: string, minDocCount: number): Promise<{
+    nodes: Array<{ data: { id: string; label: string; type: string; docCount: number } }>;
     edges: Array<{ data: { id: string; source: string; target: string; label: string } }>;
   }> {
     const session = this.driver.session();
     try {
+      // Deduplicate entities by name+type; filter to those appearing in >= minDocCount documents
       const nodeResult = await session.run(
         `MATCH (e:Entity {projectId: $projectId})
-         RETURN e.id AS id, e.name AS name, e.type AS type, e.documentId AS documentId`,
-        { projectId }
+         WITH e.name AS name, e.type AS type, count(DISTINCT e.documentId) AS docCount
+         WHERE docCount >= $minDocCount
+         RETURN name + ':' + type AS id, name AS label, type, docCount`,
+        { projectId, minDocCount }
       );
 
-      const edgeResult = await session.run(
-        `MATCH (a:Entity {projectId: $projectId})-[r]->(b:Entity {projectId: $projectId})
-         RETURN a.id AS source, b.id AS target, type(r) AS label`,
-        { projectId }
-      );
+      const nodeIds = new Set(nodeResult.records.map((r) => r.get('id') as string));
 
       const nodes = nodeResult.records.map((r) => ({
         data: {
-          id:         r.get('id')         as string,
-          label:      r.get('name')       as string,
-          type:       r.get('type')       as string,
-          documentId: r.get('documentId') as string,
+          id:       r.get('id')    as string,
+          label:    r.get('label') as string,
+          type:     r.get('type')  as string,
+          docCount: (r.get('docCount') as Integer).toNumber(),
         },
       }));
 
-      // Deduplicate edges: same type between same pair across multiple documents
-      // shows as a single edge in the visualisation
+      // Get edges between deduplicated nodes; skip edges where either endpoint was filtered out
+      const edgeResult = await session.run(
+        `MATCH (a:Entity {projectId: $projectId})-[r]->(b:Entity {projectId: $projectId})
+         RETURN a.name + ':' + a.type AS source, b.name + ':' + b.type AS target, type(r) AS label`,
+        { projectId }
+      );
+
       const seen = new Set<string>();
       const edges: Array<{ data: { id: string; source: string; target: string; label: string } }> = [];
       for (const r of edgeResult.records) {
         const source = r.get('source') as string;
         const target = r.get('target') as string;
         const label  = r.get('label')  as string;
-        const key    = `${source}→${label}→${target}`;
+        if (!nodeIds.has(source) || !nodeIds.has(target)) continue;
+        const key = `${source}→${label}→${target}`;
         if (!seen.has(key)) {
           seen.add(key);
           edges.push({ data: { id: key, source, target, label } });
         }
       }
 
-      Logger.debug(`Neo4j graph for project ${projectId}: ${nodes.length} node(s), ${edges.length} edge(s)`);
+      Logger.debug(
+        `Neo4j graph for project ${projectId} (minDocCount=${minDocCount}): ` +
+        `${nodes.length} node(s), ${edges.length} edge(s)`
+      );
       return { nodes, edges };
     } finally {
       await session.close();

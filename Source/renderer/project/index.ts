@@ -40,6 +40,9 @@ let currentProjectRole: ProjectRole = 'VIEW';
 let cytoscapeInstance:  CyInstance | null = null;
 let expandedCyInstance: CyInstance | null = null;
 let graphData: { nodes: GraphNode[]; edges: GraphEdge[] } | null = null;
+let currentMinDocs     = 2;
+let graphHasSyncedData = false;
+let minDocsChangeTimer: ReturnType<typeof setTimeout> | null = null;
 
 function parseProjectJwt(token: string): Record<string, unknown> {
   const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
@@ -120,6 +123,7 @@ function showGraphLoading(): void {
   document.getElementById('graph-canvas')?.classList.add('hidden');
   document.getElementById('graph-legend')?.classList.add('hidden');
   document.getElementById('graph-controls')?.classList.add('hidden');
+  document.getElementById('graph-filter')?.classList.add('hidden');
 }
 
 function showGraphEmpty(): void {
@@ -128,6 +132,7 @@ function showGraphEmpty(): void {
   document.getElementById('graph-canvas')?.classList.add('hidden');
   document.getElementById('graph-legend')?.classList.add('hidden');
   document.getElementById('graph-controls')?.classList.add('hidden');
+  if (graphHasSyncedData) document.getElementById('graph-filter')?.classList.remove('hidden');
 }
 
 function showGraphCanvas(): void {
@@ -135,6 +140,7 @@ function showGraphCanvas(): void {
   document.getElementById('graph-empty')?.classList.add('hidden');
   document.getElementById('graph-canvas')?.classList.remove('hidden');
   document.getElementById('graph-controls')?.classList.remove('hidden');
+  document.getElementById('graph-filter')?.classList.remove('hidden');
   // graph-legend shown by buildGraphLegend() once populated
 }
 
@@ -220,6 +226,7 @@ function buildGraphElements(
           id:          n.data.id,
           label:       n.data.label,
           type:        n.data.type,
+          docCount:    n.data.docCount,
           color:       ENTITY_COLORS[n.data.type] ?? ENTITY_COLORS['Other'],
           size,
           textMaxWidth: `${size - 8}px`,
@@ -259,9 +266,11 @@ function wireGraphEvents(cy: CyInstance, container: HTMLElement): void {
     const hoveredLabel = String(node.data('label'));
 
     if (tooltip) {
+      const docCount = Number(node.data('docCount'));
       tooltip.innerHTML = `
         <div class="graph-tooltip-type">${node.data('type')}</div>
-        <div class="graph-tooltip-value">${node.data('label')}</div>`;
+        <div class="graph-tooltip-value">${node.data('label')}</div>
+        <div class="graph-tooltip-docs">${docCount} doc${docCount !== 1 ? 's' : ''}</div>`;
       tooltip.style.left = `${rect.left + rendPos.x}px`;
       tooltip.style.top  = `${rect.top  + rendPos.y}px`;
       tooltip.classList.remove('hidden');
@@ -312,40 +321,60 @@ function degreeMap(edges: GraphEdge[]): { map: Map<string, number>; max: number 
   return { map, max: Math.max(1, ...map.values()) };
 }
 
+function renderGraphData(nodes: GraphNode[], edges: GraphEdge[]): void {
+  const container = document.getElementById('graph-canvas');
+  if (!container) { showGraphEmpty(); return; }
+
+  if (cytoscapeInstance) { cytoscapeInstance.destroy(); cytoscapeInstance = null; }
+
+  graphData = { nodes, edges };
+  const { map, max } = degreeMap(edges);
+
+  showGraphCanvas();
+
+  cytoscapeInstance = cytoscape({
+    container,
+    elements: buildGraphElements(nodes, edges, map, max),
+    style:    GRAPH_STYLE,
+    layout:   GRAPH_LAYOUT,
+  });
+
+  wireGraphEvents(cytoscapeInstance, container);
+  buildGraphLegend(nodes, 'graph-legend');
+}
+
 async function loadProjectGraph(): Promise<void> {
   if (!currentProjectId) return;
   showGraphLoading();
 
   try {
     await window.electron.graph.syncProject(currentProjectId);
+    graphHasSyncedData = true;
 
-    const result = await window.electron.graph.getProjectGraph(currentProjectId);
+    const result = await window.electron.graph.getProjectGraph(currentProjectId, currentMinDocs);
     if (!result.success || !result.nodes || !result.edges || result.nodes.length === 0) {
       showGraphEmpty();
       return;
     }
 
-    const container = document.getElementById('graph-canvas');
-    if (!container) { showGraphEmpty(); return; }
+    renderGraphData(result.nodes, result.edges);
+  } catch {
+    showGraphEmpty();
+  }
+}
 
-    if (cytoscapeInstance) { cytoscapeInstance.destroy(); cytoscapeInstance = null; }
+async function reloadGraphWithFilter(): Promise<void> {
+  if (!currentProjectId || !graphHasSyncedData) return;
+  showGraphLoading();
 
-    const { nodes, edges } = result;
-    graphData = { nodes, edges };
-    const { map, max } = degreeMap(edges);
+  try {
+    const result = await window.electron.graph.getProjectGraph(currentProjectId, currentMinDocs);
+    if (!result.success || !result.nodes || !result.edges || result.nodes.length === 0) {
+      showGraphEmpty();
+      return;
+    }
 
-    showGraphCanvas();
-
-    cytoscapeInstance = cytoscape({
-      container,
-      elements: buildGraphElements(nodes, edges, map, max),
-      style:    GRAPH_STYLE,
-      layout:   GRAPH_LAYOUT,
-    });
-
-    wireGraphEvents(cytoscapeInstance, container);
-    buildGraphLegend(nodes, 'graph-legend');
-
+    renderGraphData(result.nodes, result.edges);
   } catch {
     showGraphEmpty();
   }
@@ -693,6 +722,17 @@ document.getElementById('graph-expand-close')?.addEventListener('click', closeGr
 
 document.getElementById('graph-expand-overlay')?.addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeGraphExpand();
+});
+
+document.getElementById('graph-min-docs-input')?.addEventListener('input', () => {
+  if (minDocsChangeTimer) clearTimeout(minDocsChangeTimer);
+  minDocsChangeTimer = setTimeout(() => {
+    const input = document.getElementById('graph-min-docs-input') as HTMLInputElement | null;
+    const parsed = parseInt(input?.value ?? '2', 10);
+    currentMinDocs = isNaN(parsed) || parsed < 2 ? 2 : parsed;
+    if (input && String(currentMinDocs) !== input.value) input.value = String(currentMinDocs);
+    void reloadGraphWithFilter();
+  }, 400);
 });
 
 // ── Search panel ─────────────────────────────────────────────────────────────

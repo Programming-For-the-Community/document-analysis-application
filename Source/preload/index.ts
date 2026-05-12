@@ -87,12 +87,12 @@ contextBridge.exposeInMainWorld('electron', {
   graph: {
     syncProject: (projectId: string): Promise<{ success: boolean; loaded?: number; failed?: number; total?: number; error?: string }> =>
       ipcRenderer.invoke('graph:sync-project', projectId),
-    getProjectGraph: (projectId: string): Promise<{
+    getProjectGraph: (projectId: string, minDocCount: number): Promise<{
       success: boolean;
-      nodes?: Array<{ data: { id: string; label: string; type: string; documentId: string } }>;
+      nodes?: Array<{ data: { id: string; label: string; type: string; docCount: number } }>;
       edges?: Array<{ data: { id: string; source: string; target: string; label: string } }>;
       error?: string;
-    }> => ipcRenderer.invoke('graph:get-project-graph', projectId),
+    }> => ipcRenderer.invoke('graph:get-project-graph', projectId, minDocCount),
   },
   utils: {
     getFilePath: (file: File): string => webUtils.getPathForFile(file),
