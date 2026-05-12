@@ -144,7 +144,9 @@ export class AWS_S3 {
     filePath: string,
     s3Key: string,
     fileSize: number,
-    config: S3Config
+    config: S3Config,
+    documentName: string,
+    projectName: string
   ): Promise<void> {
     Logger.debug(`Uploading ${s3Key} (${fileSize} bytes)`);
     await this.client.send(
@@ -153,6 +155,10 @@ export class AWS_S3 {
         Key: s3Key,
         Body: fs.createReadStream(filePath),
         ContentLength: fileSize,
+        Metadata: {
+          'document-name': documentName,
+          'project-name':  projectName,
+        },
       })
     );
     Logger.debug(`Uploaded ${s3Key}`);

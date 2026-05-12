@@ -56,6 +56,7 @@ declare global {
         unshare: (projectId: string, targetSub: string) => Promise<{ success: boolean; error?: string }>;
         listMembers: (projectId: string) => Promise<{ success: boolean; members?: ProjectMember[]; error?: string }>;
         updateRole: (projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT') => Promise<{ success: boolean; error?: string }>;
+        searchUsers: (prefix: string) => Promise<{ success: boolean; usernames?: string[]; error?: string }>;
       };
       documents: {
         selectFiles: () => Promise<{ success: boolean; files: Array<{ name: string; path: string; size: number }> }>;
@@ -124,7 +125,6 @@ declare global {
   interface DocumentRecord {
     documentId: string;
     projectId: string;
-    projectName: string;
     ownerSub: string;
     documentName: string;
     s3Key: string;
@@ -133,6 +133,6 @@ declare global {
     processingStatus: ProcessingStatus;
     queuedAt?: string;
     textractJobId?: string;
-    processingStartedAt?: string;
+    statusUpdatedAt?: string;
   }
 }

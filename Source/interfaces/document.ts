@@ -3,7 +3,6 @@ export type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLE
 export interface DocumentRecord {
   documentId: string;
   projectId: string;
-  projectName: string;
   ownerSub: string;
   documentName: string;
   s3Key: string;
@@ -12,7 +11,7 @@ export interface DocumentRecord {
   processingStatus: ProcessingStatus;
   queuedAt?: string;
   textractJobId?: string;
-  processingStartedAt?: string;
+  statusUpdatedAt?: string;
 }
 
 export interface UploadFileInfo {

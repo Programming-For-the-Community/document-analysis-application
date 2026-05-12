@@ -66,8 +66,8 @@ function isStaleQueued(doc: DocumentRecord): boolean {
 
 function isStaleProcessing(doc: DocumentRecord): boolean {
   if (doc.processingStatus !== 'PROCESSING') return false;
-  if (!doc.processingStartedAt) return true;
-  return Date.now() - new Date(doc.processingStartedAt).getTime() > STALE_PROCESSING_MS;
+  if (!doc.statusUpdatedAt) return true;
+  return Date.now() - new Date(doc.statusUpdatedAt).getTime() > STALE_PROCESSING_MS;
 }
 
 // Returns the status to reset a stale PROCESSING doc to:
@@ -259,12 +259,11 @@ export function registerDocumentHandlers(
           const now = new Date().toISOString();
 
           try {
-            await AWS_S3.uploadDocument(file.path, s3Key, file.size, config.s3);
+            await AWS_S3.uploadDocument(file.path, s3Key, file.size, config.s3, file.name, projectName);
 
             const record: DocumentRecord = {
               documentId,
               projectId,
-              projectName,
               ownerSub,
               documentName: file.name,
               s3Key,

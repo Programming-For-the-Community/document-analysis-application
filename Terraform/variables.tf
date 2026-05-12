@@ -68,3 +68,15 @@ variable "qdrant_api_key" {
   sensitive   = true
 }
 
+variable "neo4j_uri" {
+  description = "Neo4j connection URI (e.g. bolt://localhost:7687)"
+  type        = string
+  default     = "bolt://localhost:7687"
+}
+
+variable "qdrant_url" {
+  description = "Qdrant base URL (e.g. http://localhost:6333)"
+  type        = string
+  default     = "http://localhost:6333"
+}
+

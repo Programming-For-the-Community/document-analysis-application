@@ -256,7 +256,10 @@
         <div class="form-group">
           <label>Add people</label>
           <div class="share-form-row">
-            <input type="text" id="share-username-input" placeholder="Enter username" autocomplete="off" />
+            <div class="share-username-wrapper">
+              <input type="text" id="share-username-input" placeholder="Enter username" autocomplete="off" />
+              <div id="share-username-dropdown" class="username-dropdown hidden"></div>
+            </div>
             <select id="share-role-select" class="share-role-select">
               <option value="VIEW">View</option>
               <option value="EDIT">Edit</option>

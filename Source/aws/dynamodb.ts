@@ -55,16 +55,13 @@ export class AWS_DYNAMODB {
       })
     );
 
-    // Filter out the SESSION sentinel record
-    const accessItems = (accessResult.Items ?? []).filter(
-      (item) => item['project_id'] !== 'SESSION'
-    );
+    // Every record in project-access now has an explicit role (including OWNER)
+    const accessItems = accessResult.Items ?? [];
     if (accessItems.length === 0) return [];
 
-    // Build a map of project_id → role for shared projects (owners have no role attribute)
-    const roleByProjectId = new Map<string, string>();
+    const roleByProjectId = new Map<string, ProjectRole>();
     for (const item of accessItems) {
-      if (item['role']) roleByProjectId.set(item['project_id'] as string, item['role'] as string);
+      roleByProjectId.set(item['project_id'] as string, item['role'] as ProjectRole);
     }
 
     const keys = accessItems.map((item) => ({
@@ -85,13 +82,7 @@ export class AWS_DYNAMODB {
 
     return metaItems.map((item) => {
       const projectId = item['project_id'] as string;
-      const ownerSub  = item['owner_sub']  as string;
-      let role: ProjectRole;
-      if (ownerSub === userSub) {
-        role = 'OWNER';
-      } else {
-        role = (roleByProjectId.get(projectId) as 'VIEW' | 'EDIT') ?? 'VIEW';
-      }
+      const role = roleByProjectId.get(projectId) ?? 'VIEW';
       return {
         id:            projectId,
         name:          item['project_name']   as string,
@@ -107,10 +98,7 @@ export class AWS_DYNAMODB {
     projectId: string,
     config:    DynamoDBConfig
   ): Promise<ProjectRole | null> {
-    const meta = await this.getProjectMeta(projectId, config);
-    if (!meta) return null;
-    if (meta.ownerSub === userSub) return 'OWNER';
-
+    // Every user now has an explicit role attribute in the access table (including OWNER)
     const result = await this.client.send(
       new GetCommand({
         TableName: config.projectAccessTable,
@@ -118,7 +106,7 @@ export class AWS_DYNAMODB {
       })
     );
     if (!result.Item || !result.Item['role']) return null;
-    return result.Item['role'] as 'VIEW' | 'EDIT';
+    return result.Item['role'] as ProjectRole;
   }
 
   public static async shareProject(
@@ -166,10 +154,10 @@ export class AWS_DYNAMODB {
         TableName: config.projectAccessTable,
         IndexName: 'project-index',
         KeyConditionExpression: 'project_id = :pid',
-        // Only return shared-access records (owner's record has no 'role' attribute)
-        FilterExpression: 'attribute_exists(#r)',
+        // Exclude the OWNER record — only return shared-access entries
+        FilterExpression: '#r <> :owner',
         ExpressionAttributeNames: { '#r': 'role' },
-        ExpressionAttributeValues: { ':pid': projectId },
+        ExpressionAttributeValues: { ':pid': projectId, ':owner': 'OWNER' },
       })
     );
     return (result.Items ?? []).map((item) => ({
@@ -240,6 +228,7 @@ export class AWS_DYNAMODB {
               Item: {
                 user_sub: ownerSub,
                 project_id: projectId,
+                role: 'OWNER',
               },
             },
           },
@@ -382,7 +371,6 @@ export class AWS_DYNAMODB {
         Item: {
           project_id: record.projectId,
           document_id: record.documentId,
-          project_name: record.projectName,
           owner_sub: record.ownerSub,
           document_name: record.documentName,
           s3_key: record.s3Key,
@@ -403,19 +391,17 @@ export class AWS_DYNAMODB {
     jobId?: string
   ): Promise<void> {
     const now = new Date().toISOString();
-    let expr = 'SET processing_status = :status';
-    const values: Record<string, unknown> = { ':status': status };
+    // Always record when the status last changed
+    let expr = 'SET processing_status = :status, status_updated_at = :now';
+    const values: Record<string, unknown> = { ':status': status, ':now': now };
 
     if (status === 'QUEUED') {
+      // queued_at is preserved as a one-time anchor for the 7-day Textract result TTL
       expr += ', queued_at = :now';
-      values[':now'] = now;
       if (jobId) {
         expr += ', textract_job_id = :jobId';
         values[':jobId'] = jobId;
       }
-    } else if (status === 'PROCESSING') {
-      expr += ', processing_started_at = :now';
-      values[':now'] = now;
     }
 
     await this.client.send(
@@ -437,10 +423,9 @@ export class AWS_DYNAMODB {
   ): Promise<void> {
     await this.client.send(
       new PutCommand({
-        TableName: config.projectAccessTable,
+        TableName: config.userSessionsTable,
         Item: {
           user_sub: userSub,
-          project_id: 'SESSION',
           session_id: sessionId,
           device_id: deviceId,
           logged_in_at: new Date().toISOString(),
@@ -456,8 +441,8 @@ export class AWS_DYNAMODB {
   ): Promise<{ sessionId: string; deviceId: string } | null> {
     const result = await this.client.send(
       new GetCommand({
-        TableName: config.projectAccessTable,
-        Key: { user_sub: userSub, project_id: 'SESSION' },
+        TableName: config.userSessionsTable,
+        Key: { user_sub: userSub },
       })
     );
     if (!result.Item) return null;
@@ -551,18 +536,17 @@ export class AWS_DYNAMODB {
     const items = (result.Items ?? []).filter((item) => item['document_id'] !== 'META');
     Logger.info(`Found ${items.length} document(s) for project: ${projectId}`);
     return items.map((item) => ({
-      documentId: item['document_id'] as string,
-      projectId: item['project_id'] as string,
-      projectName: (item['project_name'] as string) ?? '',
-      ownerSub: (item['owner_sub'] as string) ?? '',
-      documentName: item['document_name'] as string,
-      s3Key: item['s3_key'] as string,
-      fileSize: item['file_size'] as number,
-      uploadedAt: item['uploaded_at'] as string,
+      documentId:      item['document_id']        as string,
+      projectId:       item['project_id']         as string,
+      ownerSub:        (item['owner_sub']          as string) ?? '',
+      documentName:    item['document_name']       as string,
+      s3Key:           item['s3_key']             as string,
+      fileSize:        item['file_size']           as number,
+      uploadedAt:      item['uploaded_at']         as string,
       processingStatus: ((item['processing_status'] as ProcessingStatus) ?? 'UNPROCESSED'),
-      queuedAt: item['queued_at'] as string | undefined,
-      textractJobId: item['textract_job_id'] as string | undefined,
-      processingStartedAt: item['processing_started_at'] as string | undefined,
+      queuedAt:        item['queued_at']           as string | undefined,
+      textractJobId:   item['textract_job_id']     as string | undefined,
+      statusUpdatedAt: item['status_updated_at']   as string | undefined,
     }));
   }
 }

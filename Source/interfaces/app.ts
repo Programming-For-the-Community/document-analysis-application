@@ -1,6 +1,7 @@
 export interface DynamoDBConfig {
   projectStateTable: string;
   projectAccessTable: string;
+  userSessionsTable: string;
 }
 
 export interface Neo4JConfig {

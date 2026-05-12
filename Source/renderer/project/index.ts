@@ -892,10 +892,59 @@ async function loadShareMembers(): Promise<void> {
   }
 }
 
+// ── Username autocomplete ─────────────────────────────────────────────────────
+
+let usernameSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+function closeUsernameDropdown(): void {
+  document.getElementById('share-username-dropdown')?.classList.add('hidden');
+}
+
+function renderUsernameDropdown(usernames: string[]): void {
+  const dropdown = document.getElementById('share-username-dropdown');
+  const input    = document.getElementById('share-username-input') as HTMLInputElement | null;
+  if (!dropdown) return;
+
+  if (usernames.length === 0) { dropdown.classList.add('hidden'); return; }
+
+  dropdown.innerHTML = usernames
+    .map((u) => `<div class="username-dropdown-item" data-username="${u}">${u}</div>`)
+    .join('');
+  dropdown.classList.remove('hidden');
+
+  dropdown.querySelectorAll<HTMLElement>('.username-dropdown-item').forEach((item) => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault(); // keep input focused
+      if (input) input.value = item.dataset['username'] ?? '';
+      closeUsernameDropdown();
+    });
+  });
+}
+
+document.getElementById('share-username-input')?.addEventListener('input', () => {
+  if (usernameSearchTimer) clearTimeout(usernameSearchTimer);
+  const input = document.getElementById('share-username-input') as HTMLInputElement | null;
+  const prefix = input?.value.trim() ?? '';
+  if (!prefix) { closeUsernameDropdown(); return; }
+
+  usernameSearchTimer = setTimeout(async () => {
+    const result = await window.electron.projects.searchUsers(prefix);
+    if (result.success && result.usernames) {
+      renderUsernameDropdown(result.usernames);
+    }
+  }, 250);
+});
+
+document.getElementById('share-username-input')?.addEventListener('blur', () => {
+  // Small delay so mousedown on a dropdown item fires first
+  setTimeout(closeUsernameDropdown, 150);
+});
+
 function openShareModal(): void {
   clearShareError();
   const input = document.getElementById('share-username-input') as HTMLInputElement | null;
   if (input) input.value = '';
+  closeUsernameDropdown();
 
   // EDIT users can only grant VIEW — hide the EDIT option
   const roleSelect = document.getElementById('share-role-select') as HTMLSelectElement | null;
@@ -914,6 +963,7 @@ function openShareModal(): void {
 function closeShareModal(): void {
   document.getElementById('share-modal')?.classList.add('hidden');
   document.body.style.overflow = '';
+  closeUsernameDropdown();
 }
 
 document.getElementById('share-btn')?.addEventListener('click', openShareModal);

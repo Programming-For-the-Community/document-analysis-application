@@ -6,6 +6,7 @@ import {
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
   AdminGetUserCommand,
+  ListUsersCommand,
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { AWS_STS } from './sts';
@@ -123,6 +124,23 @@ export class AWS_COGNITO {
       if (err instanceof Error && err.name === 'UserNotFoundException') return null;
       throw err;
     }
+  }
+
+  public static async searchUsersByPrefix(
+    prefix: string,
+    config: CognitoConfig
+  ): Promise<string[]> {
+    if (!prefix) return [];
+    const result = await this.client.send(
+      new ListUsersCommand({
+        UserPoolId: config.userPoolId,
+        Filter: `username ^= "${prefix}"`,
+        Limit: 10,
+      })
+    );
+    return (result.Users ?? [])
+      .map((u) => u.Username)
+      .filter((u): u is string => !!u);
   }
 
   public static async refreshTokens(

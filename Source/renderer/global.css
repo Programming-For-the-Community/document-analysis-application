@@ -1209,8 +1209,13 @@ body.page-project {
   align-items: flex-start;
 }
 
-.share-form-row input {
+.share-username-wrapper {
+  position: relative;
   flex: 1;
+}
+
+.share-form-row input {
+  width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1223,6 +1228,31 @@ body.page-project {
 
 .share-form-row input:focus {
   border-color: var(--primary);
+}
+
+.username-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.username-dropdown-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.username-dropdown-item:hover {
+  background: var(--bg);
 }
 
 .share-role-select {

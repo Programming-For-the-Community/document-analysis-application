@@ -5,7 +5,7 @@
 # Sort key      : document_id  (use "META" for project-level records)
 #
 # Record types:
-#   PK=project_id, SK="META"        → project metadata + membership
+#   PK=project_id, SK="META"        → project metadata
 #   PK=project_id, SK=document_id   → document processing state + S3 result keys
 # -------------------------------------------------------
 resource "aws_dynamodb_table" "project_state" {
@@ -22,19 +22,6 @@ resource "aws_dynamodb_table" "project_state" {
   attribute {
     name = "document_id"
     type = "S"
-  }
-
-  attribute {
-    name = "owner_sub"
-    type = "S"
-  }
-
-  # GSI: look up all projects owned by a user
-  global_secondary_index {
-    name            = "owner-index"
-    hash_key        = "owner_sub"
-    range_key       = "project_id"
-    projection_type = "ALL"
   }
 
   point_in_time_recovery {
@@ -84,6 +71,28 @@ resource "aws_dynamodb_table" "project_access" {
   }
 }
 
+# -------------------------------------------------------
+# User sessions table — active login sessions per user
+#
+# Partition key : user_sub  (Cognito sub — one active session per user)
+# -------------------------------------------------------
+resource "aws_dynamodb_table" "user_sessions" {
+  name         = "${var.tf_project_name}-user-sessions"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "user_sub"
+
+  attribute {
+    name = "user_sub"
+    type = "S"
+  }
+
+  tags = {
+    Owner       = var.owner
+    Project     = var.project
+    Description = "Active user sessions for cross-device sync"
+  }
+}
+
 output "dynamodb_project_state_table" {
   description = "DynamoDB table name for project and document state"
   value       = aws_dynamodb_table.project_state.name
@@ -92,4 +101,9 @@ output "dynamodb_project_state_table" {
 output "dynamodb_project_access_table" {
   description = "DynamoDB table name for project access/sharing"
   value       = aws_dynamodb_table.project_access.name
+}
+
+output "dynamodb_user_sessions_table" {
+  description = "DynamoDB table name for user sessions"
+  value       = aws_dynamodb_table.user_sessions.name
 }

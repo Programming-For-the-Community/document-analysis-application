@@ -269,6 +269,31 @@ export function registerProjectHandlers(
   });
 
   ipcMain.handle(
+    'project:search-users',
+    async (_event, prefix: string): Promise<{ success: boolean; usernames?: string[]; error?: string }> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      if (!prefix || prefix.trim().length < 1) {
+        return { success: true, usernames: [] };
+      }
+
+      try {
+        const usernames = await AWS_COGNITO.searchUsersByPrefix(prefix.trim(), config.cognito);
+        return { success: true, usernames };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Search failed';
+        Logger.error(`project:search-users error: ${message}`);
+        return { success: false, error: message };
+      }
+    }
+  );
+
+  ipcMain.handle(
     'project:update-role',
     async (_event, projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT'): Promise<SimpleResult> => {
       const config = getAppConfig();

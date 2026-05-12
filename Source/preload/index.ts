@@ -46,6 +46,8 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('project:list-members', projectId),
     updateRole: (projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT'): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:update-role', projectId, targetSub, newRole),
+    searchUsers: (prefix: string): Promise<{ success: boolean; usernames?: string[]; error?: string }> =>
+      ipcRenderer.invoke('project:search-users', prefix),
   },
   documents: {
     selectFiles: () => ipcRenderer.invoke('document:select-files'),

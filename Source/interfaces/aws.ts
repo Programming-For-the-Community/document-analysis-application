@@ -23,9 +23,12 @@ export interface SecretValues {
   S3_BUCKET: string;
   DYNAMODB_PROJECT_STATE_TABLE: string;
   DYNAMODB_PROJECT_ACCESS_TABLE: string;
+  DYNAMODB_USER_SESSIONS_TABLE: string;
   SQS_QUEUE_URL: string;
   SNS_TOPIC_ARN: string;
   BEDROCK_MODEL_ID: string;
   QDRANT_KEY: string;
   SVC_PWD: string;
+  NEO4J_URI: string;
+  QDRANT_URL: string;
 }
