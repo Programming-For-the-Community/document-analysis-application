@@ -1,0 +1,68 @@
+flowchart TB
+    User(["👤 User"])
+
+    subgraph Electron ["Electron App"]
+        UI["UI / Auth"]
+        Sync["Sync Engine"]
+        Pipeline["Processing Pipeline"]
+    end
+
+    subgraph AWS ["AWS (us-east-2)"]
+        Cognito["Cognito\nUser Pool"]
+        SecretsManager["Secrets Manager\ndoc-analysis-secret"]
+        IAM["IAM\ndoc-analysis-svc-role"]
+
+        subgraph Storage ["Storage"]
+            S3["S3\nDocuments + Results"]
+            DynamoDB["DynamoDB\nProject State + Access"]
+        end
+
+        subgraph Processing ["AI Processing"]
+            Textract["Textract\nText Extraction"]
+            Bedrock["Bedrock\nClaude — Relationship Extraction"]
+        end
+
+        subgraph Messaging ["Messaging"]
+            SNS["SNS\nTextract Notifications"]
+            SQS["SQS\nResults Queue"]
+        end
+    end
+
+    subgraph Docker ["Local Docker"]
+        Neo4j["Neo4j\nGraph Database"]
+        Qdrant["Qdrant\nVector Database"]
+    end
+
+    Electron --> SecretsManager
+    SecretsManager --> IAM
+    IAM --> Electron
+    User --> Cognito
+    Cognito --> UI
+
+    UI --> S3
+    Pipeline --> Textract
+    Textract --> S3
+    Textract --> SNS
+    SNS --> SQS
+    Pipeline --> SQS
+    Pipeline --> Bedrock
+    Pipeline --> S3
+    Pipeline --> DynamoDB
+    Pipeline --> Neo4j
+    Pipeline --> Qdrant
+
+    Sync --> DynamoDB
+    Sync --> S3
+    Sync --> Neo4j
+
+    %% Inner cluster styling — amber to differentiate from outer teal clusters
+    style Storage fill:#201a0a,stroke:#f59e0b,color:#f5f5f5
+    style Processing fill:#201a0a,stroke:#f59e0b,color:#f5f5f5
+    style Messaging fill:#201a0a,stroke:#f59e0b,color:#f5f5f5
+
+    %% 0-4  startup/auth   → teal
+    %% 5-15 processing     → amber
+    %% 16-18 sync          → indigo
+    linkStyle 0,1,2,3,4 stroke:#2dd4bf,stroke-width:3px
+    linkStyle 5,6,7,8,9,10,11,12,13,14,15 stroke:#f59e0b,stroke-width:3px
+    linkStyle 16,17,18 stroke:#818cf8,stroke-width:3px

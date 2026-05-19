@@ -1,0 +1,40 @@
+flowchart TB
+    subgraph Boot ["App Startup"]
+        direction TB
+        B1["Launch"] --> B2["Secrets Manager\nlocal AWS creds"]
+        B2 --> B3["STS AssumeRole\nvia SVC_ROLE_ARN"]
+        B3 --> B4["Temp Credentials\nauto-refresh at 55 min"]
+    end
+
+    subgraph Login ["Authentication"]
+        direction TB
+        L1["User Login"] --> L2["Cognito"]
+        L2 --> L3["JWT + Session"]
+        L3 --> L4["30s Sync Poll\nstarts"]
+    end
+
+    subgraph Ingest ["Document Processing"]
+        direction TB
+        I1["Upload to S3"] --> I2{"File Type"}
+        I2 --> I3["Textract\nPDF / Image"]
+        I2 --> I4["Local Extract\nDOCX / XLSX / HTML"]
+        I2 --> I5["Read Text\nTXT / CSV / MD"]
+        I3 --> I6["Bedrock\nRelationship Extraction"]
+        I4 --> I6
+        I5 --> I6
+        I6 --> I7["S3\nanalysis JSON"]
+        I6 --> I8["DynamoDB\nstatus = COMPLETE"]
+        I6 --> I9["Neo4j\nentity graph"]
+        I6 --> I10["Qdrant\nvectors"]
+    end
+
+    subgraph Query ["Search"]
+        direction TB
+        Q1["Ask Question"] --> Q2["Qdrant\nvector search"]
+        Q2 --> Q3["Bedrock\nanswer synthesis"]
+        Q3 --> Q4["Answer + Citations"]
+    end
+
+    Boot --> Login
+    Login --> Ingest
+    Login --> Query

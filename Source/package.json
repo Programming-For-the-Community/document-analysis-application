@@ -18,7 +18,8 @@
     "build-icons": "node scripts/build-icons.js",
     "dist": "npm run build-icons && tsc && electron-builder",
     "dist:win": "npm run build-icons && tsc && electron-builder --win",
-    "dist:mac": "npm run build-icons && tsc && electron-builder --mac"
+    "dist:mac": "npm run build-icons && tsc && electron-builder --mac",
+    "render-diagrams": "mmdc -i ../docs/diagrams/architecture.mmd -o ../docs/diagrams/architecture.svg --width 2800 --configFile ../docs/diagrams/mermaid-arch.config.json --backgroundColor \"#18181b\" && mmdc -i ../docs/diagrams/workflow.mmd -o ../docs/diagrams/workflow.svg --width 1400 --configFile ../docs/diagrams/mermaid.config.json --backgroundColor \"#18181b\""
   },
   "build": {
     "appId": "com.document-analysis.app",
@@ -77,6 +78,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "png-to-ico": "^2.1.8",
     "png2icons": "^2.0.1",
+    "@mermaid-js/mermaid-cli": "^11.4.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cytoscape": "^3.21.9",
     "@types/node": "^22.14.0",

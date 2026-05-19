@@ -1,116 +1,34 @@
-# Document Analysis Application
+# <img src="Source/assets/icon.svg" width="32" alt="Document Analysis app icon"/> Document Analysis Application
 
 Local application for extracting relationships between entities (people, money, property, objects) across batches of documents. Uses an Electron front-end, AWS for document processing and cloud state, and local Docker containers for graph and vector storage.
 
 ---
 
+## Design
+
+The icon uses parchment-toned document backgrounds with teal accents, representing a document with a relationship graph overlaid.
+
+The app ships with two themes selectable at runtime.
+
+**Slate Pro (dark)**
+
+![Slate Pro dark theme](docs/screenshots/project-dark.svg)
+
+**Parchment (light)**
+
+![Parchment light theme](docs/screenshots/project-light.svg)
+
+---
+
 ## Architecture
 
-```mermaid
-flowchart TB
-    User(["👤 User"])
-
-    subgraph Electron ["Electron App"]
-        UI["UI / Auth"]
-        Sync["Sync Engine"]
-        Pipeline["Processing Pipeline"]
-    end
-
-    subgraph AWS ["AWS (us-east-2)"]
-        Cognito["Cognito\nUser Pool"]
-        SecretsManager["Secrets Manager\ndoc-analysis-secret"]
-        IAM["IAM\ndoc-analysis-svc-role"]
-
-        subgraph Storage ["Storage"]
-            S3["S3\nDocuments + Results"]
-            DynamoDB["DynamoDB\nProject State + Access"]
-        end
-
-        subgraph Processing ["AI Processing"]
-            Textract["Textract\nText Extraction"]
-            Bedrock["Bedrock\nClaude — Relationship Extraction"]
-        end
-
-        subgraph Messaging ["Messaging"]
-            SNS["SNS\nTextract Notifications"]
-            SQS["SQS\nResults Queue"]
-        end
-    end
-
-    subgraph Docker ["Local Docker"]
-        Neo4j["Neo4j\nGraph Database"]
-        Qdrant["Qdrant\nVector Database"]
-    end
-
-    Electron --> SecretsManager
-    SecretsManager --> IAM
-    IAM --> Electron
-    User --> Cognito
-    Cognito --> UI
-
-    UI --> S3
-    Pipeline --> Textract
-    Textract --> S3
-    Textract --> SNS
-    SNS --> SQS
-    Pipeline --> SQS
-    Pipeline --> Bedrock
-    Pipeline --> S3
-    Pipeline --> DynamoDB
-    Pipeline --> Neo4j
-    Pipeline --> Qdrant
-
-    Sync --> DynamoDB
-    Sync --> S3
-    Sync --> Neo4j
-```
+![Architecture diagram](docs/diagrams/architecture.svg)
 
 ---
 
 ## High-Level Workflow
 
-```mermaid
-flowchart TB
-    subgraph Boot ["App Startup"]
-        direction TB
-        B1["Launch"] --> B2["Secrets Manager\nlocal AWS creds"]
-        B2 --> B3["STS AssumeRole\nvia SVC_ROLE_ARN"]
-        B3 --> B4["Temp Credentials\nauto-refresh at 55 min"]
-    end
-
-    subgraph Login ["Authentication"]
-        direction TB
-        L1["User Login"] --> L2["Cognito"]
-        L2 --> L3["JWT + Session"]
-        L3 --> L4["30s Sync Poll\nstarts"]
-    end
-
-    subgraph Ingest ["Document Processing"]
-        direction TB
-        I1["Upload to S3"] --> I2{"File Type"}
-        I2 --> I3["Textract\nPDF / Image"]
-        I2 --> I4["Local Extract\nDOCX / XLSX / HTML"]
-        I2 --> I5["Read Text\nTXT / CSV / MD"]
-        I3 --> I6["Bedrock\nRelationship Extraction"]
-        I4 --> I6
-        I5 --> I6
-        I6 --> I7["S3\nanalysis JSON"]
-        I6 --> I8["DynamoDB\nstatus = COMPLETE"]
-        I6 --> I9["Neo4j\nentity graph"]
-        I6 --> I10["Qdrant\nvectors"]
-    end
-
-    subgraph Query ["Search"]
-        direction TB
-        Q1["Ask Question"] --> Q2["Qdrant\nvector search"]
-        Q2 --> Q3["Bedrock\nanswer synthesis"]
-        Q3 --> Q4["Answer + Citations"]
-    end
-
-    Boot --> Login
-    Login --> Ingest
-    Login --> Query
-```
+![High-level workflow diagram](docs/diagrams/workflow.svg)
 
 ### How it works
 
