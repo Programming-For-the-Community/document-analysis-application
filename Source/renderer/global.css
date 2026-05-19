@@ -1,16 +1,30 @@
 /* ── Variables ─────────────────────────────────────────────────────────────── */
 
 :root {
-  --primary: #1a56db;
-  --primary-hover: #1447c0;
-  --text: #111928;
-  --text-muted: #6b7280;
-  --bg: #f9fafb;
-  --card-bg: #ffffff;
-  --border: #e5e7eb;
-  --error: #dc2626;
-  --topbar-bg: #ffffff;
-  --radius: 8px;
+  /* Slate Pro (dark) — default theme */
+  --primary:      #2dd4bf;
+  --primary-hover:#14b8a6;
+  --text:         #f5f5f5;
+  --text-muted:   #a1a1aa;
+  --bg:           #18181b;
+  --card-bg:      #252528;
+  --border:       #3a3a3e;
+  --error:        #fb7185;
+  --topbar-bg:    #1c1c1e;
+  --radius:       8px;
+}
+
+html[data-theme="parchment"] {
+  /* Parchment (light) */
+  --primary:      #b45309;
+  --primary-hover:#92400e;
+  --text:         #292524;
+  --text-muted:   #78716c;
+  --bg:           #f5ede0;
+  --card-bg:      #fffdf7;
+  --border:       #e7dfc6;
+  --error:        #dc2626;
+  --topbar-bg:    #fdf6e3;
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────── */
@@ -675,7 +689,7 @@ body.page-project {
 
 .graph-filter-input:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: var(--primary);
 }
 
 .btn-icon {
@@ -1613,4 +1627,169 @@ body.page-project {
 .node-detail-doc svg {
   flex-shrink: 0;
   color: var(--text-muted);
+}
+
+/* ── Theme toggle button ─────────────────────────────────────────────────── */
+
+.btn-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.btn-theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+/* ── Slate Pro (dark) overrides for hardcoded light-mode component values ── */
+
+html:not([data-theme="parchment"]) .btn-card-delete:hover {
+  color: #f87171 !important;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+html:not([data-theme="parchment"]) .graph-legend {
+  background: rgba(37, 37, 40, 0.95);
+}
+
+html:not([data-theme="parchment"]) .search-answer-card {
+  background: linear-gradient(135deg, rgba(45, 212, 191, 0.08) 0%, rgba(99, 102, 241, 0.06) 100%);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+html:not([data-theme="parchment"]) .search-input:focus {
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
+}
+
+html:not([data-theme="parchment"]) .search-source-card:hover {
+  box-shadow: 0 2px 8px rgba(45, 212, 191, 0.12);
+}
+
+html:not([data-theme="parchment"]) .upload-zone:hover,
+html:not([data-theme="parchment"]) .upload-zone.drag-over {
+  background: rgba(45, 212, 191, 0.06);
+}
+
+html:not([data-theme="parchment"]) .doc-status-unprocessed {
+  color: #a1a1aa;
+  background: rgba(161, 161, 170, 0.12);
+  border-color: rgba(161, 161, 170, 0.2);
+}
+
+html:not([data-theme="parchment"]) .doc-status-queued {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+html:not([data-theme="parchment"]) .doc-status-processing {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.25);
+}
+
+html:not([data-theme="parchment"]) .doc-status-complete {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+html:not([data-theme="parchment"]) .doc-status-failed {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+html:not([data-theme="parchment"]) .doc-status-graph-failed {
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+html:not([data-theme="parchment"]) .doc-duplicate-badge {
+  color: #fcd34d;
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+html:not([data-theme="parchment"]) .btn-icon-danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+html:not([data-theme="parchment"]) .btn-retry-graph {
+  color: #fcd34d;
+}
+
+html:not([data-theme="parchment"]) .btn-retry-graph:hover {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+
+html:not([data-theme="parchment"]) .view-only-banner {
+  background: rgba(45, 212, 191, 0.08);
+  border-bottom-color: rgba(45, 212, 191, 0.2);
+  color: #5eead4;
+}
+
+html:not([data-theme="parchment"]) .view-only-banner svg {
+  color: #2dd4bf;
+}
+
+html:not([data-theme="parchment"]) .project-role-view {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+html:not([data-theme="parchment"]) .project-role-edit {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+html:not([data-theme="parchment"]) .btn-member-remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+/* ── Parchment-specific overrides ────────────────────────────────────────── */
+
+html[data-theme="parchment"] .search-answer-card {
+  background: linear-gradient(135deg, #fef9f0 0%, #fdf6e3 100%);
+  border-color: #e7c07a;
+}
+
+html[data-theme="parchment"] .search-input:focus {
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.1);
+}
+
+html[data-theme="parchment"] .search-source-card:hover {
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.1);
+}
+
+html[data-theme="parchment"] .upload-zone:hover,
+html[data-theme="parchment"] .upload-zone.drag-over {
+  background: #fef3c7;
+}
+
+html[data-theme="parchment"] .view-only-banner {
+  background: #fef3c7;
+  border-bottom-color: #fde68a;
+  color: #92400e;
+}
+
+html[data-theme="parchment"] .view-only-banner svg {
+  color: #b45309;
 }

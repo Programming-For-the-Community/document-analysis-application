@@ -421,18 +421,86 @@ export class AWS_DYNAMODB {
     deviceId: string,
     config: DynamoDBConfig
   ): Promise<void> {
+    // Use UpdateCommand so existing attributes (e.g. theme_preference) are preserved
     await this.client.send(
-      new PutCommand({
+      new UpdateCommand({
         TableName: config.userSessionsTable,
-        Item: {
-          user_sub: userSub,
-          session_id: sessionId,
-          device_id: deviceId,
-          logged_in_at: new Date().toISOString(),
+        Key: { user_sub: userSub },
+        UpdateExpression: 'SET session_id = :sid, device_id = :did, logged_in_at = :at',
+        ExpressionAttributeValues: {
+          ':sid': sessionId,
+          ':did': deviceId,
+          ':at': new Date().toISOString(),
         },
       })
     );
     Logger.debug(`Session written for user ${userSub} (device: ${deviceId}): ${sessionId}`);
+  }
+
+  public static async getUserPreference(
+    userSub: string,
+    key: string,
+    config: DynamoDBConfig
+  ): Promise<string | null> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.userSessionsTable,
+        Key: { user_sub: userSub },
+        ProjectionExpression: '#k',
+        ExpressionAttributeNames: { '#k': key },
+      })
+    );
+    return result.Item ? ((result.Item[key] as string) ?? null) : null;
+  }
+
+  public static async setUserPreference(
+    userSub: string,
+    key: string,
+    value: string,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new UpdateCommand({
+        TableName: config.userSessionsTable,
+        Key: { user_sub: userSub },
+        UpdateExpression: 'SET #k = :v',
+        ExpressionAttributeNames: { '#k': key },
+        ExpressionAttributeValues: { ':v': value },
+      })
+    );
+    Logger.debug(`User preference "${key}" set for ${userSub}`);
+  }
+
+  public static async getProjectSettings(
+    projectId: string,
+    config: DynamoDBConfig
+  ): Promise<{ minDocFilter?: number }> {
+    const result = await this.client.send(
+      new GetCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: 'META' },
+        ProjectionExpression: 'min_doc_filter',
+      })
+    );
+    return {
+      minDocFilter: result.Item?.['min_doc_filter'] as number | undefined,
+    };
+  }
+
+  public static async setProjectMinDocFilter(
+    projectId: string,
+    minDocFilter: number,
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await this.client.send(
+      new UpdateCommand({
+        TableName: config.projectStateTable,
+        Key: { project_id: projectId, document_id: 'META' },
+        UpdateExpression: 'SET min_doc_filter = :v',
+        ExpressionAttributeValues: { ':v': minDocFilter },
+      })
+    );
+    Logger.debug(`Project ${projectId} min_doc_filter → ${minDocFilter}`);
   }
 
   public static async getSession(

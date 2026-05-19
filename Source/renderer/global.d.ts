@@ -57,6 +57,8 @@ declare global {
         listMembers: (projectId: string) => Promise<{ success: boolean; members?: ProjectMember[]; error?: string }>;
         updateRole: (projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT') => Promise<{ success: boolean; error?: string }>;
         searchUsers: (prefix: string) => Promise<{ success: boolean; usernames?: string[]; error?: string }>;
+        getSettings: (projectId: string) => Promise<{ success: boolean; minDocFilter?: number; error?: string }>;
+        setMinDocFilter: (projectId: string, minDocFilter: number) => Promise<{ success: boolean; error?: string }>;
       };
       documents: {
         selectFiles: () => Promise<{ success: boolean; files: Array<{ name: string; path: string; size: number }> }>;
@@ -105,6 +107,10 @@ declare global {
           documents?: Array<{ documentId: string; documentName: string }>;
           error?: string;
         }>;
+      };
+      preferences: {
+        getTheme: () => Promise<{ success: boolean; value?: string | null; error?: string }>;
+        setTheme: (theme: string) => Promise<{ success: boolean; error?: string }>;
       };
       utils: {
         getFilePath: (file: File) => string;

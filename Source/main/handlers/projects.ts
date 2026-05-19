@@ -294,6 +294,35 @@ export function registerProjectHandlers(
     }
   );
 
+  ipcMain.handle('project:get-settings', async (_event, projectId: string): Promise<{ success: boolean; minDocFilter?: number; error?: string }> => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+    if (!config || !tokens || typeof tokens === 'boolean') return { success: false, error: 'App not ready' };
+    try {
+      const settings = await AWS_DYNAMODB.getProjectSettings(projectId, config.dynamoDB);
+      return { success: true, ...settings };
+    } catch (err) {
+      Logger.error(`project:get-settings error: ${err instanceof Error ? err.message : String(err)}`);
+      return { success: false, error: 'Failed to load project settings' };
+    }
+  });
+
+  ipcMain.handle('project:set-min-doc-filter', async (_event, projectId: string, minDocFilter: number): Promise<SimpleResult> => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+    if (!config || !tokens || typeof tokens === 'boolean') return { success: false, error: 'App not ready' };
+    try {
+      const userSub = extractSub(tokens.idToken);
+      const role = await AWS_DYNAMODB.getProjectRole(userSub, projectId, config.dynamoDB);
+      if (!role) return { success: false, error: 'Not authorized' };
+      await AWS_DYNAMODB.setProjectMinDocFilter(projectId, minDocFilter, config.dynamoDB);
+      return { success: true };
+    } catch (err) {
+      Logger.error(`project:set-min-doc-filter error: ${err instanceof Error ? err.message : String(err)}`);
+      return { success: false, error: 'Failed to save project settings' };
+    }
+  });
+
   ipcMain.handle(
     'project:update-role',
     async (_event, projectId: string, targetSub: string, newRole: 'VIEW' | 'EDIT'): Promise<SimpleResult> => {

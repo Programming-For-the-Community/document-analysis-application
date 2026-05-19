@@ -14,7 +14,43 @@
     "build": "tsc",
     "start": "electron .",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "postinstall": "npm run rebuild"
+    "postinstall": "npm run rebuild",
+    "build-icons": "node scripts/build-icons.js",
+    "dist": "npm run build-icons && tsc && electron-builder",
+    "dist:win": "npm run build-icons && tsc && electron-builder --win",
+    "dist:mac": "npm run build-icons && tsc && electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.document-analysis.app",
+    "productName": "Document Analysis",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "!node_modules"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/",
+        "to": "assets/"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": "nsis"
+    },
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "target": "AppImage"
+    }
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1024.0",
@@ -38,6 +74,9 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
+    "@resvg/resvg-js": "^2.6.2",
+    "png-to-ico": "^2.1.8",
+    "png2icons": "^2.0.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cytoscape": "^3.21.9",
     "@types/node": "^22.14.0",

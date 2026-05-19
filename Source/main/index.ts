@@ -19,6 +19,7 @@ import { registerProjectHandlers } from './handlers/projects';
 import { registerDocumentHandlers } from './handlers/documents';
 import { registerGraphHandlers } from './handlers/graph';
 import { registerSearchHandlers } from './handlers/search';
+import { registerUserHandlers } from './handlers/user';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -34,11 +35,13 @@ let currentTokens: CognitoAuthResult | null = null;
 let appConfig: AppConfig | null = null;
 
 function createWindow(): void {
+  const iconPath = path.join(__dirname, '../../build/icon.png');
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 900,
     minHeight: 600,
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -76,6 +79,10 @@ registerGraphHandlers(
   () => currentTokens
 );
 registerSearchHandlers(
+  () => appConfig,
+  () => currentTokens
+);
+registerUserHandlers(
   () => appConfig,
   () => currentTokens
 );

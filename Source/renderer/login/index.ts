@@ -1,5 +1,12 @@
 const errorMsg = document.getElementById('error-msg') as HTMLParagraphElement;
 
+// Apply saved theme on load
+(function initTheme(): void {
+  if (localStorage.getItem('doc-analysis-theme') === 'parchment') {
+    document.documentElement.dataset['theme'] = 'parchment';
+  }
+})();
+
 function showError(msg: string): void {
   errorMsg.textContent = msg;
   errorMsg.classList.remove('hidden');

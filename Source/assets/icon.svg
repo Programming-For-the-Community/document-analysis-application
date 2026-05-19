@@ -1,0 +1,27 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Back document (shadow layer) -->
+  <rect x="45" y="6" width="316" height="391" rx="29" fill="#e7dfc6" stroke="#c8b99a" stroke-width="6"/>
+
+  <!-- Front document -->
+  <rect x="8" y="46" width="316" height="391" rx="29" fill="#f5ede0" stroke="#0d9488" stroke-width="9"/>
+
+  <!-- Document text lines -->
+  <line x1="54" y1="126" x2="278" y2="126" stroke="#0d9488" stroke-width="15" stroke-linecap="round"/>
+  <line x1="54" y1="172" x2="244" y2="172" stroke="#0d9488" stroke-width="15" stroke-linecap="round" opacity="0.7"/>
+  <line x1="54" y1="219" x2="278" y2="219" stroke="#0d9488" stroke-width="15" stroke-linecap="round" opacity="0.5"/>
+  <line x1="54" y1="265" x2="198" y2="265" stroke="#0d9488" stroke-width="15" stroke-linecap="round" opacity="0.35"/>
+
+  <!-- Graph edges -->
+  <line x1="364" y1="327" x2="476" y2="212" stroke="#0d9488" stroke-width="8" opacity="0.45" stroke-linecap="round"/>
+  <line x1="364" y1="327" x2="434" y2="451" stroke="#0d9488" stroke-width="8" opacity="0.45" stroke-linecap="round"/>
+  <line x1="364" y1="327" x2="273" y2="391" stroke="#0d9488" stroke-width="8" opacity="0.45" stroke-linecap="round"/>
+  <line x1="476" y1="212" x2="434" y2="451" stroke="#0d9488" stroke-width="4" opacity="0.25" stroke-linecap="round"/>
+
+  <!-- Graph nodes -->
+  <circle cx="273" cy="391" r="26" fill="#0d9488" opacity="0.55"/>
+  <circle cx="476" cy="212" r="35" fill="#0d9488" opacity="0.75"/>
+  <circle cx="434" cy="451" r="35" fill="#0d9488" opacity="0.75"/>
+  <circle cx="364" cy="327" r="49" fill="#0d9488"/>
+
+</svg>

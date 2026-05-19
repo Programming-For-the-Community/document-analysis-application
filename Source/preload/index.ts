@@ -48,6 +48,10 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('project:update-role', projectId, targetSub, newRole),
     searchUsers: (prefix: string): Promise<{ success: boolean; usernames?: string[]; error?: string }> =>
       ipcRenderer.invoke('project:search-users', prefix),
+    getSettings: (projectId: string): Promise<{ success: boolean; minDocFilter?: number; error?: string }> =>
+      ipcRenderer.invoke('project:get-settings', projectId),
+    setMinDocFilter: (projectId: string, minDocFilter: number): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('project:set-min-doc-filter', projectId, minDocFilter),
   },
   documents: {
     selectFiles: () => ipcRenderer.invoke('document:select-files'),
@@ -101,6 +105,12 @@ contextBridge.exposeInMainWorld('electron', {
       documents?: Array<{ documentId: string; documentName: string }>;
       error?: string;
     }> => ipcRenderer.invoke('graph:get-node-detail', projectId, entityName, entityType),
+  },
+  preferences: {
+    getTheme: (): Promise<{ success: boolean; value?: string | null; error?: string }> =>
+      ipcRenderer.invoke('user:get-preference', 'theme_preference'),
+    setTheme: (theme: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('user:set-preference', 'theme_preference', theme),
   },
   utils: {
     getFilePath: (file: File): string => webUtils.getPathForFile(file),

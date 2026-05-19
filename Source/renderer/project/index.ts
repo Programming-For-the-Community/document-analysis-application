@@ -175,64 +175,95 @@ function showGraphCanvas(): void {
   // graph-legend shown by buildGraphLegend() once populated
 }
 
-const ENTITY_COLORS: Record<string, string> = {
-  Person:       '#3b82f6',
-  Organization: '#10b981',
-  Date:         '#f59e0b',
-  Amount:       '#8b5cf6',
-  Location:     '#ef4444',
-  Product:      '#06b6d4',
-  Role:         '#f97316',
-  Account:      '#ec4899',
-  Event:        '#14b8a6',
-  Technology:   '#6366f1',
-  Concept:      '#84cc16',
-  Regulation:   '#f43f5e',
-  Agreement:    '#a855f7',
-  Asset:        '#0ea5e9',
+const ENTITY_COLORS_DARK: Record<string, string> = {
+  Person:       '#60a5fa',
+  Organization: '#34d399',
+  Date:         '#fbbf24',
+  Amount:       '#a78bfa',
+  Location:     '#f87171',
+  Product:      '#22d3ee',
+  Role:         '#fb923c',
+  Account:      '#f472b6',
+  Event:        '#2dd4bf',
+  Technology:   '#818cf8',
+  Concept:      '#a3e635',
+  Regulation:   '#fb7185',
+  Agreement:    '#c084fc',
+  Asset:        '#38bdf8',
   Task:         '#fb923c',
-  Other:        '#6b7280',
+  Other:        '#a1a1aa',
 };
 
-const GRAPH_STYLE = [
-  {
-    selector: 'node',
-    style: {
-      'background-color':  'data(color)',
-      'label':             'data(label)',
-      'color':             '#ffffff',
-      'font-size':         '10px',
-      'text-valign':       'center',
-      'text-halign':       'center',
-      'width':             'data(size)',
-      'height':            'data(size)',
-      'text-wrap':         'wrap',
-      'text-max-width':    'data(textMaxWidth)',
+const ENTITY_COLORS_PARCHMENT: Record<string, string> = {
+  Person:       '#1d4ed8',
+  Organization: '#047857',
+  Date:         '#b45309',
+  Amount:       '#6d28d9',
+  Location:     '#b91c1c',
+  Product:      '#0e7490',
+  Role:         '#c2410c',
+  Account:      '#be185d',
+  Event:        '#0f766e',
+  Technology:   '#4338ca',
+  Concept:      '#4d7c0f',
+  Regulation:   '#be123c',
+  Agreement:    '#7e22ce',
+  Asset:        '#0369a1',
+  Task:         '#c2410c',
+  Other:        '#78716c',
+};
+
+function getEntityColors(): Record<string, string> {
+  return localStorage.getItem('doc-analysis-theme') === 'parchment'
+    ? ENTITY_COLORS_PARCHMENT
+    : ENTITY_COLORS_DARK;
+}
+
+function getGraphStyle(): unknown[] {
+  const isParchment = localStorage.getItem('doc-analysis-theme') === 'parchment';
+  const edgeColor      = isParchment ? '#c4a97d' : '#52525b';
+  const edgeLabelColor = isParchment ? '#78716c' : '#a1a1aa';
+  const edgeLabelBg    = isParchment ? '#fffdf7' : '#27272a';
+  return [
+    {
+      selector: 'node',
+      style: {
+        'background-color':  'data(color)',
+        'label':             'data(label)',
+        'color':             '#ffffff',
+        'font-size':         '10px',
+        'text-valign':       'center',
+        'text-halign':       'center',
+        'width':             'data(size)',
+        'height':            'data(size)',
+        'text-wrap':         'wrap',
+        'text-max-width':    'data(textMaxWidth)',
+      },
     },
-  },
-  { selector: 'node.faded',       style: { opacity: 0.12 } },
-  { selector: 'node.highlighted', style: { 'border-width': 3, 'border-color': '#ffffff', 'border-opacity': 0.7 } },
-  {
-    selector: 'edge',
-    style: {
-      'width':                    1.5,
-      'line-color':               '#94a3b8',
-      'target-arrow-color':       '#94a3b8',
-      'target-arrow-shape':       'triangle',
-      'curve-style':              'bezier',
-      'label':                    '',
-      'font-size':                '9px',
-      'color':                    '#475569',
-      'text-rotation':            'autorotate',
-      'text-margin-y':            -8,
-      'text-background-color':    '#ffffff',
-      'text-background-opacity':  0.75,
-      'text-background-padding':  '2px',
+    { selector: 'node.faded',       style: { opacity: 0.12 } },
+    { selector: 'node.highlighted', style: { 'border-width': 3, 'border-color': '#ffffff', 'border-opacity': 0.7 } },
+    {
+      selector: 'edge',
+      style: {
+        'width':                    1.5,
+        'line-color':               edgeColor,
+        'target-arrow-color':       edgeColor,
+        'target-arrow-shape':       'triangle',
+        'curve-style':              'bezier',
+        'label':                    '',
+        'font-size':                '9px',
+        'color':                    edgeLabelColor,
+        'text-rotation':            'autorotate',
+        'text-margin-y':            -8,
+        'text-background-color':    edgeLabelBg,
+        'text-background-opacity':  0.75,
+        'text-background-padding':  '2px',
+      },
     },
-  },
-  { selector: 'edge.faded',    style: { opacity: 0.05 } },
-  { selector: 'edge.labelled', style: { 'label': 'data(label)' } },
-];
+    { selector: 'edge.faded',    style: { opacity: 0.05 } },
+    { selector: 'edge.labelled', style: { 'label': 'data(label)' } },
+  ];
+}
 
 const GRAPH_LAYOUT = {
   name:            'cose',
@@ -258,7 +289,7 @@ function buildGraphElements(
           label:       n.data.label,
           type:        n.data.type,
           docCount:    n.data.docCount,
-          color:       ENTITY_COLORS[n.data.type] ?? ENTITY_COLORS['Other'],
+          color:       getEntityColors()[n.data.type] ?? getEntityColors()['Other'],
           size,
           textMaxWidth: `${size - 8}px`,
         },
@@ -277,7 +308,7 @@ function buildGraphLegend(nodes: GraphNode[], legendElId: string): void {
   if (typesPresent.length === 0) { legendEl.classList.add('hidden'); return; }
   legendEl.innerHTML = typesPresent
     .map((type) => {
-      const color = ENTITY_COLORS[type] ?? ENTITY_COLORS['Other'];
+      const color = getEntityColors()[type] ?? getEntityColors()['Other'];
       return `<div class="graph-legend-item">
         <span class="graph-legend-swatch" style="background:${color}"></span>
         <span class="graph-legend-label">${type}</span>
@@ -377,7 +408,7 @@ function renderGraphData(nodes: GraphNode[], edges: GraphEdge[]): void {
   cytoscapeInstance = cytoscape({
     container,
     elements: buildGraphElements(nodes, edges, map, max),
-    style:    GRAPH_STYLE,
+    style:    getGraphStyle(),
     layout:   GRAPH_LAYOUT,
   });
 
@@ -441,7 +472,7 @@ function openGraphExpand(): void {
   expandedCyInstance = cytoscape({
     container: expandCanvas,
     elements:  buildGraphElements(nodes, edges, map, max),
-    style:     GRAPH_STYLE,
+    style:     getGraphStyle(),
     layout:    GRAPH_LAYOUT,
   });
 
@@ -801,7 +832,7 @@ function openNodeDetailModal(entityName: string, entityType: string): void {
 
   titleEl.textContent    = entityName;
   typeEl.textContent     = entityType;
-  swatchEl.style.background = ENTITY_COLORS[entityType] ?? ENTITY_COLORS['Other'];
+  swatchEl.style.background = getEntityColors()[entityType] ?? getEntityColors()['Other'];
   contentEl.classList.add('hidden');
   errorEl.classList.add('hidden');
   loadingEl.classList.remove('hidden');
@@ -824,7 +855,7 @@ function openNodeDetailModal(entityName: string, entityType: string): void {
       } else {
         connectionsEl.innerHTML = conns.map((c) => {
           const arrow      = c.direction === 'out' ? '→' : '←';
-          const otherColor = ENTITY_COLORS[c.otherType] ?? ENTITY_COLORS['Other'];
+          const otherColor = getEntityColors()[c.otherType] ?? getEntityColors()['Other'];
           return `<div class="node-detail-connection">
             <span class="node-detail-rel-type">${c.relType}</span>
             <span class="node-detail-arrow">${arrow}</span>
@@ -913,6 +944,9 @@ document.getElementById('graph-min-docs-input')?.addEventListener('input', () =>
     currentMinDocs = isNaN(parsed) || parsed < 2 ? 2 : parsed;
     if (input && String(currentMinDocs) !== input.value) input.value = String(currentMinDocs);
     void reloadGraphWithFilter();
+    if (currentProjectId) {
+      void window.electron.projects.setMinDocFilter(currentProjectId, currentMinDocs);
+    }
   }, 400);
 });
 
@@ -1228,11 +1262,69 @@ document.getElementById('share-username-input')?.addEventListener('keydown', (e)
   if (e.key === 'Enter') (document.getElementById('share-submit-btn') as HTMLButtonElement | null)?.click();
 });
 
+// ── Theme ─────────────────────────────────────────────────────────────────────
+
+function updateProjectThemeIcon(): void {
+  const btn = document.getElementById('theme-toggle-btn');
+  if (!btn) return;
+  const isParchment = document.documentElement.dataset['theme'] === 'parchment';
+  btn.innerHTML = isParchment
+    ? `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.5 10.5A6 6 0 015.5 2.5a6.5 6.5 0 108 8z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+  btn.title = isParchment ? 'Switch to dark theme' : 'Switch to light theme';
+  btn.setAttribute('aria-label', isParchment ? 'Switch to dark theme' : 'Switch to light theme');
+}
+
+function initProjectTheme(): void {
+  const saved = localStorage.getItem('doc-analysis-theme');
+  if (saved === 'parchment') {
+    document.documentElement.dataset['theme'] = 'parchment';
+  } else {
+    delete document.documentElement.dataset['theme'];
+  }
+  updateProjectThemeIcon();
+}
+
+async function syncProjectThemeFromServer(): Promise<void> {
+  try {
+    const result = await window.electron.preferences.getTheme();
+    if (!result.success || result.value == null) return;
+    const serverTheme = result.value === 'parchment' ? 'parchment' : 'slate';
+    const localTheme  = localStorage.getItem('doc-analysis-theme') ?? 'slate';
+    if (serverTheme === localTheme) return;
+    localStorage.setItem('doc-analysis-theme', serverTheme);
+    if (serverTheme === 'parchment') {
+      document.documentElement.dataset['theme'] = 'parchment';
+    } else {
+      delete document.documentElement.dataset['theme'];
+    }
+    updateProjectThemeIcon();
+    if (graphData) renderGraphData(graphData.nodes, graphData.edges);
+  } catch { /* non-fatal */ }
+}
+
+function toggleProjectTheme(): void {
+  const isParchment = document.documentElement.dataset['theme'] === 'parchment';
+  const newTheme = isParchment ? 'slate' : 'parchment';
+  if (isParchment) {
+    delete document.documentElement.dataset['theme'];
+  } else {
+    document.documentElement.dataset['theme'] = 'parchment';
+  }
+  localStorage.setItem('doc-analysis-theme', newTheme);
+  updateProjectThemeIcon();
+  if (graphData) renderGraphData(graphData.nodes, graphData.edges);
+  void window.electron.preferences.setTheme(newTheme);
+}
+
+document.getElementById('theme-toggle-btn')?.addEventListener('click', toggleProjectTheme);
+
 // ── Navigation listeners ──────────────────────────────────────────────────────
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function initProjectPage(): Promise<void> {
+  initProjectTheme();
   const tokens = await window.electron.auth.getTokens();
 
   if (!tokens) {
@@ -1247,6 +1339,8 @@ async function initProjectPage(): Promise<void> {
       payload['email'] ?? payload['cognito:username'] ?? ''
     );
   }
+
+  void syncProjectThemeFromServer();
 
   const params = new URLSearchParams(window.location.search);
   currentProjectId = params.get('id') ?? '';
@@ -1268,6 +1362,14 @@ async function initProjectPage(): Promise<void> {
   // Show Share button for OWNER and EDIT users
   if (currentProjectRole === 'OWNER' || currentProjectRole === 'EDIT') {
     document.getElementById('share-btn')?.classList.remove('hidden');
+  }
+
+  // Load saved min-doc filter for this project
+  const settingsResult = await window.electron.projects.getSettings(currentProjectId);
+  if (settingsResult.success && settingsResult.minDocFilter !== undefined) {
+    currentMinDocs = settingsResult.minDocFilter;
+    const minInput = document.getElementById('graph-min-docs-input') as HTMLInputElement | null;
+    if (minInput) minInput.value = String(currentMinDocs);
   }
 
   await loadProjectDocuments();
