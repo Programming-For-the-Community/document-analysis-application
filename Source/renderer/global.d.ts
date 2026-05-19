@@ -73,6 +73,7 @@ declare global {
         list: (projectId: string) => Promise<{ success: boolean; documents?: DocumentRecord[]; error?: string }>;
         delete: (projectId: string, documentId: string) => Promise<{ success: boolean; error?: string }>;
         getText: (projectId: string, documentId: string) => Promise<{ success: boolean; text?: string; error?: string }>;
+        retryGraph: (projectId: string, documentId: string) => Promise<{ success: boolean; error?: string }>;
         onStatusUpdate: (
           callback: (update: { projectId: string; documentId: string; status: ProcessingStatus }) => void
         ) => void;
@@ -98,6 +99,12 @@ declare global {
           edges?: GraphEdge[];
           error?: string;
         }>;
+        getNodeDetail: (projectId: string, entityName: string, entityType: string) => Promise<{
+          success: boolean;
+          connections?: Array<{ relType: string; otherName: string; otherType: string; direction: 'out' | 'in' }>;
+          documents?: Array<{ documentId: string; documentName: string }>;
+          error?: string;
+        }>;
       };
       utils: {
         getFilePath: (file: File) => string;
@@ -105,7 +112,7 @@ declare global {
     };
   }
 
-  type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED';
+  type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'GRAPH_FAILED';
 
   interface SearchCitation {
     documentId:   string;

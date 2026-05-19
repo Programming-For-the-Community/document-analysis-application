@@ -28,6 +28,10 @@ interface CyInstance {
   on(event: string, selector: string, handler: (e: CyEvent) => void): void;
   on(event: string, handler: (e: CyEvent) => void): void;
   fit(padding?: number): void;
+  resize(): void;
+  pan(): { x: number; y: number };
+  pan(position: { x: number; y: number }): void;
+  zoom(): number;
   elements(): CyCollection;
   nodes(): CyCollection;
   edges(): CyCollection;
@@ -43,6 +47,33 @@ let graphData: { nodes: GraphNode[]; edges: GraphEdge[] } | null = null;
 let currentMinDocs     = 2;
 let graphHasSyncedData = false;
 let minDocsChangeTimer: ReturnType<typeof setTimeout> | null = null;
+let graphResizeObserver: ResizeObserver | null = null;
+
+// Attaches a ResizeObserver that keeps the same graph center visible as the
+// container resizes. cy.resize() alone preserves pan in screen pixels, so the
+// content drifts to a corner; we compensate by shifting pan by half the delta.
+function createCenteringResizeObserver(cy: CyInstance, container: HTMLElement): ResizeObserver {
+  let prevW = container.clientWidth;
+  let prevH = container.clientHeight;
+
+  const observer = new ResizeObserver((entries) => {
+    const rect = entries[0]?.contentRect;
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+
+    const newW = rect.width;
+    const newH = rect.height;
+    const pan  = cy.pan();
+
+    cy.resize();
+    cy.pan({ x: pan.x + (newW - prevW) / 2, y: pan.y + (newH - prevH) / 2 });
+
+    prevW = newW;
+    prevH = newH;
+  });
+
+  observer.observe(container);
+  return observer;
+}
 
 function parseProjectJwt(token: string): Record<string, unknown> {
   const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
@@ -310,6 +341,15 @@ function wireGraphEvents(cy: CyInstance, container: HTMLElement): void {
 
   cy.on('mouseover', 'edge', (e) => { e.target.addClass('labelled'); });
   cy.on('mouseout',  'edge', (e) => { e.target.removeClass('labelled'); });
+
+  cy.on('tap', 'node', (e) => {
+    tooltip?.classList.add('hidden');
+    cy.elements().removeClass('faded labelled');
+    openNodeDetailModal(
+      String(e.target.data('label')),
+      String(e.target.data('type'))
+    );
+  });
 }
 
 function degreeMap(edges: GraphEdge[]): { map: Map<string, number>; max: number } {
@@ -326,6 +366,8 @@ function renderGraphData(nodes: GraphNode[], edges: GraphEdge[]): void {
   if (!container) { showGraphEmpty(); return; }
 
   if (cytoscapeInstance) { cytoscapeInstance.destroy(); cytoscapeInstance = null; }
+  graphResizeObserver?.disconnect();
+  graphResizeObserver = null;
 
   graphData = { nodes, edges };
   const { map, max } = degreeMap(edges);
@@ -341,6 +383,8 @@ function renderGraphData(nodes: GraphNode[], edges: GraphEdge[]): void {
 
   wireGraphEvents(cytoscapeInstance, container);
   buildGraphLegend(nodes, 'graph-legend');
+
+  graphResizeObserver = createCenteringResizeObserver(cytoscapeInstance, container);
 }
 
 async function loadProjectGraph(): Promise<void> {
@@ -403,12 +447,17 @@ function openGraphExpand(): void {
 
   wireGraphEvents(expandedCyInstance, expandCanvas);
   buildGraphLegend(nodes, 'graph-expand-legend');
+
+  const expandObserver = createCenteringResizeObserver(expandedCyInstance, expandCanvas);
+  (expandCanvas as HTMLElement & { _cyResizeObserver?: ResizeObserver })._cyResizeObserver = expandObserver;
 }
 
 function closeGraphExpand(): void {
   document.getElementById('graph-expand-overlay')?.classList.add('hidden');
   document.getElementById('graph-expand-legend')?.classList.add('hidden');
   document.body.style.overflow = '';
+  const expandCanvas = document.getElementById('graph-expand-canvas') as (HTMLElement & { _cyResizeObserver?: ResizeObserver }) | null;
+  expandCanvas?._cyResizeObserver?.disconnect();
   if (expandedCyInstance) { expandedCyInstance.destroy(); expandedCyInstance = null; }
 }
 
@@ -449,12 +498,35 @@ async function handleDeleteDocument(
 // ── Rendering ────────────────────────────────────────────────────────────────
 
 const STATUS_BADGE: Record<ProcessingStatus, { label: string; cls: string }> = {
-  UNPROCESSED: { label: 'not processed', cls: 'doc-status-badge doc-status-unprocessed' },
-  QUEUED:      { label: 'queued',         cls: 'doc-status-badge doc-status-queued' },
-  PROCESSING:  { label: 'processing',     cls: 'doc-status-badge doc-status-processing' },
-  COMPLETE:    { label: 'analyzed',       cls: 'doc-status-badge doc-status-complete' },
-  FAILED:      { label: 'failed',         cls: 'doc-status-badge doc-status-failed' },
+  UNPROCESSED:  { label: 'not processed', cls: 'doc-status-badge doc-status-unprocessed' },
+  QUEUED:       { label: 'queued',         cls: 'doc-status-badge doc-status-queued' },
+  PROCESSING:   { label: 'processing',     cls: 'doc-status-badge doc-status-processing' },
+  COMPLETE:     { label: 'analyzed',       cls: 'doc-status-badge doc-status-complete' },
+  FAILED:       { label: 'failed',         cls: 'doc-status-badge doc-status-failed' },
+  GRAPH_FAILED: { label: 'graph failed',   cls: 'doc-status-badge doc-status-graph-failed' },
 };
+
+async function handleRetryGraph(documentId: string, item: HTMLElement): Promise<void> {
+  const badge   = item.querySelector<HTMLElement>('[class*="doc-status-"]');
+  const retryBtn = item.querySelector<HTMLButtonElement>('.btn-retry-graph');
+
+  if (badge) { badge.className = STATUS_BADGE['PROCESSING'].cls; badge.textContent = STATUS_BADGE['PROCESSING'].label; }
+  if (retryBtn) { retryBtn.disabled = true; retryBtn.style.display = 'none'; }
+
+  try {
+    const result = await window.electron.documents.retryGraph(currentProjectId, documentId);
+    if (!result.success) {
+      if (badge) { badge.className = STATUS_BADGE['GRAPH_FAILED'].cls; badge.textContent = STATUS_BADGE['GRAPH_FAILED'].label; }
+      if (retryBtn) { retryBtn.disabled = false; retryBtn.style.display = ''; }
+      showProjectUploadError(result.error ?? 'Graph retry failed.');
+    }
+    // On success the onStatusUpdate listener will update the badge to COMPLETE
+  } catch {
+    if (badge) { badge.className = STATUS_BADGE['GRAPH_FAILED'].cls; badge.textContent = STATUS_BADGE['GRAPH_FAILED'].label; }
+    if (retryBtn) { retryBtn.disabled = false; retryBtn.style.display = ''; }
+    showProjectUploadError('An unexpected error occurred during graph retry.');
+  }
+}
 
 function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElement {
   const canDelete = currentProjectRole === 'OWNER' || currentProjectRole === 'EDIT';
@@ -466,8 +538,17 @@ function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElem
     : '';
   const { label, cls } = STATUS_BADGE[doc.processingStatus];
   const statusBadge = `<span class="${cls}">${label}</span>`;
+  const retryGraphBtn = doc.processingStatus === 'GRAPH_FAILED'
+    ? `<button class="btn-retry-graph" title="Retry graph extraction" aria-label="Retry graph extraction for ${doc.documentName}">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 7a5 5 0 1 0 1.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 3.5V7h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>`
+    : '';
   const deleteBtn = canDelete
     ? `<div class="doc-item-actions">
+        ${retryGraphBtn}
         <button class="btn-icon-danger btn-delete-doc" title="Delete document" aria-label="Delete ${doc.documentName}">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M2 3.5h10M5.5 3.5V2.5a.5.5 0 01.5-.5h2a.5.5 0 01.5.5v1M11.5 3.5l-.75 8a1 1 0 01-1 .9H4.25a1 1 0 01-1-.9L2.5 3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -495,6 +576,11 @@ function createDocumentItem(doc: DocumentRecord, isDuplicate: boolean): HTMLElem
   `;
 
   if (canDelete) {
+    item.querySelector('.btn-retry-graph')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      void handleRetryGraph(doc.documentId, item);
+    });
+
     item.querySelector('.btn-delete-doc')?.addEventListener('click', (e) => {
       e.stopPropagation();
       void handleDeleteDocument(doc.documentId, doc.documentName, item);
@@ -700,6 +786,100 @@ function closeDocTextModal(): void {
 
 document.getElementById('doc-text-modal-close')?.addEventListener('click', closeDocTextModal);
 
+// ── Node detail modal ─────────────────────────────────────────────────────────
+
+function openNodeDetailModal(entityName: string, entityType: string): void {
+  const overlay     = document.getElementById('node-detail-overlay');
+  const titleEl     = document.getElementById('node-detail-title');
+  const typeEl      = document.getElementById('node-detail-type');
+  const swatchEl    = document.getElementById('node-detail-swatch');
+  const loadingEl   = document.getElementById('node-detail-loading');
+  const contentEl   = document.getElementById('node-detail-content');
+  const errorEl     = document.getElementById('node-detail-error');
+
+  if (!overlay || !titleEl || !typeEl || !swatchEl || !loadingEl || !contentEl || !errorEl) return;
+
+  titleEl.textContent    = entityName;
+  typeEl.textContent     = entityType;
+  swatchEl.style.background = ENTITY_COLORS[entityType] ?? ENTITY_COLORS['Other'];
+  contentEl.classList.add('hidden');
+  errorEl.classList.add('hidden');
+  loadingEl.classList.remove('hidden');
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  void window.electron.graph.getNodeDetail(currentProjectId, entityName, entityType).then((result) => {
+    loadingEl.classList.add('hidden');
+    if (!result.success) {
+      errorEl.textContent = result.error ?? 'Failed to load details.';
+      errorEl.classList.remove('hidden');
+      return;
+    }
+
+    const connectionsEl = document.getElementById('node-detail-connections');
+    if (connectionsEl) {
+      const conns = result.connections ?? [];
+      if (conns.length === 0) {
+        connectionsEl.innerHTML = '<p class="node-detail-empty">No connections found.</p>';
+      } else {
+        connectionsEl.innerHTML = conns.map((c) => {
+          const arrow      = c.direction === 'out' ? '→' : '←';
+          const otherColor = ENTITY_COLORS[c.otherType] ?? ENTITY_COLORS['Other'];
+          return `<div class="node-detail-connection">
+            <span class="node-detail-rel-type">${c.relType}</span>
+            <span class="node-detail-arrow">${arrow}</span>
+            <span class="node-detail-swatch-sm" style="background:${otherColor}"></span>
+            <span class="node-detail-other-name">${c.otherName}</span>
+            <span class="node-detail-other-type">${c.otherType}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    const documentsEl = document.getElementById('node-detail-documents');
+    if (documentsEl) {
+      const docs = result.documents ?? [];
+      if (docs.length === 0) {
+        documentsEl.innerHTML = '<p class="node-detail-empty">No documents found.</p>';
+      } else {
+        documentsEl.innerHTML = '';
+        docs.forEach((doc) => {
+          const item = document.createElement('div');
+          item.className  = 'node-detail-doc';
+          item.setAttribute('role', 'button');
+          item.tabIndex   = 0;
+          item.innerHTML  = `
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="1" width="8" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M4 4h4M4 6.5h3M4 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <span>${doc.documentName}</span>`;
+          const open = (): void => {
+            closeNodeDetailModal();
+            openDocTextModal(doc.documentId, doc.documentName);
+          };
+          item.addEventListener('click', open);
+          item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') open(); });
+          documentsEl.appendChild(item);
+        });
+      }
+    }
+
+    contentEl.classList.remove('hidden');
+  });
+}
+
+function closeNodeDetailModal(): void {
+  document.getElementById('node-detail-overlay')?.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('node-detail-close')?.addEventListener('click', closeNodeDetailModal);
+
+document.getElementById('node-detail-overlay')?.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeNodeDetailModal();
+});
+
 document.getElementById('doc-text-modal-overlay')?.addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeDocTextModal();
 });
@@ -707,6 +887,7 @@ document.getElementById('doc-text-modal-overlay')?.addEventListener('click', (e)
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeDocTextModal();
+    closeNodeDetailModal();
     closeGraphExpand();
     closeShareModal();
   }
@@ -774,13 +955,19 @@ function showSearchResults(answer: string, citations: SearchCitation[]): void {
       citationsLabel?.classList.remove('hidden');
       citations.forEach((c) => {
         const item = document.createElement('div');
-        item.className = 'search-citation';
+        item.className = 'search-source-card';
         item.setAttribute('role', 'button');
         item.tabIndex = 0;
         item.title = 'Click to view full document text';
         item.innerHTML = `
-          <div class="search-citation-source">${c.documentName}</div>
-          <div class="search-citation-excerpt">${c.excerpt}</div>
+          <div class="search-source-name">
+            <svg width="11" height="11" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="1" width="8" height="11" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M4 4h4M4 6.5h3M4 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            ${c.documentName}
+          </div>
+          <div class="search-source-excerpt">${c.excerpt}</div>
         `;
         item.addEventListener('click', () => openDocTextModal(c.documentId, c.documentName));
         item.addEventListener('keydown', (e) => {
@@ -797,7 +984,7 @@ function showSearchResults(answer: string, citations: SearchCitation[]): void {
 }
 
 async function handleSearch(): Promise<void> {
-  const queryEl = document.getElementById('search-query') as HTMLTextAreaElement | null;
+  const queryEl = document.getElementById('search-query') as HTMLInputElement | null;
   const query = queryEl?.value.trim() ?? '';
   if (!query || !currentProjectId) return;
 
@@ -818,7 +1005,7 @@ async function handleSearch(): Promise<void> {
 document.getElementById('search-submit-btn')?.addEventListener('click', () => void handleSearch());
 
 document.getElementById('search-query')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === 'Enter') {
     e.preventDefault();
     void handleSearch();
   }
@@ -1095,6 +1282,34 @@ async function initProjectPage(): Promise<void> {
     const { label, cls } = STATUS_BADGE[update.status];
     badge.className = cls;
     badge.textContent = label;
+
+    // Show retry button only when status is GRAPH_FAILED; hide it otherwise
+    const actionsEl = item.querySelector<HTMLElement>('.doc-item-actions');
+    if (actionsEl && (currentProjectRole === 'OWNER' || currentProjectRole === 'EDIT')) {
+      let retryBtn = actionsEl.querySelector<HTMLButtonElement>('.btn-retry-graph');
+      if (update.status === 'GRAPH_FAILED') {
+        if (!retryBtn) {
+          retryBtn = document.createElement('button');
+          retryBtn.className = 'btn-retry-graph';
+          retryBtn.title = 'Retry graph extraction';
+          retryBtn.setAttribute('aria-label', 'Retry graph extraction');
+          retryBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 7a5 5 0 1 0 1.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 3.5V7h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>`;
+          retryBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            void handleRetryGraph(update.documentId, item);
+          });
+          actionsEl.insertBefore(retryBtn, actionsEl.firstChild);
+        }
+        retryBtn.style.display = '';
+        retryBtn.disabled = false;
+      } else if (retryBtn) {
+        retryBtn.style.display = 'none';
+      }
+    }
+
     if (update.status === 'COMPLETE') void loadProjectGraph();
   });
 

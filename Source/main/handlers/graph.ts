@@ -86,6 +86,32 @@ export function registerGraphHandlers(
     }
   );
 
+  ipcMain.handle('graph:get-node-detail', async (_event, projectId: string, entityName: string, entityType: string) => {
+    const config = getAppConfig();
+    const tokens = getTokens();
+
+    if (!config || !tokens || typeof tokens === 'boolean') {
+      return { success: false, error: 'App not ready' };
+    }
+
+    try {
+      const { connections, documentIds } = await Neo4J.getNodeDetail(projectId, entityName, entityType);
+
+      const documents = await Promise.all(
+        documentIds.map(async (docId) => {
+          const name = await AWS_DYNAMODB.getDocumentName(projectId, docId, config.dynamoDB).catch(() => null);
+          return { documentId: docId, documentName: name ?? docId };
+        })
+      );
+
+      return { success: true, connections, documents };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load node detail';
+      Logger.error(`graph:get-node-detail error: ${message}`);
+      return { success: false, error: message };
+    }
+  });
+
   ipcMain.handle('graph:get-project-graph', async (_event, projectId: string, minDocCount: number) => {
     const config = getAppConfig();
     const tokens = getTokens();

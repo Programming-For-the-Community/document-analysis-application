@@ -178,9 +178,15 @@
             </div>
 
             <div class="search-form">
-              <textarea id="search-query" class="search-textarea"
-                placeholder="Ask anything about your documents…" rows="2"></textarea>
-              <button id="search-submit-btn" class="btn-sm btn-primary" style="align-self:flex-end">Ask</button>
+              <div class="search-input-row">
+                <input type="text" id="search-query" class="search-input"
+                  placeholder="Ask anything about your documents…" autocomplete="off" />
+                <button id="search-submit-btn" class="search-submit-btn" aria-label="Ask">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div id="search-loading" class="panel-loading hidden">
@@ -198,9 +204,11 @@
             </div>
 
             <div id="search-results" class="search-results-area hidden">
-              <p id="search-answer" class="search-answer"></p>
-              <p id="search-citations-label" class="search-citations-label hidden">Sources</p>
-              <div id="search-citations" class="search-citations"></div>
+              <div class="search-answer-card">
+                <p id="search-answer" class="search-answer-text"></p>
+              </div>
+              <p id="search-citations-label" class="search-sources-label hidden">Sources</p>
+              <div id="search-citations" class="search-sources-grid"></div>
             </div>
 
             <div id="search-error" class="upload-error hidden"></div>
@@ -227,6 +235,40 @@
           </div>
           <pre id="doc-text-modal-content" class="doc-text-modal-content"></pre>
           <p id="doc-text-modal-error" class="doc-text-modal-error hidden"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Node detail modal -->
+    <div id="node-detail-overlay" class="doc-text-overlay hidden" role="dialog" aria-modal="true">
+      <div class="node-detail-modal">
+        <div class="doc-text-modal-header">
+          <div class="node-detail-header-info">
+            <span id="node-detail-swatch" class="node-detail-swatch"></span>
+            <span id="node-detail-title" class="doc-text-modal-title"></span>
+            <span id="node-detail-type" class="node-detail-type-badge"></span>
+          </div>
+          <button id="node-detail-close" class="btn-icon-danger" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="node-detail-body">
+          <div id="node-detail-loading" class="doc-text-modal-loading hidden">
+            <div class="spinner"></div>
+          </div>
+          <div id="node-detail-content" class="hidden">
+            <div class="node-detail-section">
+              <h3 class="node-detail-section-title">Connections</h3>
+              <div id="node-detail-connections"></div>
+            </div>
+            <div class="node-detail-section">
+              <h3 class="node-detail-section-title">Referenced in</h3>
+              <div id="node-detail-documents"></div>
+            </div>
+          </div>
+          <p id="node-detail-error" class="doc-text-modal-error hidden"></p>
         </div>
       </div>
     </div>

@@ -1,8 +1,7 @@
 import {
   TextractClient,
-  StartDocumentAnalysisCommand,
-  GetDocumentAnalysisCommand,
-  FeatureType,
+  StartDocumentTextDetectionCommand,
+  GetDocumentTextDetectionCommand,
   Block,
 } from '@aws-sdk/client-textract';
 
@@ -33,7 +32,7 @@ export class AWS_TEXTRACT {
 
   public static async getJobStatus(jobId: string): Promise<{ status: 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS'; message: string }> {
     const result = await this.client.send(
-      new GetDocumentAnalysisCommand({ JobId: jobId, MaxResults: 1 })
+      new GetDocumentTextDetectionCommand({ JobId: jobId, MaxResults: 1 })
     );
     return {
       status: (result.JobStatus ?? 'FAILED') as 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS',
@@ -47,13 +46,13 @@ export class AWS_TEXTRACT {
 
     do {
       const result = await this.client.send(
-        new GetDocumentAnalysisCommand({ JobId: jobId, NextToken: nextToken })
+        new GetDocumentTextDetectionCommand({ JobId: jobId, NextToken: nextToken })
       );
       blocks.push(...(result.Blocks ?? []));
       nextToken = result.NextToken;
     } while (nextToken);
 
-    Logger.debug(`GetDocumentAnalysis ${jobId}: retrieved ${blocks.length} block(s)`);
+    Logger.debug(`GetDocumentTextDetection ${jobId}: retrieved ${blocks.length} block(s)`);
     return blocks;
   }
 
@@ -64,11 +63,10 @@ export class AWS_TEXTRACT {
     documentId: string
   ): Promise<string> {
     const result = await this.client.send(
-      new StartDocumentAnalysisCommand({
+      new StartDocumentTextDetectionCommand({
         DocumentLocation: {
           S3Object: { Bucket: s3Bucket, Name: s3Key },
         },
-        FeatureTypes: [FeatureType.FORMS, FeatureType.TABLES],
         NotificationChannel: {
           SNSTopicArn: snsTopicArn,
           RoleArn: AWS_SECRETS.secrets.SVC_ROLE_ARN,
@@ -77,7 +75,7 @@ export class AWS_TEXTRACT {
       })
     );
     const jobId = result.JobId ?? '';
-    Logger.info(`Textract job started for document ${documentId}: jobId=${jobId}`);
+    Logger.info(`Textract text detection started for document ${documentId}: jobId=${jobId}`);
     return jobId;
   }
 }

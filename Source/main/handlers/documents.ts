@@ -496,4 +496,59 @@ export function registerDocumentHandlers(
       }
     }
   );
+
+  ipcMain.handle(
+    'document:retry-graph',
+    async (_event, projectId: string, documentId: string): Promise<{ success: boolean; error?: string }> => {
+      const config = getAppConfig();
+      const tokens = getTokens();
+
+      if (!config || !tokens || typeof tokens === 'boolean') {
+        return { success: false, error: 'App not ready' };
+      }
+
+      try {
+        const rec = await AWS_DYNAMODB.getDocumentRecord(projectId, documentId, config.dynamoDB);
+        if (!rec) return { success: false, error: 'Document not found' };
+
+        const text = await AWS_S3.getObjectText(
+          textS3Key(rec.ownerSub, projectId, documentId),
+          config.s3
+        ).catch(() => null);
+
+        if (!text) return { success: false, error: 'Saved text not available — document may need to be re-uploaded.' };
+
+        await AWS_DYNAMODB.updateDocumentStatus(projectId, documentId, 'PROCESSING', config.dynamoDB);
+        BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+          projectId, documentId, status: 'PROCESSING',
+        });
+
+        const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, documentId, projectId);
+
+        const analysisKey = `${rec.ownerSub}/${projectId}/analysis/${documentId}.json`;
+        await AWS_S3.putJson(analysisKey, graph, config.s3);
+
+        await Neo4J.loadGraph(graph).catch((err: unknown) =>
+          Logger.warn(`document:retry-graph Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        );
+
+        await AWS_DYNAMODB.updateDocumentStatus(projectId, documentId, 'COMPLETE', config.dynamoDB);
+        BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+          projectId, documentId, status: 'COMPLETE',
+        });
+
+        Logger.info(`document:retry-graph COMPLETE for document ${documentId} — ${graph.entities.length} entities`);
+        return { success: true };
+      } catch (err) {
+        const message = userFacingError(err, 'Graph retry failed. Please try again.');
+        Logger.error(`document:retry-graph error: ${err instanceof Error ? err.message : String(err)}`);
+        await AWS_DYNAMODB.updateDocumentStatus(projectId, documentId, 'GRAPH_FAILED', config.dynamoDB)
+          .catch(() => undefined);
+        BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+          projectId, documentId, status: 'GRAPH_FAILED',
+        });
+        return { success: false, error: message };
+      }
+    }
+  );
 }

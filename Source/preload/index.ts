@@ -61,6 +61,8 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('document:delete', projectId, documentId),
     getText: (projectId: string, documentId: string) =>
       ipcRenderer.invoke('document:get-text', projectId, documentId),
+    retryGraph: (projectId: string, documentId: string) =>
+      ipcRenderer.invoke('document:retry-graph', projectId, documentId),
     onStatusUpdate: (
       callback: (update: { projectId: string; documentId: string; status: string }) => void
     ) => {
@@ -93,6 +95,12 @@ contextBridge.exposeInMainWorld('electron', {
       edges?: Array<{ data: { id: string; source: string; target: string; label: string } }>;
       error?: string;
     }> => ipcRenderer.invoke('graph:get-project-graph', projectId, minDocCount),
+    getNodeDetail: (projectId: string, entityName: string, entityType: string): Promise<{
+      success: boolean;
+      connections?: Array<{ relType: string; otherName: string; otherType: string; direction: 'out' | 'in' }>;
+      documents?: Array<{ documentId: string; documentName: string }>;
+      error?: string;
+    }> => ipcRenderer.invoke('graph:get-node-detail', projectId, entityName, entityType),
   },
   utils: {
     getFilePath: (file: File): string => webUtils.getPathForFile(file),

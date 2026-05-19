@@ -3,7 +3,7 @@ import { BrowserWindow } from 'electron';
 import { AWS_SQS, Message } from '../../aws/sqs';
 import { AWS_S3 } from '../../aws/s3';
 import { AWS_TEXTRACT } from '../../aws/textract';
-import { AWS_BEDROCK } from '../../aws/bedrock';
+import { AWS_BEDROCK, GraphExtractionError } from '../../aws/bedrock';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { Neo4J } from '../../aws/neo4j';
 import { AppConfig } from '../../interfaces/app';
@@ -79,7 +79,15 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
     await saveDocumentText(msg.ownerSub, msg.projectId, msg.documentId, documentText, config);
 
     const bedrockStart = Date.now();
-    const graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId);
+    let graphFailed = false;
+    let graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId)
+      .catch((err: unknown) => {
+        if (!(err instanceof GraphExtractionError)) throw err;
+        graphFailed = true;
+        Logger.warn(`${docTag} Graph extraction failed — saving empty graph, document will be GRAPH_FAILED`);
+        return { documentId: msg.documentId, projectId: msg.projectId, entities: [], relationships: [] };
+      });
+
     Logger.info(
       `${docTag} Bedrock inference complete — ${graph.entities.length} entity/entities, ${graph.relationships.length} relationship(s) in ${Date.now() - bedrockStart}ms`
     );
@@ -88,14 +96,17 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
     await AWS_S3.putJson(analysisKey, graph, config.s3);
     Logger.info(`${docTag} Analysis written to S3 → ${analysisKey}`);
 
-    await Neo4J.loadGraph(graph).catch((err: unknown) =>
-      Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
-    );
+    if (!graphFailed) {
+      await Neo4J.loadGraph(graph).catch((err: unknown) =>
+        Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      );
+    }
 
     const documentName =
       await AWS_DYNAMODB.getDocumentName(msg.projectId, msg.documentId, config.dynamoDB)
         .catch(() => null) ?? msg.documentId;
 
+    // Embeddings always run regardless of graph extraction outcome.
     await embedAndStore(
       msg.ownerSub, msg.projectId, msg.documentId,
       documentName, documentText, config
@@ -103,12 +114,13 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
       Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
     );
 
-    await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, 'COMPLETE', config.dynamoDB);
-    pushStatusUpdate(msg.projectId, msg.documentId, 'COMPLETE');
+    const finalStatus = graphFailed ? 'GRAPH_FAILED' : 'COMPLETE';
+    await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, finalStatus, config.dynamoDB);
+    pushStatusUpdate(msg.projectId, msg.documentId, finalStatus);
 
-    // Only delete the SQS message after a successful write to S3
+    // Always delete the SQS message — GRAPH_FAILED is a stable terminal state.
     await AWS_SQS.deleteMessage(config.sqs.queueUrl, msg.receiptHandle);
-    Logger.info(`${docTag} COMPLETE — total processing time: ${Date.now() - batchStart}ms`);
+    Logger.info(`${docTag} ${finalStatus} — total processing time: ${Date.now() - batchStart}ms`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     Logger.error(`${docTag} Processing FAILED: ${message}`);

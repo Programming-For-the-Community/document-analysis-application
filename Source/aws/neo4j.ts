@@ -109,6 +109,47 @@ export class Neo4J {
     }
   }
 
+  public static async getNodeDetail(
+    projectId: string,
+    entityName: string,
+    entityType: string
+  ): Promise<{
+    connections: Array<{ relType: string; otherName: string; otherType: string; direction: 'out' | 'in' }>;
+    documentIds: string[];
+  }> {
+    const session = this.driver.session();
+    try {
+      const connResult = await session.run(
+        `MATCH (e:Entity {projectId: $projectId, name: $entityName, type: $entityType})-[r]->(other:Entity {projectId: $projectId})
+         RETURN other.name AS otherName, other.type AS otherType, type(r) AS relType, 'out' AS direction
+         UNION
+         MATCH (other:Entity {projectId: $projectId})-[r]->(e:Entity {projectId: $projectId, name: $entityName, type: $entityType})
+         RETURN other.name AS otherName, other.type AS otherType, type(r) AS relType, 'in' AS direction`,
+        { projectId, entityName, entityType }
+      );
+
+      const connections = connResult.records.map((r) => ({
+        otherName:  r.get('otherName')  as string,
+        otherType:  r.get('otherType')  as string,
+        relType:    r.get('relType')    as string,
+        direction:  r.get('direction')  as 'out' | 'in',
+      }));
+
+      const docResult = await session.run(
+        `MATCH (d:Document {projectId: $projectId})-[:MENTIONS]->(e:Entity {projectId: $projectId, name: $entityName, type: $entityType})
+         RETURN DISTINCT d.id AS documentId`,
+        { projectId, entityName, entityType }
+      );
+
+      const documentIds = docResult.records.map((r) => r.get('documentId') as string);
+
+      Logger.debug(`Neo4j getNodeDetail: ${connections.length} connection(s), ${documentIds.length} document(s) for "${entityName}" (${entityType})`);
+      return { connections, documentIds };
+    } finally {
+      await session.close();
+    }
+  }
+
   // Returns the subset of documentIds that have no Document node in Neo4j.
   public static async findMissingDocuments(documentIds: string[]): Promise<string[]> {
     if (documentIds.length === 0) return [];
