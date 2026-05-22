@@ -20,6 +20,7 @@ import { registerDocumentHandlers } from './handlers/documents';
 import { registerGraphHandlers } from './handlers/graph';
 import { registerSearchHandlers } from './handlers/search';
 import { registerUserHandlers } from './handlers/user';
+import { DockerManager } from './services/docker-manager';
 import { AppConfig } from '../interfaces/app';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -33,6 +34,9 @@ Menu.setApplicationMenu(null);
 let mainWindow: BrowserWindow | null = null;
 let currentTokens: CognitoAuthResult | null = null;
 let appConfig: AppConfig | null = null;
+let isQuitting = false;
+
+const dockerManager = new DockerManager();
 
 function createWindow(): void {
   const iconPath = path.join(__dirname, '../../build/icon.png');
@@ -103,7 +107,7 @@ registerUserHandlers(
 );
 
 app.whenReady().then(async () => {
-  Logger.info('Electron app ready — starting AWS initialization sequence');
+  Logger.info('Electron app ready — starting initialization sequence');
 
   try {
     Logger.info('Fetching application secrets with local credentials...');
@@ -124,11 +128,18 @@ app.whenReady().then(async () => {
     Neo4J.init(appConfig.neo4j);
     await Qdrant.init(appConfig.qdrant);
 
+    if (app.isPackaged) {
+      await dockerManager.start();
+    } else {
+      Logger.info('Dev mode — skipping Docker management, assuming containers already running');
+    }
+
     createWindow();
     Logger.info('Application startup complete');
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     Logger.error(`Startup failed: ${message}`);
+
     dialog.showErrorBox(
       'Startup Error',
       `Failed to start the application:\n\n${message}\n\nEnsure your AWS CLI is configured with access to Secrets Manager secret "${awsConfig.secretName}".`
@@ -137,9 +148,23 @@ app.whenReady().then(async () => {
   }
 });
 
+app.on('will-quit', (event) => {
+  if (isQuitting) return;
+  if (!app.isPackaged) return;
+
+  event.preventDefault();
+  isQuitting = true;
+
+  Logger.info('App quitting — stopping Docker containers...');
+  void Neo4J.close();
+  dockerManager.stop().finally(() => {
+    Logger.info('Shutdown complete');
+    app.quit();
+  });
+});
+
 app.on('window-all-closed', () => {
   Logger.info('All windows closed — quitting application');
-  void Neo4J.close();
   if (process.platform !== 'darwin') app.quit();
 });
 

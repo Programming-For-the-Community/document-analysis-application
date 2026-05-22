@@ -4,12 +4,13 @@ import dotenv from 'dotenv';
 import { AppConfig } from '../interfaces/app';
 import { AWSConfig, SecretValues } from '../interfaces/aws';
 
+// In dev the .env overrides these; in the packaged app the file won't exist
+// so we fall back to the hardcoded bootstrap values.
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
-// Bootstrap values needed to reach Secrets Manager — must live in .env
 export const awsConfig: AWSConfig = {
-  region: process.env['AWS_REGION'] || '',
-  secretName: process.env['AWS_SECRET_NAME'] || '',
+  region: process.env['AWS_REGION'] || 'us-east-2',
+  secretName: process.env['AWS_SECRET_NAME'] || 'doc-analysis-secret',
 };
 
 export function buildAppConfig(secrets: SecretValues): AppConfig {

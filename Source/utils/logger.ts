@@ -19,10 +19,12 @@ export class Logger {
       ...cfg,
     };
 
+    const transports: winston.transport[] = [new winston.transports.Console()];
+
     Logger.instance = winston.createLogger({
       level: Logger.config.level,
       format: Logger.buildFormat(),
-      transports: [new winston.transports.Console()],
+      transports,
     });
   }
 

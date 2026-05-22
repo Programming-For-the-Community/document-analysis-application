@@ -31,7 +31,7 @@ else
 fi
 
 echo "Starting services..."
-docker compose up -d
+docker compose -p doc-analysis up -d
 
 rm -f .env
 

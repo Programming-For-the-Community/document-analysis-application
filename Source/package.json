@@ -31,12 +31,20 @@
       "dist/**/*",
       "renderer/**/*",
       "assets/**/*",
-      "!node_modules"
+      ".env"
     ],
     "extraResources": [
       {
         "from": "assets/",
         "to": "assets/"
+      },
+      {
+        "from": "../docker-compose.yml",
+        "to": "docker-compose.yml"
+      },
+      {
+        "from": "../Database/schema.cypher",
+        "to": "Database/schema.cypher"
       }
     ],
     "win": {
@@ -67,7 +75,6 @@
     "better-sqlite3": "^12.8.0",
     "cytoscape": "^3.30.4",
     "dotenv": "^16.4.5",
-    "electron": "^41.1.1",
     "exceljs": "^4.4.0",
     "mammoth": "^1.12.0",
     "neo4j-driver": "^6.0.1",
@@ -75,19 +82,20 @@
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
-    "@resvg/resvg-js": "^2.6.2",
-    "png-to-ico": "^2.1.8",
-    "png2icons": "^2.0.1",
     "@mermaid-js/mermaid-cli": "^11.4.2",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cytoscape": "^3.21.9",
     "@types/node": "^22.14.0",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
     "concurrently": "^9.2.1",
+    "electron": "^41.1.1",
     "electron-builder": "^26.8.1",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.0",
+    "png-to-ico": "^2.1.8",
+    "png2icons": "^2.0.1",
     "prettier": "^3.4.2",
     "typescript": "^6.0.2"
   }
