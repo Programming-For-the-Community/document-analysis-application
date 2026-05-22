@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, dialog, Menu } from 'electron';
+import { app, BrowserWindow, dialog, Menu, screen } from 'electron';
 
 import { AWS_STS } from '../aws/sts';
 import { AWS_SECRETS } from '../aws/secrets';
@@ -36,10 +36,14 @@ let appConfig: AppConfig | null = null;
 
 function createWindow(): void {
   const iconPath = path.join(__dirname, '../../build/icon.png');
+  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
+  const restoreW = Math.round(screenW * 5 / 6);
+  const restoreH = Math.round(screenH * 5 / 6);
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 900,
+    width:     restoreW,
+    height:    restoreH,
+    minWidth:  900,
     minHeight: 600,
     icon: iconPath,
     webPreferences: {
@@ -47,6 +51,17 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  mainWindow.maximize();
+
+  mainWindow.on('unmaximize', () => {
+    if (!mainWindow) return;
+    const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
+    const w = Math.round(sw * 5 / 6);
+    const h = Math.round(sh * 5 / 6);
+    mainWindow.setSize(w, h);
+    mainWindow.center();
   });
 
   mainWindow.loadFile(path.join(__dirname, '../../renderer/login/index.html'));
