@@ -9,6 +9,11 @@ interface CyElement {
   neighborhood(): CyCollection;
   addClass(classes: string): CyElement;
   removeClass(classes: string): CyElement;
+  hidden(): boolean;
+  hide(): CyElement;
+  show(): CyElement;
+  source(): CyElement;
+  target(): CyElement;
 }
 interface CyCollection {
   not(selector: string | CyElement | CyCollection): CyCollection;
@@ -18,8 +23,11 @@ interface CyCollection {
   union(other: CyCollection | CyElement): CyCollection;
   components(): CyCollection[];
   edges(): CyCollection;
+  connectedEdges(): CyCollection;
   addClass(classes: string): CyCollection;
   removeClass(classes: string): CyCollection;
+  hide(): CyCollection;
+  show(): CyCollection;
   length: number;
 }
 interface CyInstance {
@@ -33,7 +41,7 @@ interface CyInstance {
   pan(position: { x: number; y: number }): void;
   zoom(): number;
   elements(): CyCollection;
-  nodes(): CyCollection;
+  nodes(selector?: string): CyCollection;
   edges(): CyCollection;
 }
 declare function cytoscape(options: Record<string, unknown>): CyInstance;
@@ -45,8 +53,10 @@ let cytoscapeInstance:  CyInstance | null = null;
 let expandedCyInstance: CyInstance | null = null;
 let graphData: { nodes: GraphNode[]; edges: GraphEdge[] } | null = null;
 let currentMinDocs     = 2;
+let currentLayout      = 'cose';
 let graphHasSyncedData = false;
 let minDocsChangeTimer: ReturnType<typeof setTimeout> | null = null;
+const hiddenTypes      = new Set<string>();
 let graphResizeObserver: ResizeObserver | null = null;
 
 // Attaches a ResizeObserver that keeps the same graph center visible as the
@@ -231,7 +241,7 @@ function getGraphStyle(): unknown[] {
         'background-color':  'data(color)',
         'label':             'data(label)',
         'color':             '#ffffff',
-        'font-size':         '10px',
+        'font-size':         'data(fontSize)',
         'text-valign':       'center',
         'text-halign':       'center',
         'width':             'data(size)',
@@ -265,13 +275,52 @@ function getGraphStyle(): unknown[] {
   ];
 }
 
-const GRAPH_LAYOUT = {
-  name:            'cose',
-  animate:         false,
-  nodeRepulsion:   () => 4096,
-  idealEdgeLength: () => 100,
-  padding:         24,
-};
+function getLayoutConfig(name: string): Record<string, unknown> {
+  switch (name) {
+    case 'dagre':
+      return { name: 'dagre', animate: false, rankDir: 'TB', nodeSep: 60, rankSep: 80, padding: 24 };
+    case 'concentric':
+      return {
+        name: 'concentric', animate: false,
+        concentric: (node: CyElement) => node.connectedEdges().length,
+        levelWidth: () => 2, minNodeSpacing: 40, padding: 24,
+      };
+    case 'radial':
+      return { name: 'breadthfirst', animate: false, directed: false, circle: true, spacingFactor: 1.75, padding: 24 };
+    case 'tree':
+      return { name: 'breadthfirst', animate: false, directed: false, circle: false, spacingFactor: 1.5, padding: 24 };
+    case 'circle':
+      return { name: 'circle', animate: false, padding: 24 };
+    case 'grid':
+      return { name: 'grid', animate: false, padding: 24, avoidOverlap: true };
+    case 'cose':
+      return { name: 'cose', animate: false, nodeRepulsion: () => 4096, idealEdgeLength: () => 100, padding: 24 };
+    default: // fcose
+      return {
+        name: 'fcose', animate: false,
+        nodeRepulsion: 4500, idealEdgeLength: 100,
+        gravity: 0.25, gravityRange: 3.8, padding: 24, randomize: false,
+      };
+  }
+}
+
+function applyTypeFilters(cy: CyInstance): void {
+  for (const type of hiddenTypes) {
+    const ns = cy.nodes(`[type="${type}"]`);
+    ns.hide();
+    ns.connectedEdges().hide();
+  }
+}
+
+function updateLegendStates(): void {
+  for (const id of ['graph-legend', 'graph-expand-legend']) {
+    document.getElementById(id)
+      ?.querySelectorAll<HTMLElement>('[data-type]')
+      .forEach((item) => {
+        item.classList.toggle('muted', hiddenTypes.has(item.dataset['type'] ?? ''));
+      });
+  }
+}
 
 function buildGraphElements(
   nodes: GraphNode[],
@@ -281,8 +330,10 @@ function buildGraphElements(
 ): unknown[] {
   return [
     ...nodes.map((n) => {
-      const deg  = degreeMap.get(n.data.id) ?? 0;
-      const size = 36 + Math.round((deg / maxDeg) * 44);
+      const deg      = degreeMap.get(n.data.id) ?? 0;
+      const ratio    = maxDeg > 0 ? deg / maxDeg : 0;
+      const size     = 36 + Math.round(ratio * 44);  // 36–80 px
+      const fontSize = 9  + Math.round(ratio * 8);   // 9–17 px
       return {
         data: {
           id:          n.data.id,
@@ -291,7 +342,8 @@ function buildGraphElements(
           docCount:    n.data.docCount,
           color:       getEntityColors()[n.data.type] ?? getEntityColors()['Other'],
           size,
-          textMaxWidth: `${size - 8}px`,
+          fontSize:    `${fontSize}px`,
+          textMaxWidth: `${size - 6}px`,
         },
       };
     }),
@@ -309,13 +361,39 @@ function buildGraphLegend(nodes: GraphNode[], legendElId: string): void {
   legendEl.innerHTML = typesPresent
     .map((type) => {
       const color = getEntityColors()[type] ?? getEntityColors()['Other'];
-      return `<div class="graph-legend-item">
+      return `<div class="graph-legend-item" data-type="${type}" title="Click to show/hide ${type} nodes">
         <span class="graph-legend-swatch" style="background:${color}"></span>
         <span class="graph-legend-label">${type}</span>
       </div>`;
     })
     .join('');
+
+  legendEl.querySelectorAll<HTMLElement>('[data-type]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const type = item.dataset['type'] ?? '';
+      if (hiddenTypes.has(type)) {
+        hiddenTypes.delete(type);
+        [cytoscapeInstance, expandedCyInstance].forEach((cy) => {
+          if (!cy) return;
+          const ns = cy.nodes(`[type="${type}"]`);
+          ns.show();
+          ns.connectedEdges().filter((e) => !e.source().hidden() && !e.target().hidden()).show();
+        });
+      } else {
+        hiddenTypes.add(type);
+        [cytoscapeInstance, expandedCyInstance].forEach((cy) => {
+          if (!cy) return;
+          const ns = cy.nodes(`[type="${type}"]`);
+          ns.hide();
+          ns.connectedEdges().hide();
+        });
+      }
+      updateLegendStates();
+    });
+  });
+
   legendEl.classList.remove('hidden');
+  updateLegendStates();
 }
 
 function wireGraphEvents(cy: CyInstance, container: HTMLElement): void {
@@ -409,11 +487,12 @@ function renderGraphData(nodes: GraphNode[], edges: GraphEdge[]): void {
     container,
     elements: buildGraphElements(nodes, edges, map, max),
     style:    getGraphStyle(),
-    layout:   GRAPH_LAYOUT,
+    layout:   getLayoutConfig(currentLayout),
   });
 
   wireGraphEvents(cytoscapeInstance, container);
   buildGraphLegend(nodes, 'graph-legend');
+  applyTypeFilters(cytoscapeInstance);
 
   graphResizeObserver = createCenteringResizeObserver(cytoscapeInstance, container);
 }
@@ -450,6 +529,7 @@ async function reloadGraphWithFilter(): Promise<void> {
     }
 
     renderGraphData(result.nodes, result.edges);
+    if (expandedCyInstance) openGraphExpand();
   } catch {
     showGraphEmpty();
   }
@@ -464,6 +544,20 @@ function openGraphExpand(): void {
   overlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
+  // Sync expand controls to current state
+  syncMinDocsInputs(currentMinDocs);
+  const expandLabel = document.getElementById('layout-picker-expand-label');
+  if (expandLabel) {
+    const matchingItem = document.querySelector<HTMLElement>(`#layout-picker-expand-menu [data-value="${currentLayout}"]`);
+    expandLabel.textContent = matchingItem?.textContent?.trim() ?? currentLayout;
+    document.querySelectorAll('#layout-picker-expand-menu .layout-picker-item').forEach((i) => {
+      const el = i as HTMLElement;
+      const match = el.dataset['value'] === currentLayout;
+      el.classList.toggle('active', match);
+      match ? el.setAttribute('aria-selected', 'true') : el.removeAttribute('aria-selected');
+    });
+  }
+
   if (expandedCyInstance) { expandedCyInstance.destroy(); expandedCyInstance = null; }
 
   const { nodes, edges } = graphData;
@@ -473,11 +567,12 @@ function openGraphExpand(): void {
     container: expandCanvas,
     elements:  buildGraphElements(nodes, edges, map, max),
     style:     getGraphStyle(),
-    layout:    GRAPH_LAYOUT,
+    layout:    getLayoutConfig(currentLayout),
   });
 
   wireGraphEvents(expandedCyInstance, expandCanvas);
   buildGraphLegend(nodes, 'graph-expand-legend');
+  applyTypeFilters(expandedCyInstance);
 
   const expandObserver = createCenteringResizeObserver(expandedCyInstance, expandCanvas);
   (expandCanvas as HTMLElement & { _cyResizeObserver?: ResizeObserver })._cyResizeObserver = expandObserver;
@@ -924,6 +1019,88 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ── Info popup ────────────────────────────────────────────────────────────────
+
+function wireInfoPopup(btnId: string, popupId: string, closeId: string): void {
+  const btn   = document.getElementById(btnId);
+  const popup = document.getElementById(popupId);
+  if (!btn || !popup) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    popup.classList.toggle('hidden');
+  });
+
+  document.getElementById(closeId)?.addEventListener('click', () => popup.classList.add('hidden'));
+
+  document.addEventListener('click', (e) => {
+    if (!popup.classList.contains('hidden') &&
+        !popup.contains(e.target as Node) &&
+        e.target !== btn) {
+      popup.classList.add('hidden');
+    }
+  });
+}
+
+wireInfoPopup('graph-layout-info-btn',        'layout-info-popup',        'layout-info-close');
+wireInfoPopup('graph-expand-layout-info-btn', 'layout-info-popup-expand', 'layout-info-expand-close');
+
+// ── Layout picker ─────────────────────────────────────────────────────────────
+
+function wireLayoutPicker(
+  btnId: string, menuId: string, labelId: string,
+  onSelect: (value: string, label: string) => void
+): void {
+  const btn   = document.getElementById(btnId);
+  const menu  = document.getElementById(menuId);
+  const label = document.getElementById(labelId);
+  if (!btn || !menu || !label) return;
+
+  const open  = (): void => { menu.classList.remove('hidden'); btn.setAttribute('aria-expanded', 'true'); };
+  const close = (): void => { menu.classList.add('hidden');    btn.setAttribute('aria-expanded', 'false'); };
+
+  btn.addEventListener('click', (e) => { e.stopPropagation(); menu.classList.contains('hidden') ? open() : close(); });
+  document.addEventListener('click', close);
+
+  menu.querySelectorAll<HTMLElement>('.layout-picker-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      const value = item.dataset['value'];
+      if (!value) return;
+      label.textContent = item.textContent?.trim() ?? value;
+      menu.querySelectorAll('.layout-picker-item').forEach((i) => { i.classList.remove('active'); i.removeAttribute('aria-selected'); });
+      item.classList.add('active');
+      item.setAttribute('aria-selected', 'true');
+      close();
+      onSelect(value, item.textContent?.trim() ?? value);
+    });
+  });
+}
+
+wireLayoutPicker('layout-picker-btn', 'layout-picker-menu', 'layout-picker-label',
+  (value) => {
+    currentLayout = value;
+    if (cytoscapeInstance) cytoscapeInstance.layout(getLayoutConfig(currentLayout)).run();
+  }
+);
+
+wireLayoutPicker('layout-picker-expand-btn', 'layout-picker-expand-menu', 'layout-picker-expand-label',
+  (value) => {
+    currentLayout = value;
+    // keep main picker label in sync
+    const mainLabel = document.getElementById('layout-picker-label');
+    if (mainLabel) mainLabel.textContent = value;
+    document.querySelectorAll('#layout-picker-menu .layout-picker-item').forEach((i) => {
+      const el = i as HTMLElement;
+      const match = el.dataset['value'] === value;
+      el.classList.toggle('active', match);
+      match ? el.setAttribute('aria-selected', 'true') : el.removeAttribute('aria-selected');
+    });
+    if (expandedCyInstance) expandedCyInstance.layout(getLayoutConfig(currentLayout)).run();
+  }
+);
+
+// ── Graph fit / expand ────────────────────────────────────────────────────────
+
 document.getElementById('graph-fit-btn')?.addEventListener('click', () => {
   cytoscapeInstance?.fit(24);
 });
@@ -936,18 +1113,47 @@ document.getElementById('graph-expand-overlay')?.addEventListener('click', (e) =
   if (e.target === e.currentTarget) closeGraphExpand();
 });
 
-document.getElementById('graph-min-docs-input')?.addEventListener('input', () => {
+document.getElementById('graph-expand-fit-btn')?.addEventListener('click', () => {
+  expandedCyInstance?.fit(24);
+});
+
+// ── Min-docs filter ───────────────────────────────────────────────────────────
+
+function syncMinDocsInputs(value: number): void {
+  const main   = document.getElementById('graph-min-docs-input')  as HTMLInputElement | null;
+  const expand = document.getElementById('graph-expand-min-docs') as HTMLInputElement | null;
+  if (main   && main.value   !== String(value)) main.value   = String(value);
+  if (expand && expand.value !== String(value)) expand.value = String(value);
+}
+
+function handleMinDocsChange(rawValue: string): void {
   if (minDocsChangeTimer) clearTimeout(minDocsChangeTimer);
   minDocsChangeTimer = setTimeout(() => {
-    const input = document.getElementById('graph-min-docs-input') as HTMLInputElement | null;
-    const parsed = parseInt(input?.value ?? '2', 10);
+    const parsed = parseInt(rawValue, 10);
     currentMinDocs = isNaN(parsed) || parsed < 2 ? 2 : parsed;
-    if (input && String(currentMinDocs) !== input.value) input.value = String(currentMinDocs);
+    syncMinDocsInputs(currentMinDocs);
     void reloadGraphWithFilter();
-    if (currentProjectId) {
-      void window.electron.projects.setMinDocFilter(currentProjectId, currentMinDocs);
-    }
+    if (currentProjectId) void window.electron.projects.setMinDocFilter(currentProjectId, currentMinDocs);
   }, 400);
+}
+
+document.getElementById('graph-min-docs-input')?.addEventListener('input', (e) => {
+  handleMinDocsChange((e.target as HTMLInputElement).value);
+});
+
+document.getElementById('graph-expand-min-docs')?.addEventListener('input', (e) => {
+  handleMinDocsChange((e.target as HTMLInputElement).value);
+});
+
+document.querySelectorAll<HTMLElement>('.graph-filter-spin-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const delta = parseInt(btn.dataset['delta'] ?? '1', 10);
+    const input = btn.closest('.graph-filter')?.querySelector<HTMLInputElement>('.graph-filter-input');
+    if (!input) return;
+    const next = Math.max(2, (parseInt(input.value, 10) || 2) + delta);
+    input.value = String(next);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
 });
 
 // ── Search panel ─────────────────────────────────────────────────────────────
@@ -1368,8 +1574,7 @@ async function initProjectPage(): Promise<void> {
   const settingsResult = await window.electron.projects.getSettings(currentProjectId);
   if (settingsResult.success && settingsResult.minDocFilter !== undefined) {
     currentMinDocs = settingsResult.minDocFilter;
-    const minInput = document.getElementById('graph-min-docs-input') as HTMLInputElement | null;
-    if (minInput) minInput.value = String(currentMinDocs);
+    syncMinDocsInputs(currentMinDocs);
   }
 
   await loadProjectDocuments();

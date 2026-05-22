@@ -123,11 +123,62 @@
                 </svg>
                 <h2>Relationship Graph</h2>
               </div>
-              <div id="graph-filter" class="graph-filter hidden">
-                <label class="graph-filter-label">Min docs</label>
-                <input type="number" id="graph-min-docs-input" class="graph-filter-input" min="2" value="2" />
+              <div id="graph-filter" class="graph-filter-group hidden">
+                <label class="graph-filter-label" for="graph-min-docs-input">Min References</label>
+                <div class="graph-filter-box">
+                  <input type="number" id="graph-min-docs-input" class="graph-filter-input" min="2" value="2" title="Minimum number of documents an entity must appear in" />
+                  <div class="graph-filter-spinners">
+                    <button class="graph-filter-spin-btn" data-delta="1" tabindex="-1" aria-label="Increase">
+                      <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button class="graph-filter-spin-btn" data-delta="-1" tabindex="-1" aria-label="Decrease">
+                      <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                  </div>
+                </div>
               </div>
               <div class="graph-controls hidden" id="graph-controls">
+                <div class="layout-picker" id="layout-picker">
+                  <button class="layout-picker-btn" id="layout-picker-btn" title="Change graph layout" aria-haspopup="listbox" aria-expanded="false">
+                    <span id="layout-picker-label">Classic</span>
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                  <div class="layout-picker-menu hidden" id="layout-picker-menu" role="listbox">
+                    <div class="layout-picker-item active" data-value="cose" role="option" aria-selected="true">Classic</div>
+                    <div class="layout-picker-item" data-value="fcose" role="option">Force</div>
+                    <div class="layout-picker-item" data-value="radial" role="option">Radial</div>
+                    <div class="layout-picker-item" data-value="tree" role="option">Tree</div>
+                    <div class="layout-picker-item" data-value="dagre" role="option">Hierarchical</div>
+                    <div class="layout-picker-item" data-value="concentric" role="option">Concentric</div>
+                    <div class="layout-picker-item" data-value="circle" role="option">Circle</div>
+                    <div class="layout-picker-item" data-value="grid" role="option">Grid</div>
+                  </div>
+                </div>
+                <div class="layout-info-anchor">
+                  <button class="btn-icon" id="graph-layout-info-btn" title="Layout descriptions" aria-label="Show layout descriptions">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/>
+                      <path d="M7 6.5v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      <circle cx="7" cy="3.8" r="0.85" fill="currentColor"/>
+                    </svg>
+                  </button>
+                  <div class="layout-info-popup hidden" id="layout-info-popup" role="dialog" aria-label="Layout descriptions">
+                    <div class="layout-info-header">
+                      <span class="layout-info-title">Layout Options</span>
+                      <button class="layout-info-close" id="layout-info-close" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="layout-info-body">
+                      <div class="layout-info-row"><span class="layout-info-name">Classic</span><span class="layout-info-desc">Balanced force-directed layout. Nodes repel each other while edges act as springs, producing natural clusters.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Force</span><span class="layout-info-desc">Faster force-directed algorithm (fcose). Better suited to large graphs with many nodes.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Radial</span><span class="layout-info-desc">Places a root node at the center with connected nodes radiating outward in rings.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Tree</span><span class="layout-info-desc">Top-down breadth-first tree. Good for showing parent-child or hierarchical relationships.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Hierarchical</span><span class="layout-info-desc">Layered rank-based layout (dagre). Ideal for directed graphs and workflow diagrams.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Concentric</span><span class="layout-info-desc">Most-connected nodes placed at the center, with less-connected nodes on outer rings.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Circle</span><span class="layout-info-desc">All nodes evenly spaced on a single circle. Simple and easy to read for smaller graphs.</span></div>
+                      <div class="layout-info-row"><span class="layout-info-name">Grid</span><span class="layout-info-desc">Nodes arranged in a uniform rectangular grid. Useful for comparing many nodes side-by-side.</span></div>
+                    </div>
+                  </div>
+                </div>
                 <button class="btn-icon" id="graph-fit-btn" title="Fit graph to view">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="7" cy="7" r="3.5" stroke="currentColor" stroke-width="1.3"/>
@@ -282,11 +333,74 @@
       <div class="graph-expand-modal">
         <div class="graph-expand-header">
           <span class="graph-expand-title">Relationship Graph</span>
-          <button id="graph-expand-close" class="btn-icon-danger" aria-label="Close expanded graph">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </button>
+          <div class="graph-expand-header-controls">
+            <div class="graph-filter-group">
+              <label class="graph-filter-label" for="graph-expand-min-docs">Min References</label>
+              <div class="graph-filter-box">
+              <input type="number" id="graph-expand-min-docs" class="graph-filter-input" min="2" value="2" title="Minimum number of documents an entity must appear in" />
+              <div class="graph-filter-spinners">
+                <button class="graph-filter-spin-btn" data-delta="1" tabindex="-1" aria-label="Increase">
+                  <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4l3-3 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="graph-filter-spin-btn" data-delta="-1" tabindex="-1" aria-label="Decrease">
+                  <svg width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+              </div>
+              </div>
+            </div>
+            <div class="layout-picker" id="layout-picker-expand">
+              <button class="layout-picker-btn" id="layout-picker-expand-btn" title="Change graph layout" aria-haspopup="listbox" aria-expanded="false">
+                <span id="layout-picker-expand-label">Classic</span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <div class="layout-picker-menu hidden" id="layout-picker-expand-menu" role="listbox">
+                <div class="layout-picker-item active" data-value="cose" role="option" aria-selected="true">Classic</div>
+                <div class="layout-picker-item" data-value="fcose" role="option">Force</div>
+                <div class="layout-picker-item" data-value="radial" role="option">Radial</div>
+                <div class="layout-picker-item" data-value="tree" role="option">Tree</div>
+                <div class="layout-picker-item" data-value="dagre" role="option">Hierarchical</div>
+                <div class="layout-picker-item" data-value="concentric" role="option">Concentric</div>
+                <div class="layout-picker-item" data-value="circle" role="option">Circle</div>
+                <div class="layout-picker-item" data-value="grid" role="option">Grid</div>
+              </div>
+            </div>
+            <div class="layout-info-anchor">
+              <button class="btn-icon" id="graph-expand-layout-info-btn" title="Layout descriptions" aria-label="Show layout descriptions">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/>
+                  <path d="M7 6.5v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                  <circle cx="7" cy="3.8" r="0.85" fill="currentColor"/>
+                </svg>
+              </button>
+              <div class="layout-info-popup hidden" id="layout-info-popup-expand" role="dialog" aria-label="Layout descriptions">
+                <div class="layout-info-header">
+                  <span class="layout-info-title">Layout Options</span>
+                  <button class="layout-info-close" id="layout-info-expand-close" aria-label="Close">&times;</button>
+                </div>
+                <div class="layout-info-body">
+                  <div class="layout-info-row"><span class="layout-info-name">Classic</span><span class="layout-info-desc">Balanced force-directed layout. Nodes repel each other while edges act as springs, producing natural clusters.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Force</span><span class="layout-info-desc">Faster force-directed algorithm (fcose). Better suited to large graphs with many nodes.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Radial</span><span class="layout-info-desc">Places a root node at the center with connected nodes radiating outward in rings.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Tree</span><span class="layout-info-desc">Top-down breadth-first tree. Good for showing parent-child or hierarchical relationships.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Hierarchical</span><span class="layout-info-desc">Layered rank-based layout (dagre). Ideal for directed graphs and workflow diagrams.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Concentric</span><span class="layout-info-desc">Most-connected nodes placed at the center, with less-connected nodes on outer rings.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Circle</span><span class="layout-info-desc">All nodes evenly spaced on a single circle. Simple and easy to read for smaller graphs.</span></div>
+                  <div class="layout-info-row"><span class="layout-info-name">Grid</span><span class="layout-info-desc">Nodes arranged in a uniform rectangular grid. Useful for comparing many nodes side-by-side.</span></div>
+                </div>
+              </div>
+            </div>
+            <button class="btn-icon" id="graph-expand-fit-btn" title="Fit graph to view" aria-label="Fit graph to view">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7" cy="7" r="3.5" stroke="currentColor" stroke-width="1.3"/>
+                <path d="M7 1v2M7 11v2M1 7h2M11 7h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button id="graph-expand-close" class="btn-icon-danger" title="Close expanded graph" aria-label="Close expanded graph">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="graph-expand-body">
           <div id="graph-expand-canvas" class="graph-expand-canvas"></div>
@@ -328,6 +442,11 @@
     </div>
 
     <script src="../../node_modules/cytoscape/dist/cytoscape.min.js"></script>
+    <script src="../../node_modules/layout-base/layout-base.js"></script>
+    <script src="../../node_modules/cose-base/cose-base.js"></script>
+    <script src="../../node_modules/cytoscape-fcose/cytoscape-fcose.js"></script>
+    <script src="../../node_modules/dagre/dist/dagre.min.js"></script>
+    <script src="../../node_modules/cytoscape-dagre/cytoscape-dagre.js"></script>
     <script src="../../dist/renderer/project/index.js" defer></script>
   </body>
 </html>
