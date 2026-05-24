@@ -3,55 +3,11 @@
 Local application for extracting relationships between entities (people, money, property, objects) across batches of documents. Uses an Electron front-end, AWS for document processing and cloud state, and local Docker containers for graph and vector storage.
 
 ---
+## Installation Requirements
+Below are the pre-requisites and instructions for installing and running this application
 
-## Design
-
-The icon uses parchment-toned document backgrounds with teal accents, representing a document with a relationship graph overlaid.
-
-The app ships with two themes selectable at runtime.
-
-**Slate Pro (dark)**
-
-![Slate Pro dark theme](docs/screenshots/project-dark.svg)
-
-**Parchment (light)**
-
-![Parchment light theme](docs/screenshots/project-light.svg)
-
----
-
-## Architecture
-
-![Architecture diagram](docs/diagrams/architecture.svg)
-
----
-
-## High-Level Workflow
-
-![High-level workflow diagram](docs/diagrams/workflow.svg)
-
-### How it works
-
-1. **Startup** — A splash window opens immediately. The app reads `doc-analysis-secret` from Secrets Manager using the local AWS CLI credentials, then assumes `doc-analysis-svc-role` via STS for all subsequent AWS calls. In parallel, the Docker engine is started automatically (if not already running) and the Neo4j and Qdrant containers are brought up. The splash window shows live status throughout. Once all services are healthy the login screen appears. On exit, the app stops its containers and — if it started the Docker engine and no other containers are running — stops the engine too.
-2. **Auth** — The user logs in via Cognito. A 30-second background poll starts, syncing project and document state across devices.
-3. **Upload** — Documents are uploaded to S3. Textract-compatible files (PDF, images) start an async Textract job with an SNS notification channel. Office files (DOCX, XLSX, HTML) are extracted locally via mammoth/ExcelJS. Plain-text files are read directly from S3.
-4. **Processing** — Extracted text is passed to Bedrock (Claude) for entity and relationship extraction. Results are written to S3 (analysis JSON), DynamoDB (status), Neo4j (graph), and Qdrant (vector embeddings).
-5. **Search** — Questions are answered by vector-searching Qdrant for relevant chunks and synthesising an answer via Bedrock, with source citations.
-6. **Sync** — Every 30 seconds the app polls DynamoDB for new, deleted, or status-changed documents and reconciles local Neo4j and Qdrant accordingly, enabling multi-device and future multi-user project sharing.
-
----
-
-## Running the Application
-
-The intended way to launch the app is via the Windows installer (`.exe`). Double-clicking the desktop shortcut starts everything automatically — Docker engine, Neo4j, Qdrant, and the app itself. No terminal required.
-
-See [Building the Installer](#building-the-installer) below for how to produce the `.exe`.
-
----
-
-## Prerequisites
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (must be installed; does not need to be running — the app starts the Docker engine automatically)
+### Pre-requisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (must be installed and running)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured with a valid IAM user (`aws configure`)
 
 Your local IAM user needs two permissions:
@@ -61,13 +17,11 @@ Your local IAM user needs two permissions:
 | `secretsmanager:GetSecretValue` on `doc-analysis-secret` | Read app config and role ARN at startup and when running `deploy.sh` |
 | `sts:AssumeRole` on `doc-analysis-svc-role` | Assume the service role for all AWS resource operations |
 
----
+### Infrastructure (Terraform)
 
-## Infrastructure (Terraform)
+AWS resources for this project are managed via Terraform in the [Terraform/](Terraform/) folder. Deployment is triggered manually via a GitHub Actions workflow if you have the required permissions. Instructions to deploy the infrastructure from your local device are below.
 
-AWS resources for this project are managed via Terraform in the [Terraform/](Terraform/) folder. Deployment is triggered manually via a GitHub Actions workflow.
-
-### GitHub Actions workflow
+#### GitHub Actions workflow
 
 1. Go to your repository on GitHub
 2. Navigate to **Actions** → **AWS Setup**
@@ -86,9 +40,9 @@ The workflow uses OIDC to authenticate with AWS — no AWS credentials need to b
 | Variable | `OWNER` | Owner name tagged on resources |
 | Variable | `SECRETS_MANAGER_PATH` | Secrets Manager secret name (e.g. `doc-analysis-secret`) |
 
-### Running Terraform locally
+#### Running Terraform locally
 
-If you do not have access to the repository secrets, install [Terraform](https://developer.hashicorp.com/terraform/install) locally and pass all variables explicitly:
+Install [Terraform](https://developer.hashicorp.com/terraform/install) locally and pass all variables explicitly:
 
 ```bash
 cd Terraform
@@ -109,15 +63,80 @@ Terraform will populate `SVC_ROLE_ARN` and all other AWS resource identifiers di
 
 ---
 
-## Local Services (Docker Compose)
+## Design
+
+The app ships with two themes selectable at runtime with the dark theme set to be the default.
+
+**Slate Pro (dark)**
+
+![Slate Pro dark theme](docs/screenshots/project-dark.svg)
+
+**Parchment (light)**
+
+![Parchment light theme](docs/screenshots/project-light.svg)
+
+---
+
+## Architecture
+Below is the architecture diagram for the application, specifying which components are run locally and which portions are running and/or managed by AWS
+
+![Architecture diagram](docs/diagrams/architecture.svg)
+
+---
+
+## High-Level Workflow
+The diagram below outlines the workflow of the application and how the user interacts with it.
+
+![High-level workflow diagram](docs/diagrams/workflow.svg)
+
+### How it works
+
+1. **Startup** — A splash window opens immediately. The app reads `doc-analysis-secret` from Secrets Manager using the local AWS CLI credentials, then assumes `doc-analysis-svc-role` via STS for all subsequent AWS calls. In parallel, the Docker engine is started automatically (if not already running) and the Neo4j and Qdrant containers are brought up. The splash window shows live status throughout. Once all services are healthy the login screen appears. On exit, the app stops its containers and — if it started the Docker engine and no other containers are running — stops the engine too.
+2. **Auth** — The user logs in via Cognito. A 30-second background poll starts, syncing project and document state across devices.
+3. **Upload** — Documents are uploaded to S3. Textract-compatible files (PDF, images) start an async Textract job with an SNS notification channel. Office files (DOCX, XLSX, HTML) are extracted locally via mammoth/ExcelJS. Plain-text files are read directly from S3.
+4. **Processing** — Extracted text is passed to Bedrock (Claude) for entity and relationship extraction. Results are written to S3 (analysis JSON), DynamoDB (status), Neo4j (graph), and Qdrant (vector embeddings).
+5. **Search** — Questions are answered by vector-searching Qdrant for relevant chunks and synthesising an answer via Bedrock, with source citations.
+6. **Sync** — Every 30 seconds the app polls DynamoDB for new, deleted, or status-changed documents and reconciles local Neo4j and Qdrant accordingly, enabling multi-device and future multi-user project sharing.
+
+> **Note:** Tearing down the AWS infrastructure will result in a complete loss of data and users even if graph and vector data is still stored locally as the multi-device sync capabilities only sync from AWS -> Device, NOT Device -> AWS
+
+---
+
+## Running the Application
+
+The intended way to launch the app is via the Windows installer (`.exe`). Double-clicking the desktop shortcut starts everything automatically — Docker engine, Neo4j, Qdrant, and the app itself. No terminal required.
+
+See [Building the Installer](#building-the-installer) below for how to produce the `.exe`.
+
+### App Configuration (.env)
+
+The application reads two values from `Source/.env` at startup. Everything else comes from Secrets Manager.
+
+```env
+AWS_REGION=us-east-2
+AWS_SECRET_NAME=doc-analysis-secret
+
+# Local services — device-specific
+NEO4J_URI=bolt://localhost:7687
+QDRANT_URL=http://localhost:6333
+```
+
+### Local Services (Docker Compose)
 
 Neo4j and Qdrant run locally via Docker Compose. When running the installed app, container lifecycle is managed automatically — you do not need to run any of the commands below.
 
 The `deploy.sh` script is provided for **local development** (i.e. running the app via `npm run dev` without the installer). It pulls credentials from Secrets Manager and starts the containers manually.
 
+#### Local Services - Ports
+
+| Service | Port | Purpose |
+|---|---|---|
+| Neo4j | `7474` (HTTP), `7687` (Bolt) | Graph database — entities and relationships |
+| Qdrant | `6333` (HTTP), `6334` (gRPC) | Vector database — document embeddings |
+
 ### First-time setup
 
-1. **Create the secret in AWS Secrets Manager** with the Neo4j and Qdrant credentials. Terraform will add all remaining keys (including `SVC_ROLE_ARN`) on first apply.
+1. **Create the secret in AWS Secrets Manager** with the Neo4j and Qdrant credentials. Terraform will add all remaining keys (including `SVC_ROLE_ARN`) on first apply. In addition to the AWS CLI commands below, you can add these values directly from the AWS console of your user has access.
 
    ```bash
    aws secretsmanager create-secret \
@@ -167,6 +186,8 @@ The script uses the primary path if it exists, otherwise falls back to the Docke
 
 > **Note:** Neo4j credentials are only applied on first initialisation. If you rotate the secret in AWS, run `docker compose down -v` to wipe the volumes before restarting so the new credentials take effect.
 
+> **Note:** If you wipe the volumes to reset the database credentials or Qdrant API key, everything stored locally will be lost and will need to be re-synced  upon next startup of the application
+
 ---
 
 ## Building the Installer
@@ -200,27 +221,3 @@ The installer will:
 > **Updating to a new version:** run the new installer over the existing installation. It updates the files in place at the same path, so the existing desktop shortcut continues to work without any manual changes.
 
 > **Note:** The installer does not bundle Docker Desktop or the AWS CLI — these must already be installed on the target machine.
-
----
-
-## App Configuration (.env)
-
-The application reads two values from `Source/.env` at startup. Everything else comes from Secrets Manager.
-
-```env
-AWS_REGION=us-east-2
-AWS_SECRET_NAME=doc-analysis-secret
-
-# Local services — device-specific
-NEO4J_URI=bolt://localhost:7687
-QDRANT_URL=http://localhost:6333
-```
-
----
-
-## Local Services
-
-| Service | Port | Purpose |
-|---|---|---|
-| Neo4j | `7474` (HTTP), `7687` (Bolt) | Graph database — entities and relationships |
-| Qdrant | `6333` (HTTP), `6334` (gRPC) | Vector database — document embeddings |
