@@ -14,6 +14,68 @@ const VALID_REL_TYPES = new Set([
   'LOCATED_AT', 'HAS_ROLE',
 ]);
 
+// Tokens that should stay uppercased in title case (acronyms / initialisms).
+const ALWAYS_UPPER = new Set(['LLC', 'LLP', 'LP', 'PLC', 'USA', 'UK', 'US', 'EU']);
+
+// Maps lowercase suffix variants → canonical display form (Organization names only).
+const ORG_SUFFIX_MAP: Record<string, string> = {
+  // Company
+  'co':            'Company',
+  'co.':           'Company',
+  'company':       'Company',
+  // Corporation
+  'corp':          'Corporation',
+  'corp.':         'Corporation',
+  'corporation':   'Corporation',
+  // Incorporated
+  'inc':           'Inc.',
+  'inc.':          'Inc.',
+  'incorporated':  'Inc.',
+  // Limited
+  'ltd':           'Ltd.',
+  'ltd.':          'Ltd.',
+  'limited':       'Ltd.',
+  // Associates
+  'assoc':         'Associates',
+  'assoc.':        'Associates',
+  'associates':    'Associates',
+  // Group / Holdings (common but not abbreviations — normalise spelling only)
+  'group':         'Group',
+  'holdings':      'Holdings',
+  'international': 'International',
+  'industries':    'Industries',
+  'enterprises':   'Enterprises',
+  'solutions':     'Solutions',
+  'services':      'Services',
+};
+
+function isAllCaps(name: string): boolean {
+  return name === name.toUpperCase() && /[A-Z]{2,}/.test(name);
+}
+
+function toTitleCase(word: string): string {
+  if (ALWAYS_UPPER.has(word.toUpperCase())) return word.toUpperCase();
+  // Preserve short all-caps tokens — likely acronyms or geographic codes (NY, UAE, etc.)
+  if (word.length <= 4 && word === word.toUpperCase()) return word;
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}
+
+function normalizeEntityName(name: string, type: string): string {
+  const trimmed = name.trim();
+  const tokens = trimmed.split(/\s+/);
+  const cased = isAllCaps(trimmed) ? tokens.map(toTitleCase) : tokens;
+
+  if (type === 'Organization') {
+    // Normalize the last two tokens to catch compound suffixes like "Co. Ltd."
+    for (let i = Math.max(0, cased.length - 2); i < cased.length; i++) {
+      const canonical = ORG_SUFFIX_MAP[cased[i].toLowerCase()];
+      if (canonical) cased[i] = canonical;
+    }
+  }
+
+  return cased.join(' ');
+}
+
 export class Neo4J {
   private static driver: Driver;
 
@@ -196,7 +258,7 @@ export class Neo4J {
           const group = byEntityType.get(label) ?? [];
           group.push({
             id: `${graph.documentId}:${entity.id}`,
-            name: entity.value,
+            name: normalizeEntityName(entity.value, label),
           });
           byEntityType.set(label, group);
         }
