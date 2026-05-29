@@ -1,6 +1,7 @@
 {
   "name": "document-analysis-app",
   "version": "0.1.0",
+  "author": "Charlie Hahm",
   "description": "Desktop app for document relationship analysis with AI",
   "main": "./dist/main/index.js",
   "scripts": {
@@ -10,15 +11,15 @@
     "lint:fix": "eslint \"**/*.ts\" --fix --ignore-path .gitignore",
     "type-check": "tsc --noEmit",
     "check": "npm run format:check && npm run lint && npm run type-check",
-    "dev": "concurrently \"tsc --watch\" \"electron .\"",
-    "build": "tsc",
+    "dev": "concurrently \"tsc --watch\" \"node scripts/build-renderer.js --watch\" \"electron .\"",
+    "build": "tsc && node scripts/build-renderer.js",
     "start": "electron .",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "postinstall": "npm run rebuild",
     "build-icons": "node scripts/build-icons.js",
-    "dist": "npm run build-icons && tsc && electron-builder",
-    "dist:win": "npm run build-icons && tsc && electron-builder --win",
-    "dist:mac": "npm run build-icons && tsc && electron-builder --mac",
+    "dist": "npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder",
+    "dist:win": "npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder --win",
+    "dist:mac": "npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder --mac",
     "render-diagrams": "mmdc -i ../docs/diagrams/architecture.mmd -o ../docs/diagrams/architecture.svg --width 2800 --configFile ../docs/diagrams/mermaid-arch.config.json --backgroundColor \"#18181b\" && mmdc -i ../docs/diagrams/workflow.mmd -o ../docs/diagrams/workflow.svg --width 1400 --configFile ../docs/diagrams/mermaid.config.json --backgroundColor \"#18181b\""
   },
   "build": {
@@ -92,6 +93,7 @@
     "concurrently": "^9.2.1",
     "electron": "^41.1.1",
     "electron-builder": "^26.8.1",
+    "esbuild": "^0.25.12",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.0",
     "png-to-ico": "^2.1.8",

@@ -1,3 +1,5 @@
+import { parseJwt } from "../../utils/renderer/parseJwt";
+
 // Cytoscape is loaded via <script> tag; declare ambient globals with the subset we use.
 interface CyEvent {
   target: CyElement;
@@ -83,11 +85,6 @@ function createCenteringResizeObserver(cy: CyInstance, container: HTMLElement): 
 
   observer.observe(container);
   return observer;
-}
-
-function parseProjectJwt(token: string): Record<string, unknown> {
-  const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
-  return JSON.parse(atob(base64)) as Record<string, unknown>;
 }
 
 function formatProjectFileSize(bytes: number): string {
@@ -1538,7 +1535,7 @@ async function initProjectPage(): Promise<void> {
     return;
   }
 
-  const payload = parseProjectJwt(tokens.idToken);
+  const payload = parseJwt(tokens.idToken);
   const emailEl = document.getElementById('user-email');
   if (emailEl) {
     emailEl.textContent = String(

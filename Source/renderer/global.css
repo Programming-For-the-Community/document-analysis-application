@@ -412,7 +412,7 @@ body.page-project {
 .project-panels {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr minmax(0, 380px);
   gap: 20px;
   flex: 1;
   min-height: 0;
@@ -1040,7 +1040,6 @@ body.page-project {
 
 #search-panel {
   grid-column: 1 / -1;
-  max-height: 380px;
 }
 
 .search-form {

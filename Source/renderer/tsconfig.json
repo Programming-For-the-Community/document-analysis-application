@@ -1,12 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "outDir": "./dist",
-    "rootDir": ".",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -17,9 +14,14 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "sourceMap": true,
-    "types": ["node"]
+    "noEmit": true
   },
-  "include": ["main/**/*", "preload/**/*"],
-  "exclude": ["node_modules", "dist", "scripts", "renderer"]
+  "include": [
+    "**/*.ts",
+    "**/*.d.ts",
+    "../types/**/*.ts",
+    "../constants/**/*.ts",
+    "../utils/renderer/**/*.ts"
+  ],
+  "exclude": ["../../node_modules"]
 }
