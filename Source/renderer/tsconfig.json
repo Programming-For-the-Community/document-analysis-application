@@ -14,10 +14,12 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
   "include": [
     "**/*.ts",
+    "**/*.tsx",
     "**/*.d.ts",
     "../types/**/*.ts",
     "../constants/**/*.ts",

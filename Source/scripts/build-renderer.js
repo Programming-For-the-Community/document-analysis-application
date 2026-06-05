@@ -1,11 +1,13 @@
 const esbuild = require('esbuild');
 
-const pages = ['home', 'login', 'project'];
-
 const watch = process.argv.includes('--watch');
 
-const buildOptions = pages.map((page) => ({
-  entryPoints: [`renderer/${page}/index.ts`],
+const buildOptions = [
+  { page: 'home',    entry: 'renderer/home/index.ts' },
+  { page: 'login',   entry: 'renderer/login/index.tsx' },
+  { page: 'project', entry: 'renderer/project/index.ts' },
+].map(({ page, entry }) => ({
+  entryPoints: [entry],
   bundle: true,
   outfile: `dist/renderer/${page}/index.js`,
   platform: 'browser',
