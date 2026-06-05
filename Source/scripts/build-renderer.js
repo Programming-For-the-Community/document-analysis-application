@@ -3,7 +3,7 @@ const esbuild = require('esbuild');
 const watch = process.argv.includes('--watch');
 
 const buildOptions = [
-  { page: 'home',    entry: 'renderer/home/index.ts' },
+  { page: 'home',    entry: 'renderer/home/index.tsx' },
   { page: 'login',   entry: 'renderer/login/index.tsx' },
   { page: 'project', entry: 'renderer/project/index.ts' },
 ].map(({ page, entry }) => ({

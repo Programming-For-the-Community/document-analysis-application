@@ -1,12 +1,4 @@
-interface FormFieldProps {
-  label: string;
-  id: string;
-  type?: string;
-  value: string;
-  placeholder?: string;
-  autoComplete?: string;
-  onChange: (value: string) => void;
-}
+import { FormFieldProps } from '../../interfaces/renderer/login';
 
 export function FormField({ label, id, type = 'text', value, placeholder, autoComplete, onChange }: FormFieldProps) {
   return (

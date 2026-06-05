@@ -1,18 +1,11 @@
+import { ProjectRole } from '../constants/renderer/home';
+import { ProjectListItem } from './renderer/home';
+
 export {};
 
 declare global {
   interface File {
     readonly path: string;
-  }
-
-  type ProjectRole = 'OWNER' | 'VIEW' | 'EDIT';
-
-  interface ProjectListItem {
-    id: string;
-    name: string;
-    documentCount: number;
-    lastModified: string;
-    role: ProjectRole;
   }
 
   interface ProjectMember {

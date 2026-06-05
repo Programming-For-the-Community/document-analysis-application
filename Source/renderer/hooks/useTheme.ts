@@ -1,0 +1,33 @@
+import { useState, useEffect, useCallback } from 'react';
+
+import { Theme } from '../../types/renderer';
+import { THEME } from '../../constants/renderer/shared';
+import { getStoredTheme, applyTheme, fetchServerTheme } from '../../utils/renderer/theme';
+
+export function useTheme() {
+  const [theme, setTheme] = useState<Theme>(getStoredTheme);
+
+  useEffect(() => { applyTheme(theme); }, [theme]);
+
+  useEffect(() => {
+    void fetchServerTheme().then(serverTheme => {
+      if (!serverTheme) return;
+      setTheme(prev => {
+        if (serverTheme === prev) return prev;
+        localStorage.setItem('doc-analysis-theme', serverTheme);
+        return serverTheme;
+      });
+    });
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const next: Theme = prev === THEME.PARCHMENT ? THEME.SLATE : THEME.PARCHMENT;
+      localStorage.setItem('doc-analysis-theme', next);
+      void window.electron.preferences.setTheme(next);
+      return next;
+    });
+  }, []);
+
+  return { theme, toggleTheme };
+}
