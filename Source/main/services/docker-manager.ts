@@ -67,8 +67,12 @@ export class DockerManager {
         { env }
       );
       let output = '';
-      proc.stdout?.on('data', (d: Buffer) => { output += d.toString(); });
-      proc.stderr?.on('data', (d: Buffer) => { output += d.toString(); });
+      proc.stdout?.on('data', (d: Buffer) => {
+        output += d.toString();
+      });
+      proc.stderr?.on('data', (d: Buffer) => {
+        output += d.toString();
+      });
       proc.on('close', (code) => {
         if (code === 0) {
           resolve();
@@ -79,9 +83,11 @@ export class DockerManager {
       });
       proc.on('error', (err) => {
         Logger.error(`Failed to spawn docker: ${err.message}`);
-        reject(new Error(
-          `Failed to run docker compose: ${err.message}\n\nEnsure Docker Desktop is installed and docker is in your PATH.`
-        ));
+        reject(
+          new Error(
+            `Failed to run docker compose: ${err.message}\n\nEnsure Docker Desktop is installed and docker is in your PATH.`
+          )
+        );
       });
     });
   }
@@ -90,7 +96,14 @@ export class DockerManager {
     if (!this.composePath) return;
     Logger.info('Stopping application containers...');
     await new Promise<void>((resolve) => {
-      const proc = spawn('docker', ['compose', '-p', 'doc-analysis', '-f', this.composePath, 'stop']);
+      const proc = spawn('docker', [
+        'compose',
+        '-p',
+        'doc-analysis',
+        '-f',
+        this.composePath,
+        'stop',
+      ]);
       proc.on('close', () => resolve());
       proc.on('error', () => resolve());
     });

@@ -10,7 +10,7 @@ import {
 
 import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
-import { S3Config } from '../interfaces/app';
+import { S3Config } from '../interfaces/config';
 import { Logger } from '../utils/logger';
 
 export class AWS_S3 {
@@ -157,7 +157,7 @@ export class AWS_S3 {
         ContentLength: fileSize,
         Metadata: {
           'document-name': documentName,
-          'project-name':  projectName,
+          'project-name': projectName,
         },
       })
     );

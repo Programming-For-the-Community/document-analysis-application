@@ -35,8 +35,8 @@ export class AWS_SQS {
       new ReceiveMessageCommand({
         QueueUrl: queueUrl,
         MaxNumberOfMessages: 10,
-        WaitTimeSeconds: 20,       // long polling
-        VisibilityTimeout: 600,    // 10 min — enough for trailing window + batch processing
+        WaitTimeSeconds: 20, // long polling
+        VisibilityTimeout: 600, // 10 min — enough for trailing window + batch processing
       })
     );
     return result.Messages ?? [];

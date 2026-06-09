@@ -1,7 +1,7 @@
 import os from 'os';
 import winston from 'winston';
 
-import { LoggerConfig } from '../interfaces/app';
+import { LoggerConfig } from '../interfaces/config';
 
 export class Logger {
   private static instance: winston.Logger | null = null;
@@ -14,7 +14,8 @@ export class Logger {
       release: os.release(),
       app: process.env['APP_NAME'] ?? 'unknown-app',
       version: process.env['APP_VERSION'] ?? '0.0.0',
-      format: process.env['LOG_FORMAT'] ?? '[%s] %s: [processor: %s, platform: %s@%s, app: %s@%s]: %s',
+      format:
+        process.env['LOG_FORMAT'] ?? '[%s] %s: [processor: %s, platform: %s@%s, app: %s@%s]: %s',
       level: process.env['LOG_LEVEL'] ?? 'info',
       ...cfg,
     };
@@ -35,7 +36,10 @@ export class Logger {
     // toUpperCase() would corrupt into 'M', breaking terminal color rendering.
     return wformat.combine(
       wformat.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      wformat((info) => { info.level = info.level.toUpperCase(); return info; })(),
+      wformat((info) => {
+        info.level = info.level.toUpperCase();
+        return info;
+      })(),
       wformat.colorize({ all: true }),
       wformat.printf((info) => Logger.formatMessage(info))
     );

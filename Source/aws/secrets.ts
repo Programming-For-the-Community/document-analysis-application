@@ -32,6 +32,8 @@ export class AWS_SECRETS {
       throw new Error(`Secret "${awsConfig.secretName}" is missing required key: SVC_ROLE_ARN`);
     }
 
-    Logger.info(`Secret "${awsConfig.secretName}" loaded — ${Object.keys(this.secrets).length} keys`);
+    Logger.info(
+      `Secret "${awsConfig.secretName}" loaded — ${Object.keys(this.secrets).length} keys`
+    );
   }
 }

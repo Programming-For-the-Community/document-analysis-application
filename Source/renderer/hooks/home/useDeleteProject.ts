@@ -3,11 +3,11 @@ import { useState, useCallback } from 'react';
 import { deleteProject } from '../../handlers/home/projects';
 
 export function useDeleteProject(reload: () => void) {
-  const [isOpen, setIsOpen]           = useState(false);
-  const [projectId, setProjectId]     = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState('');
-  const [confirming, setConfirming]   = useState(false);
-  const [error, setError]             = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const open = useCallback((id: string, name: string) => {
     setProjectId(id);
@@ -27,7 +27,10 @@ export function useDeleteProject(reload: () => void) {
     setConfirming(true);
     const { error: err } = await deleteProject(projectId);
     setConfirming(false);
-    if (err) { setError(err); return; }
+    if (err) {
+      setError(err);
+      return;
+    }
     close();
     reload();
   }, [projectId, close, reload]);

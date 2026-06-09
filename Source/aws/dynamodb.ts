@@ -14,11 +14,12 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 
 import { AWS_STS } from './sts';
-import { awsConfig } from '../main/config';
-import { DynamoDBConfig } from '../interfaces/app';
-import { ProjectListItem, ProjectMember, ProjectRole } from '../interfaces/project';
-import { DocumentRecord, ProcessingStatus } from '../interfaces/document';
 import { Logger } from '../utils/logger';
+import { awsConfig } from '../main/config';
+import { ProjectRole } from '../types/app';
+import { DynamoDBConfig } from '../interfaces/config';
+import { ProjectListItem, ProjectMember } from '../interfaces/app';
+import { DocumentRecord, ProcessingStatus } from '../interfaces/document';
 
 export class AWS_DYNAMODB {
   // Client is created inside init() because it needs STS credentials
@@ -84,19 +85,19 @@ export class AWS_DYNAMODB {
       const projectId = item['project_id'] as string;
       const role = roleByProjectId.get(projectId) ?? 'VIEW';
       return {
-        id:            projectId,
-        name:          item['project_name']   as string,
+        id: projectId,
+        name: item['project_name'] as string,
         documentCount: (item['document_count'] as number) ?? 0,
-        lastModified:  formatDate(item['updated_at'] as string),
+        lastModified: formatDate(item['updated_at'] as string),
         role,
       };
     });
   }
 
   public static async getProjectRole(
-    userSub:   string,
+    userSub: string,
     projectId: string,
-    config:    DynamoDBConfig
+    config: DynamoDBConfig
   ): Promise<ProjectRole | null> {
     // Every user now has an explicit role attribute in the access table (including OWNER)
     const result = await this.client.send(
@@ -110,31 +111,33 @@ export class AWS_DYNAMODB {
   }
 
   public static async shareProject(
-    projectId:      string,
-    targetSub:      string,
+    projectId: string,
+    targetSub: string,
     targetUsername: string,
-    role:           'VIEW' | 'EDIT',
-    config:         DynamoDBConfig
+    role: 'VIEW' | 'EDIT',
+    config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(
       new PutCommand({
         TableName: config.projectAccessTable,
         Item: {
-          user_sub:   targetSub,
+          user_sub: targetSub,
           project_id: projectId,
           role,
-          username:   targetUsername,
+          username: targetUsername,
         },
         ConditionExpression: 'attribute_not_exists(user_sub)',
       })
     );
-    Logger.info(`Project ${projectId} shared with user ${targetUsername} (${targetSub}) as ${role}`);
+    Logger.info(
+      `Project ${projectId} shared with user ${targetUsername} (${targetSub}) as ${role}`
+    );
   }
 
   public static async unshareProject(
     projectId: string,
     targetSub: string,
-    config:    DynamoDBConfig
+    config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(
       new DeleteCommand({
@@ -147,7 +150,7 @@ export class AWS_DYNAMODB {
 
   public static async listProjectMembers(
     projectId: string,
-    config:    DynamoDBConfig
+    config: DynamoDBConfig
   ): Promise<ProjectMember[]> {
     const result = await this.client.send(
       new QueryCommand({
@@ -161,17 +164,17 @@ export class AWS_DYNAMODB {
       })
     );
     return (result.Items ?? []).map((item) => ({
-      userSub:  item['user_sub']  as string,
-      username: item['username']  as string,
-      role:     item['role']      as 'VIEW' | 'EDIT',
+      userSub: item['user_sub'] as string,
+      username: item['username'] as string,
+      role: item['role'] as 'VIEW' | 'EDIT',
     }));
   }
 
   public static async updateProjectRole(
     projectId: string,
     targetSub: string,
-    newRole:   'VIEW' | 'EDIT',
-    config:    DynamoDBConfig
+    newRole: 'VIEW' | 'EDIT',
+    config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(
       new UpdateCommand({
@@ -191,9 +194,7 @@ export class AWS_DYNAMODB {
     config: DynamoDBConfig
   ): Promise<ProjectListItem> {
     const existing = await this.listProjectsForUser(ownerSub, config);
-    const duplicate = existing.some(
-      (p) => p.name.toLowerCase() === projectName.toLowerCase()
-    );
+    const duplicate = existing.some((p) => p.name.toLowerCase() === projectName.toLowerCase());
     if (duplicate) {
       throw new Error(`A project named "${projectName}" already exists.`);
     }
@@ -326,15 +327,19 @@ export class AWS_DYNAMODB {
     // Delete all access records for this project (owner + all shared users)
     const members = await this.listProjectMembers(projectId, config);
     const accessDeletePromises = [
-      this.client.send(new DeleteCommand({
-        TableName: config.projectAccessTable,
-        Key: { user_sub: userSub, project_id: projectId },
-      })),
-      ...members.map((m) =>
-        this.client.send(new DeleteCommand({
+      this.client.send(
+        new DeleteCommand({
           TableName: config.projectAccessTable,
-          Key: { user_sub: m.userSub, project_id: projectId },
-        }))
+          Key: { user_sub: userSub, project_id: projectId },
+        })
+      ),
+      ...members.map((m) =>
+        this.client.send(
+          new DeleteCommand({
+            TableName: config.projectAccessTable,
+            Key: { user_sub: m.userSub, project_id: projectId },
+          })
+        )
       ),
     ];
     await Promise.all(accessDeletePromises);
@@ -539,9 +544,9 @@ export class AWS_DYNAMODB {
   }
 
   public static async getDocumentRecord(
-    projectId:  string,
+    projectId: string,
     documentId: string,
-    config:     DynamoDBConfig
+    config: DynamoDBConfig
   ): Promise<{ ownerSub: string; s3Key: string; documentName: string } | null> {
     const result = await this.client.send(
       new GetCommand({
@@ -552,16 +557,16 @@ export class AWS_DYNAMODB {
     );
     if (!result.Item) return null;
     return {
-      ownerSub:     result.Item['owner_sub']     as string,
-      s3Key:        result.Item['s3_key']        as string,
+      ownerSub: result.Item['owner_sub'] as string,
+      s3Key: result.Item['s3_key'] as string,
       documentName: result.Item['document_name'] as string,
     };
   }
 
   public static async deleteDocument(
-    projectId:  string,
+    projectId: string,
     documentId: string,
-    config:     DynamoDBConfig
+    config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(
       new DeleteCommand({
@@ -575,9 +580,9 @@ export class AWS_DYNAMODB {
   }
 
   public static async getDocumentName(
-    projectId:  string,
+    projectId: string,
     documentId: string,
-    config:     DynamoDBConfig
+    config: DynamoDBConfig
   ): Promise<string | null> {
     const result = await this.client.send(
       new GetCommand({
@@ -604,17 +609,17 @@ export class AWS_DYNAMODB {
     const items = (result.Items ?? []).filter((item) => item['document_id'] !== 'META');
     Logger.info(`Found ${items.length} document(s) for project: ${projectId}`);
     return items.map((item) => ({
-      documentId:      item['document_id']        as string,
-      projectId:       item['project_id']         as string,
-      ownerSub:        (item['owner_sub']          as string) ?? '',
-      documentName:    item['document_name']       as string,
-      s3Key:           item['s3_key']             as string,
-      fileSize:        item['file_size']           as number,
-      uploadedAt:      item['uploaded_at']         as string,
-      processingStatus: ((item['processing_status'] as ProcessingStatus) ?? 'UNPROCESSED'),
-      queuedAt:        item['queued_at']           as string | undefined,
-      textractJobId:   item['textract_job_id']     as string | undefined,
-      statusUpdatedAt: item['status_updated_at']   as string | undefined,
+      documentId: item['document_id'] as string,
+      projectId: item['project_id'] as string,
+      ownerSub: (item['owner_sub'] as string) ?? '',
+      documentName: item['document_name'] as string,
+      s3Key: item['s3_key'] as string,
+      fileSize: item['file_size'] as number,
+      uploadedAt: item['uploaded_at'] as string,
+      processingStatus: (item['processing_status'] as ProcessingStatus) ?? 'UNPROCESSED',
+      queuedAt: item['queued_at'] as string | undefined,
+      textractJobId: item['textract_job_id'] as string | undefined,
+      statusUpdatedAt: item['status_updated_at'] as string | undefined,
     }));
   }
 }

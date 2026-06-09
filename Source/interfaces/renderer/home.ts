@@ -1,4 +1,4 @@
-import { ProjectRole } from '../../types/renderer';
+import { ProjectListItem } from '../app';
 
 export interface ProjectsGridProps {
   projects: ProjectListItem[];
@@ -7,21 +7,13 @@ export interface ProjectsGridProps {
   onRetry: () => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string, name: string) => void;
-};
+}
 
 export interface ProjectCardProps {
   project: ProjectListItem;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string, name: string) => void;
-};
-
-export interface ProjectListItem {
-    id: string;
-    name: string;
-    documentCount: number;
-    lastModified: string;
-    role: ProjectRole;
-};
+}
 
 export interface RenameProjectModalProps {
   isOpen: boolean;
@@ -30,7 +22,7 @@ export interface RenameProjectModalProps {
   error: string | null;
   onClose: () => void;
   onSubmit: (newName: string) => void;
-};
+}
 
 export interface NewProjectModalProps {
   isOpen: boolean;
@@ -38,7 +30,7 @@ export interface NewProjectModalProps {
   error: string | null;
   onClose: () => void;
   onSubmit: (name: string) => void;
-};
+}
 
 export interface DeleteProjectModalProps {
   isOpen: boolean;
@@ -47,4 +39,4 @@ export interface DeleteProjectModalProps {
   error: string | null;
   onClose: () => void;
   onConfirm: () => void;
-};
+}

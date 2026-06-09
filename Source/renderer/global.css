@@ -2,29 +2,29 @@
 
 :root {
   /* Slate Pro (dark) — default theme */
-  --primary:      #2dd4bf;
-  --primary-hover:#14b8a6;
-  --text:         #f5f5f5;
-  --text-muted:   #a1a1aa;
-  --bg:           #18181b;
-  --card-bg:      #252528;
-  --border:       #3a3a3e;
-  --error:        #fb7185;
-  --topbar-bg:    #1c1c1e;
-  --radius:       8px;
+  --primary: #2dd4bf;
+  --primary-hover: #14b8a6;
+  --text: #f5f5f5;
+  --text-muted: #a1a1aa;
+  --bg: #18181b;
+  --card-bg: #252528;
+  --border: #3a3a3e;
+  --error: #fb7185;
+  --topbar-bg: #1c1c1e;
+  --radius: 8px;
 }
 
-html[data-theme="parchment"] {
+html[data-theme='parchment'] {
   /* Parchment (light) */
-  --primary:      #b45309;
-  --primary-hover:#92400e;
-  --text:         #292524;
-  --text-muted:   #78716c;
-  --bg:           #f5ede0;
-  --card-bg:      #fffdf7;
-  --border:       #e7dfc6;
-  --error:        #dc2626;
-  --topbar-bg:    #fdf6e3;
+  --primary: #b45309;
+  --primary-hover: #92400e;
+  --text: #292524;
+  --text-muted: #78716c;
+  --bg: #f5ede0;
+  --card-bg: #fffdf7;
+  --border: #e7dfc6;
+  --error: #dc2626;
+  --topbar-bg: #fdf6e3;
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────────── */
@@ -297,7 +297,9 @@ body.page-home {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Project cards (home page) ──────────────────────────────────────────────── */
@@ -343,7 +345,9 @@ body.page-home {
   border-radius: var(--radius);
   color: transparent;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 }
 
@@ -727,7 +731,9 @@ body.page-project {
   cursor: pointer;
   padding: 0;
   border-radius: 2px;
-  transition: color 0.12s, background 0.12s;
+  transition:
+    color 0.12s,
+    background 0.12s;
 }
 
 .graph-filter-spin-btn:hover {
@@ -745,7 +751,10 @@ body.page-project {
   border-radius: 6px;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 }
 
@@ -815,7 +824,7 @@ body.page-project {
 }
 
 .layout-picker-btn:hover,
-.layout-picker-btn[aria-expanded="true"] {
+.layout-picker-btn[aria-expanded='true'] {
   border-color: var(--primary);
 }
 
@@ -1064,7 +1073,9 @@ body.page-project {
   background: var(--bg);
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .search-input:focus {
@@ -1148,7 +1159,9 @@ body.page-project {
   border-radius: 8px;
   padding: 10px 12px;
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
 .search-source-card:hover {
@@ -1437,7 +1450,9 @@ body.page-project {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .btn-icon-danger:hover {
@@ -1456,7 +1471,9 @@ body.page-project {
   background: transparent;
   color: #92400e;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .btn-retry-graph:hover {
@@ -1675,7 +1692,9 @@ body.page-project {
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .btn-member-remove:hover {
@@ -1841,7 +1860,9 @@ body.page-project {
   border-radius: var(--radius);
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   -webkit-app-region: no-drag;
   flex-shrink: 0;
 }
@@ -1853,142 +1874,142 @@ body.page-project {
 
 /* ── Slate Pro (dark) overrides for hardcoded light-mode component values ── */
 
-html:not([data-theme="parchment"]) .btn-card-delete:hover {
+html:not([data-theme='parchment']) .btn-card-delete:hover {
   color: #f87171 !important;
   background: rgba(239, 68, 68, 0.15);
 }
 
-html:not([data-theme="parchment"]) .graph-legend {
+html:not([data-theme='parchment']) .graph-legend {
   background: rgba(37, 37, 40, 0.95);
 }
 
-html:not([data-theme="parchment"]) .search-answer-card {
+html:not([data-theme='parchment']) .search-answer-card {
   background: linear-gradient(135deg, rgba(45, 212, 191, 0.08) 0%, rgba(99, 102, 241, 0.06) 100%);
   border-color: rgba(45, 212, 191, 0.35);
 }
 
-html:not([data-theme="parchment"]) .search-input:focus {
+html:not([data-theme='parchment']) .search-input:focus {
   box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
 }
 
-html:not([data-theme="parchment"]) .search-source-card:hover {
+html:not([data-theme='parchment']) .search-source-card:hover {
   box-shadow: 0 2px 8px rgba(45, 212, 191, 0.12);
 }
 
-html:not([data-theme="parchment"]) .upload-zone:hover,
-html:not([data-theme="parchment"]) .upload-zone.drag-over {
+html:not([data-theme='parchment']) .upload-zone:hover,
+html:not([data-theme='parchment']) .upload-zone.drag-over {
   background: rgba(45, 212, 191, 0.06);
 }
 
-html:not([data-theme="parchment"]) .doc-status-unprocessed {
+html:not([data-theme='parchment']) .doc-status-unprocessed {
   color: #a1a1aa;
   background: rgba(161, 161, 170, 0.12);
   border-color: rgba(161, 161, 170, 0.2);
 }
 
-html:not([data-theme="parchment"]) .doc-status-queued {
+html:not([data-theme='parchment']) .doc-status-queued {
   color: #93c5fd;
   background: rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.25);
 }
 
-html:not([data-theme="parchment"]) .doc-status-processing {
+html:not([data-theme='parchment']) .doc-status-processing {
   color: #c4b5fd;
   background: rgba(139, 92, 246, 0.15);
   border-color: rgba(139, 92, 246, 0.25);
 }
 
-html:not([data-theme="parchment"]) .doc-status-complete {
+html:not([data-theme='parchment']) .doc-status-complete {
   color: #6ee7b7;
   background: rgba(16, 185, 129, 0.15);
   border-color: rgba(16, 185, 129, 0.25);
 }
 
-html:not([data-theme="parchment"]) .doc-status-failed {
+html:not([data-theme='parchment']) .doc-status-failed {
   color: #fca5a5;
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.25);
 }
 
-html:not([data-theme="parchment"]) .doc-status-graph-failed {
+html:not([data-theme='parchment']) .doc-status-graph-failed {
   color: #fcd34d;
   background: rgba(251, 191, 36, 0.12);
   border-color: rgba(251, 191, 36, 0.2);
 }
 
-html:not([data-theme="parchment"]) .doc-duplicate-badge {
+html:not([data-theme='parchment']) .doc-duplicate-badge {
   color: #fcd34d;
   background: rgba(251, 191, 36, 0.12);
   border-color: rgba(251, 191, 36, 0.2);
 }
 
-html:not([data-theme="parchment"]) .btn-icon-danger:hover {
+html:not([data-theme='parchment']) .btn-icon-danger:hover {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
 }
 
-html:not([data-theme="parchment"]) .btn-retry-graph {
+html:not([data-theme='parchment']) .btn-retry-graph {
   color: #fcd34d;
 }
 
-html:not([data-theme="parchment"]) .btn-retry-graph:hover {
+html:not([data-theme='parchment']) .btn-retry-graph:hover {
   background: rgba(251, 191, 36, 0.12);
   color: #fbbf24;
 }
 
-html:not([data-theme="parchment"]) .view-only-banner {
+html:not([data-theme='parchment']) .view-only-banner {
   background: rgba(45, 212, 191, 0.08);
   border-bottom-color: rgba(45, 212, 191, 0.2);
   color: #5eead4;
 }
 
-html:not([data-theme="parchment"]) .view-only-banner svg {
+html:not([data-theme='parchment']) .view-only-banner svg {
   color: #2dd4bf;
 }
 
-html:not([data-theme="parchment"]) .project-role-view {
+html:not([data-theme='parchment']) .project-role-view {
   color: #93c5fd;
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.25);
 }
 
-html:not([data-theme="parchment"]) .project-role-edit {
+html:not([data-theme='parchment']) .project-role-edit {
   color: #6ee7b7;
   background: rgba(16, 185, 129, 0.12);
   border-color: rgba(16, 185, 129, 0.25);
 }
 
-html:not([data-theme="parchment"]) .btn-member-remove:hover {
+html:not([data-theme='parchment']) .btn-member-remove:hover {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
 }
 
 /* ── Parchment-specific overrides ────────────────────────────────────────── */
 
-html[data-theme="parchment"] .search-answer-card {
+html[data-theme='parchment'] .search-answer-card {
   background: linear-gradient(135deg, #fef9f0 0%, #fdf6e3 100%);
   border-color: #e7c07a;
 }
 
-html[data-theme="parchment"] .search-input:focus {
+html[data-theme='parchment'] .search-input:focus {
   box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.1);
 }
 
-html[data-theme="parchment"] .search-source-card:hover {
+html[data-theme='parchment'] .search-source-card:hover {
   box-shadow: 0 2px 8px rgba(180, 83, 9, 0.1);
 }
 
-html[data-theme="parchment"] .upload-zone:hover,
-html[data-theme="parchment"] .upload-zone.drag-over {
+html[data-theme='parchment'] .upload-zone:hover,
+html[data-theme='parchment'] .upload-zone.drag-over {
   background: #fef3c7;
 }
 
-html[data-theme="parchment"] .view-only-banner {
+html[data-theme='parchment'] .view-only-banner {
   background: #fef3c7;
   border-bottom-color: #fde68a;
   color: #92400e;
 }
 
-html[data-theme="parchment"] .view-only-banner svg {
+html[data-theme='parchment'] .view-only-banner svg {
   color: #b45309;
 }

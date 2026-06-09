@@ -5,7 +5,7 @@ export function useUser() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    void getUser().then(user => {
+    void getUser().then((user) => {
       if (!user) return void window.electron.auth.logout();
       setUsername(user.username);
     });

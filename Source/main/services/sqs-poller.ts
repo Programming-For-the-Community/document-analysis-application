@@ -6,7 +6,7 @@ import { AWS_TEXTRACT } from '../../aws/textract';
 import { AWS_BEDROCK, GraphExtractionError } from '../../aws/bedrock';
 import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { Neo4J } from '../../aws/neo4j';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { saveDocumentText, embedAndStore } from './embedder';
 import { ProcessingStatus } from '../../interfaces/document';
 import { getSessionId } from './session';
@@ -20,13 +20,13 @@ function pushStatusUpdate(projectId: string, documentId: string, status: Process
   });
 }
 
-const TRAILING_WINDOW_MS = 2 * 60 * 1000;  // 2 min after last completion
-const MAX_BATCH_WAIT_MS  = 10 * 60 * 1000; // 10 min hard cap
+const TRAILING_WINDOW_MS = 2 * 60 * 1000; // 2 min after last completion
+const MAX_BATCH_WAIT_MS = 10 * 60 * 1000; // 10 min hard cap
 
 interface ParsedMessage {
   receiptHandle: string;
   jobId: string;
-  s3Key: string;        // owner_sub/project_id/document_id
+  s3Key: string; // owner_sub/project_id/document_id
   ownerSub: string;
   projectId: string;
   documentId: string;
@@ -50,7 +50,11 @@ let maxBatchTimer: ReturnType<typeof setTimeout> | null = null;
 const BEDROCK_CONCURRENCY = 5; // max parallel Bedrock requests
 
 // Runs fn over every item with at most `limit` concurrent in-flight promises.
-async function withConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+async function withConcurrency<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<void>
+): Promise<void> {
   const active = new Set<Promise<void>>();
   for (const item of items) {
     const p: Promise<void> = fn(item).finally(() => active.delete(p));
@@ -66,12 +70,19 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
   Logger.info(`${docTag} Processing started (Textract job: ${msg.jobId})`);
 
   try {
-    await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, 'PROCESSING', config.dynamoDB);
+    await AWS_DYNAMODB.updateDocumentStatus(
+      msg.projectId,
+      msg.documentId,
+      'PROCESSING',
+      config.dynamoDB
+    );
     pushStatusUpdate(msg.projectId, msg.documentId, 'PROCESSING');
 
     const textractStart = Date.now();
     const blocks = await AWS_TEXTRACT.getDocumentAnalysis(msg.jobId);
-    Logger.info(`${docTag} Textract results fetched — ${blocks.length} block(s) in ${Date.now() - textractStart}ms`);
+    Logger.info(
+      `${docTag} Textract results fetched — ${blocks.length} block(s) in ${Date.now() - textractStart}ms`
+    );
 
     const documentText = AWS_BEDROCK.extractText(blocks);
 
@@ -80,13 +91,21 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
 
     const bedrockStart = Date.now();
     let graphFailed = false;
-    let graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId)
-      .catch((err: unknown) => {
+    let graph = await AWS_BEDROCK.extractRelationships(blocks, msg.documentId, msg.projectId).catch(
+      (err: unknown) => {
         if (!(err instanceof GraphExtractionError)) throw err;
         graphFailed = true;
-        Logger.warn(`${docTag} Graph extraction failed — saving empty graph, document will be GRAPH_FAILED`);
-        return { documentId: msg.documentId, projectId: msg.projectId, entities: [], relationships: [] };
-      });
+        Logger.warn(
+          `${docTag} Graph extraction failed — saving empty graph, document will be GRAPH_FAILED`
+        );
+        return {
+          documentId: msg.documentId,
+          projectId: msg.projectId,
+          entities: [],
+          relationships: [],
+        };
+      }
+    );
 
     Logger.info(
       `${docTag} Bedrock inference complete — ${graph.entities.length} entity/entities, ${graph.relationships.length} relationship(s) in ${Date.now() - bedrockStart}ms`
@@ -98,24 +117,38 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
 
     if (!graphFailed) {
       await Neo4J.loadGraph(graph).catch((err: unknown) =>
-        Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        Logger.warn(
+          `${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+        )
       );
     }
 
     const documentName =
-      await AWS_DYNAMODB.getDocumentName(msg.projectId, msg.documentId, config.dynamoDB)
-        .catch(() => null) ?? msg.documentId;
+      (await AWS_DYNAMODB.getDocumentName(msg.projectId, msg.documentId, config.dynamoDB).catch(
+        () => null
+      )) ?? msg.documentId;
 
     // Embeddings always run regardless of graph extraction outcome.
     await embedAndStore(
-      msg.ownerSub, msg.projectId, msg.documentId,
-      documentName, documentText, config
+      msg.ownerSub,
+      msg.projectId,
+      msg.documentId,
+      documentName,
+      documentText,
+      config
     ).catch((err: unknown) =>
-      Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+      Logger.warn(
+        `${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+      )
     );
 
     const finalStatus = graphFailed ? 'GRAPH_FAILED' : 'COMPLETE';
-    await AWS_DYNAMODB.updateDocumentStatus(msg.projectId, msg.documentId, finalStatus, config.dynamoDB);
+    await AWS_DYNAMODB.updateDocumentStatus(
+      msg.projectId,
+      msg.documentId,
+      finalStatus,
+      config.dynamoDB
+    );
     pushStatusUpdate(msg.projectId, msg.documentId, finalStatus);
 
     // Always delete the SQS message — GRAPH_FAILED is a stable terminal state.
@@ -138,13 +171,21 @@ async function processBatch(): Promise<void> {
   const config = currentConfig;
   if (!config) return;
 
-  Logger.info(`Processing Textract batch: ${batch.length} document(s) (concurrency: ${BEDROCK_CONCURRENCY})`);
+  Logger.info(
+    `Processing Textract batch: ${batch.length} document(s) (concurrency: ${BEDROCK_CONCURRENCY})`
+  );
   await withConcurrency(batch, BEDROCK_CONCURRENCY, (msg) => processOneDocument(msg, config));
 }
 
 function clearTimers(): void {
-  if (trailingTimer) { clearTimeout(trailingTimer); trailingTimer = null; }
-  if (maxBatchTimer) { clearTimeout(maxBatchTimer); maxBatchTimer = null; }
+  if (trailingTimer) {
+    clearTimeout(trailingTimer);
+    trailingTimer = null;
+  }
+  if (maxBatchTimer) {
+    clearTimeout(maxBatchTimer);
+    maxBatchTimer = null;
+  }
 }
 
 function scheduleTrailingWindow(): void {
@@ -163,10 +204,10 @@ function parseMessage(msg: Message): ParsedMessage | null {
     const outer = JSON.parse(msg.Body ?? '{}') as Record<string, unknown>;
     const inner = JSON.parse(outer['Message'] as string) as Record<string, unknown>;
 
-    const jobId  = inner['JobId'] as string;
+    const jobId = inner['JobId'] as string;
     const status = inner['Status'] as string;
-    const loc    = inner['DocumentLocation'] as Record<string, string>;
-    const s3Key  = loc?.['S3ObjectName'] ?? '';
+    const loc = inner['DocumentLocation'] as Record<string, string>;
+    const s3Key = loc?.['S3ObjectName'] ?? '';
     const statusMessage = (inner['StatusMessage'] as string | undefined) ?? 'no details';
 
     // S3 key format: owner_sub/project_id/document_id
@@ -224,9 +265,16 @@ async function poll(): Promise<void> {
         // Delete failed Textract jobs immediately rather than waiting for the 30-min stale check
         if (parsed.status !== 'SUCCEEDED') {
           const docTag = `[doc:${parsed.documentId} project:${parsed.projectId}]`;
-          Logger.warn(`${docTag} Textract job ${parsed.status}: ${parsed.statusMessage} — deleting SQS message, resetting to UNPROCESSED`);
+          Logger.warn(
+            `${docTag} Textract job ${parsed.status}: ${parsed.statusMessage} — deleting SQS message, resetting to UNPROCESSED`
+          );
           void AWS_SQS.deleteMessage(currentConfig!.sqs.queueUrl, parsed.receiptHandle);
-          void AWS_DYNAMODB.updateDocumentStatus(parsed.projectId, parsed.documentId, 'UNPROCESSED', currentConfig!.dynamoDB);
+          void AWS_DYNAMODB.updateDocumentStatus(
+            parsed.projectId,
+            parsed.documentId,
+            'UNPROCESSED',
+            currentConfig!.dynamoDB
+          );
           pushStatusUpdate(parsed.projectId, parsed.documentId, 'UNPROCESSED');
           continue;
         }
@@ -248,16 +296,16 @@ async function poll(): Promise<void> {
 export function startPoller(userSub: string, config: AppConfig): void {
   if (running) stopPoller();
   currentUserSub = userSub;
-  currentConfig  = config;
-  running        = true;
+  currentConfig = config;
+  running = true;
   Logger.info(`SQS poller started for user ${userSub}`);
   void poll();
 }
 
 export function stopPoller(): void {
-  running        = false;
+  running = false;
   currentUserSub = null;
-  currentConfig  = null;
+  currentConfig = null;
   clearTimers();
   pending.clear();
   Logger.info('SQS poller stopped');

@@ -21,7 +21,7 @@ import { registerGraphHandlers } from './handlers/graph';
 import { registerSearchHandlers } from './handlers/search';
 import { registerUserHandlers } from './handlers/user';
 import { DockerManager } from './services/docker-manager';
-import { AppConfig } from '../interfaces/app';
+import { AppConfig } from '../interfaces/config';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
 
@@ -41,13 +41,13 @@ const dockerManager = new DockerManager();
 function createWindow(): void {
   const iconPath = path.join(__dirname, '../../build/icon.png');
   const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
-  const restoreW = Math.round(screenW * 5 / 6);
-  const restoreH = Math.round(screenH * 5 / 6);
+  const restoreW = Math.round((screenW * 5) / 6);
+  const restoreH = Math.round((screenH * 5) / 6);
 
   mainWindow = new BrowserWindow({
-    width:     restoreW,
-    height:    restoreH,
-    minWidth:  900,
+    width: restoreW,
+    height: restoreH,
+    minWidth: 900,
     minHeight: 600,
     icon: iconPath,
     webPreferences: {
@@ -62,8 +62,8 @@ function createWindow(): void {
   mainWindow.on('unmaximize', () => {
     if (!mainWindow) return;
     const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
-    const w = Math.round(sw * 5 / 6);
-    const h = Math.round(sh * 5 / 6);
+    const w = Math.round((sw * 5) / 6);
+    const h = Math.round((sh * 5) / 6);
     mainWindow.setSize(w, h);
     mainWindow.center();
   });

@@ -10,7 +10,7 @@ import { AWS_TEXTRACT } from '../../aws/textract';
 import { AWS_BEDROCK } from '../../aws/bedrock';
 import { Neo4J } from '../../aws/neo4j';
 import { Qdrant } from '../../aws/qdrant';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { embeddingS3Key, textS3Key, saveDocumentText, embedAndStore } from '../services/embedder';
 import { extractTextFromBuffer } from '../services/doc-extractor';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
@@ -27,9 +27,10 @@ type DocumentUploadResult = {
 
 function extractSub(idToken: string): string {
   const base64 = idToken.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? '';
-  const payload = JSON.parse(
-    Buffer.from(base64, 'base64').toString('utf-8')
-  ) as Record<string, unknown>;
+  const payload = JSON.parse(Buffer.from(base64, 'base64').toString('utf-8')) as Record<
+    string,
+    unknown
+  >;
   const sub = payload['sub'];
   if (typeof sub !== 'string' || !sub) throw new Error('ID token missing sub claim');
   return sub;
@@ -55,9 +56,9 @@ function collectFiles(
   }
 }
 
-const STALE_QUEUE_MS      = 30 * 60 * 1000; // 30 min — Textract normally completes in < 5 min
-const STALE_PROCESSING_MS =  2 * 60 * 60 * 1000; // 2 hr — generous for any batch window
-const TEXTRACT_TTL_MS     =  7 * 24 * 60 * 60 * 1000; // 7 days — Textract result retention
+const STALE_QUEUE_MS = 30 * 60 * 1000; // 30 min — Textract normally completes in < 5 min
+const STALE_PROCESSING_MS = 2 * 60 * 60 * 1000; // 2 hr — generous for any batch window
+const TEXTRACT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days — Textract result retention
 
 function isStaleQueued(doc: DocumentRecord): boolean {
   if (doc.processingStatus !== 'QUEUED') return false;
@@ -84,15 +85,14 @@ const TEXTRACT_EXTENSIONS = new Set(['.pdf', '.png', '.jpg', '.jpeg', '.tiff', '
 const TEXT_EXTENSIONS = new Set(['.txt', '.csv', '.md']);
 const BEDROCK_DOC_EXTENSIONS = new Set(['.doc', '.docx', '.xlsx', '.html', '.htm']);
 const SUPPORTED_EXTENSIONS = new Set([
-  ...TEXTRACT_EXTENSIONS, ...TEXT_EXTENSIONS, ...BEDROCK_DOC_EXTENSIONS,
+  ...TEXTRACT_EXTENSIONS,
+  ...TEXT_EXTENSIONS,
+  ...BEDROCK_DOC_EXTENSIONS,
 ]);
 const ACCEPTED_TYPES_MSG =
   'Unsupported file type. Accepted: PDF, PNG, JPG, TIFF, TXT, CSV, MD, DOC, DOCX, XLSX, HTML';
 
-async function enqueueDocument(
-  doc: DocumentRecord,
-  config: AppConfig
-): Promise<void> {
+async function enqueueDocument(doc: DocumentRecord, config: AppConfig): Promise<void> {
   const ext = path.extname(doc.documentName).toLowerCase();
   const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
 
@@ -123,40 +123,76 @@ async function enqueueDocument(
   if (TEXT_EXTENSIONS.has(ext)) {
     try {
       Logger.info(`${docTag} Plain text file — bypassing Textract, processing directly`);
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'PROCESSING', config.dynamoDB);
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'PROCESSING',
+        config.dynamoDB
+      );
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId, documentId: doc.documentId, status: 'PROCESSING',
+        projectId: doc.projectId,
+        documentId: doc.documentId,
+        status: 'PROCESSING',
       });
       const text = await AWS_S3.getObjectText(doc.s3Key, config.s3);
 
       // Persist raw text so re-embedding is possible after restarts
       await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
 
-      const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
+      const graph = await AWS_BEDROCK.extractRelationshipsFromText(
+        text,
+        doc.documentId,
+        doc.projectId
+      );
       const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
       await AWS_S3.putJson(analysisKey, graph, config.s3);
 
       await Neo4J.loadGraph(graph).catch((err: unknown) =>
-        Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        Logger.warn(
+          `${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+        )
       );
 
       await embedAndStore(
-        doc.ownerSub, doc.projectId, doc.documentId, doc.documentName, text, config
+        doc.ownerSub,
+        doc.projectId,
+        doc.documentId,
+        doc.documentName,
+        text,
+        config
       ).catch((err: unknown) =>
-        Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        Logger.warn(
+          `${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+        )
       );
 
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'COMPLETE',
+        config.dynamoDB
+      );
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId, documentId: doc.documentId, status: 'COMPLETE',
+        projectId: doc.projectId,
+        documentId: doc.documentId,
+        status: 'COMPLETE',
       });
-      Logger.info(`${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`);
+      Logger.info(
+        `${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       Logger.error(`${docTag} Direct text processing FAILED: ${message}`);
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'FAILED',
+        config.dynamoDB
+      );
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId, documentId: doc.documentId, status: 'FAILED',
+        projectId: doc.projectId,
+        documentId: doc.documentId,
+        status: 'FAILED',
       });
     }
     return;
@@ -165,9 +201,16 @@ async function enqueueDocument(
   if (BEDROCK_DOC_EXTENSIONS.has(ext)) {
     try {
       Logger.info(`${docTag} Office/HTML document — extracting text locally`);
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'PROCESSING', config.dynamoDB);
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'PROCESSING',
+        config.dynamoDB
+      );
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId, documentId: doc.documentId, status: 'PROCESSING',
+        projectId: doc.projectId,
+        documentId: doc.documentId,
+        status: 'PROCESSING',
       });
 
       const bytes = await AWS_S3.getObjectBytes(doc.s3Key, config.s3);
@@ -175,31 +218,60 @@ async function enqueueDocument(
 
       await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
 
-      const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, doc.documentId, doc.projectId);
+      const graph = await AWS_BEDROCK.extractRelationshipsFromText(
+        text,
+        doc.documentId,
+        doc.projectId
+      );
       const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
       await AWS_S3.putJson(analysisKey, graph, config.s3);
 
       await Neo4J.loadGraph(graph).catch((err: unknown) =>
-        Logger.warn(`${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        Logger.warn(
+          `${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+        )
       );
 
       await embedAndStore(
-        doc.ownerSub, doc.projectId, doc.documentId, doc.documentName, text, config
+        doc.ownerSub,
+        doc.projectId,
+        doc.documentId,
+        doc.documentName,
+        text,
+        config
       ).catch((err: unknown) =>
-        Logger.warn(`${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+        Logger.warn(
+          `${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+        )
       );
 
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'COMPLETE', config.dynamoDB);
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'COMPLETE',
+        config.dynamoDB
+      );
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId, documentId: doc.documentId, status: 'COMPLETE',
+        projectId: doc.projectId,
+        documentId: doc.documentId,
+        status: 'COMPLETE',
       });
-      Logger.info(`${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`);
+      Logger.info(
+        `${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       Logger.error(`${docTag} Bedrock document processing FAILED: ${message}`);
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
+      await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'FAILED',
+        config.dynamoDB
+      );
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId, documentId: doc.documentId, status: 'FAILED',
+        projectId: doc.projectId,
+        documentId: doc.documentId,
+        status: 'FAILED',
       });
     }
     return;
@@ -251,8 +323,13 @@ export function registerDocumentHandlers(
           }
 
           if (existingSet.has(existingKey(file.name, file.size))) {
-            Logger.warn(`Skipping duplicate upload: "${file.name}" (${file.size} bytes) already exists in project ${projectId}`);
-            failed.push({ name: file.name, error: 'A file with this name and size already exists in the project' });
+            Logger.warn(
+              `Skipping duplicate upload: "${file.name}" (${file.size} bytes) already exists in project ${projectId}`
+            );
+            failed.push({
+              name: file.name,
+              error: 'A file with this name and size already exists in the project',
+            });
             continue;
           }
           const documentId = crypto.randomUUID();
@@ -260,7 +337,14 @@ export function registerDocumentHandlers(
           const now = new Date().toISOString();
 
           try {
-            await AWS_S3.uploadDocument(file.path, s3Key, file.size, config.s3, file.name, projectName);
+            await AWS_S3.uploadDocument(
+              file.path,
+              s3Key,
+              file.size,
+              config.s3,
+              file.name,
+              projectName
+            );
 
             const record: DocumentRecord = {
               documentId,
@@ -280,7 +364,9 @@ export function registerDocumentHandlers(
             uploaded.push({ ...record, processingStatus: 'QUEUED' });
           } catch (err) {
             const message = userFacingError(err, 'Upload failed');
-            Logger.error(`Failed to upload "${file.name}": ${err instanceof Error ? err.message : String(err)}`);
+            Logger.error(
+              `Failed to upload "${file.name}": ${err instanceof Error ? err.message : String(err)}`
+            );
             failed.push({ name: file.name, error: message });
           }
         }
@@ -356,49 +442,76 @@ export function registerDocumentHandlers(
         // picks it up. Only re-enqueue on failure or when no job ID exists.
         const staleQueued = documents.filter(isStaleQueued);
         if (staleQueued.length > 0) {
-          Logger.warn(`Resolving ${staleQueued.length} stale QUEUED document(s) for project ${projectId}`);
-          await Promise.all(staleQueued.map(async (doc) => {
-            const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
-            if (doc.textractJobId) {
-              try {
-                const { status: jobStatus, message: jobMessage } = await AWS_TEXTRACT.getJobStatus(doc.textractJobId);
-                if (jobStatus === 'SUCCEEDED') {
-                  Logger.info(`${docTag} Textract job already SUCCEEDED — leaving QUEUED, SQS poller will process`);
-                  return; // SQS message is in queue, poller will pick it up
+          Logger.warn(
+            `Resolving ${staleQueued.length} stale QUEUED document(s) for project ${projectId}`
+          );
+          await Promise.all(
+            staleQueued.map(async (doc) => {
+              const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
+              if (doc.textractJobId) {
+                try {
+                  const { status: jobStatus, message: jobMessage } =
+                    await AWS_TEXTRACT.getJobStatus(doc.textractJobId);
+                  if (jobStatus === 'SUCCEEDED') {
+                    Logger.info(
+                      `${docTag} Textract job already SUCCEEDED — leaving QUEUED, SQS poller will process`
+                    );
+                    return; // SQS message is in queue, poller will pick it up
+                  }
+                  if (jobStatus === 'IN_PROGRESS') {
+                    Logger.info(`${docTag} Textract job still IN_PROGRESS — leaving QUEUED`);
+                    return;
+                  }
+                  Logger.warn(
+                    `${docTag} Textract job status ${jobStatus}: ${jobMessage} — resetting to UNPROCESSED`
+                  );
+                } catch {
+                  Logger.warn(
+                    `${docTag} Textract job ${doc.textractJobId} not found (expired?) — resetting to UNPROCESSED`
+                  );
                 }
-                if (jobStatus === 'IN_PROGRESS') {
-                  Logger.info(`${docTag} Textract job still IN_PROGRESS — leaving QUEUED`);
-                  return;
-                }
-                Logger.warn(`${docTag} Textract job status ${jobStatus}: ${jobMessage} — resetting to UNPROCESSED`);
-              } catch {
-                Logger.warn(`${docTag} Textract job ${doc.textractJobId} not found (expired?) — resetting to UNPROCESSED`);
+              } else {
+                Logger.warn(`${docTag} QUEUED with no Textract job ID — resetting to UNPROCESSED`);
               }
-            } else {
-              Logger.warn(`${docTag} QUEUED with no Textract job ID — resetting to UNPROCESSED`);
-            }
-            await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'UNPROCESSED', config.dynamoDB);
-            doc.processingStatus = 'UNPROCESSED';
-          }));
+              await AWS_DYNAMODB.updateDocumentStatus(
+                doc.projectId,
+                doc.documentId,
+                'UNPROCESSED',
+                config.dynamoDB
+              );
+              doc.processingStatus = 'UNPROCESSED';
+            })
+          );
         }
 
         // Reset stale PROCESSING docs — back to QUEUED if Textract results still live, else UNPROCESSED
         const staleProcessing = documents.filter(isStaleProcessing);
         if (staleProcessing.length > 0) {
-          Logger.warn(`Resetting ${staleProcessing.length} stale PROCESSING document(s) for project ${projectId}`);
+          Logger.warn(
+            `Resetting ${staleProcessing.length} stale PROCESSING document(s) for project ${projectId}`
+          );
           await Promise.all(
             staleProcessing.map((doc) => {
               const resetTo = staleProcessingResetStatus(doc);
-              return AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, resetTo, config.dynamoDB);
+              return AWS_DYNAMODB.updateDocumentStatus(
+                doc.projectId,
+                doc.documentId,
+                resetTo,
+                config.dynamoDB
+              );
             })
           );
-          staleProcessing.forEach((doc) => { doc.processingStatus = staleProcessingResetStatus(doc); });
+          staleProcessing.forEach((doc) => {
+            doc.processingStatus = staleProcessingResetStatus(doc);
+          });
         }
 
         // Fire-and-forget: enqueue any UNPROCESSED documents (including just-reset ones)
         const unprocessed = documents.filter((d) => d.processingStatus === 'UNPROCESSED');
         if (unprocessed.length > 0) {
-          Logger.info(`Enqueueing ${unprocessed.length} unprocessed document(s) for project ${projectId}`);
+          Logger.info(
+            `Enqueueing ${unprocessed.length} unprocessed document(s) for project ${projectId}`
+          );
           void Promise.all(unprocessed.map((doc) => enqueueDocument(doc, config)));
         }
 
@@ -413,7 +526,11 @@ export function registerDocumentHandlers(
 
   ipcMain.handle(
     'document:delete',
-    async (_event, projectId: string, documentId: string): Promise<{ success: boolean; error?: string }> => {
+    async (
+      _event,
+      projectId: string,
+      documentId: string
+    ): Promise<{ success: boolean; error?: string }> => {
       const config = getAppConfig();
       const tokens = getTokens();
 
@@ -451,11 +568,15 @@ export function registerDocumentHandlers(
         Logger.info(`${docTag} Deleted from S3`);
 
         await Neo4J.deleteDocument(documentId).catch((err: unknown) =>
-          Logger.warn(`${docTag} Neo4j cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+          Logger.warn(
+            `${docTag} Neo4j cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+          )
         );
 
         await Qdrant.deleteDocument(documentId).catch((err: unknown) =>
-          Logger.warn(`${docTag} Qdrant cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+          Logger.warn(
+            `${docTag} Qdrant cleanup failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+          )
         );
 
         Logger.info(`${docTag} Fully deleted`);
@@ -470,7 +591,11 @@ export function registerDocumentHandlers(
 
   ipcMain.handle(
     'document:get-text',
-    async (_event, projectId: string, documentId: string): Promise<{ success: boolean; text?: string; error?: string }> => {
+    async (
+      _event,
+      projectId: string,
+      documentId: string
+    ): Promise<{ success: boolean; text?: string; error?: string }> => {
       const config = getAppConfig();
       const tokens = getTokens();
 
@@ -491,7 +616,9 @@ export function registerDocumentHandlers(
         }
       } catch (err) {
         const message = userFacingError(err, 'Failed to fetch document text. Please try again.');
-        Logger.error(`document:get-text error: ${err instanceof Error ? err.message : String(err)}`);
+        Logger.error(
+          `document:get-text error: ${err instanceof Error ? err.message : String(err)}`
+        );
         return { success: false, error: message };
       }
     }
@@ -499,7 +626,11 @@ export function registerDocumentHandlers(
 
   ipcMain.handle(
     'document:retry-graph',
-    async (_event, projectId: string, documentId: string): Promise<{ success: boolean; error?: string }> => {
+    async (
+      _event,
+      projectId: string,
+      documentId: string
+    ): Promise<{ success: boolean; error?: string }> => {
       const config = getAppConfig();
       const tokens = getTokens();
 
@@ -516,11 +647,22 @@ export function registerDocumentHandlers(
           config.s3
         ).catch(() => null);
 
-        if (!text) return { success: false, error: 'Saved text not available — document may need to be re-uploaded.' };
+        if (!text)
+          return {
+            success: false,
+            error: 'Saved text not available — document may need to be re-uploaded.',
+          };
 
-        await AWS_DYNAMODB.updateDocumentStatus(projectId, documentId, 'PROCESSING', config.dynamoDB);
+        await AWS_DYNAMODB.updateDocumentStatus(
+          projectId,
+          documentId,
+          'PROCESSING',
+          config.dynamoDB
+        );
         BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-          projectId, documentId, status: 'PROCESSING',
+          projectId,
+          documentId,
+          status: 'PROCESSING',
         });
 
         const graph = await AWS_BEDROCK.extractRelationshipsFromText(text, documentId, projectId);
@@ -529,23 +671,37 @@ export function registerDocumentHandlers(
         await AWS_S3.putJson(analysisKey, graph, config.s3);
 
         await Neo4J.loadGraph(graph).catch((err: unknown) =>
-          Logger.warn(`document:retry-graph Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`)
+          Logger.warn(
+            `document:retry-graph Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+          )
         );
 
         await AWS_DYNAMODB.updateDocumentStatus(projectId, documentId, 'COMPLETE', config.dynamoDB);
         BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-          projectId, documentId, status: 'COMPLETE',
+          projectId,
+          documentId,
+          status: 'COMPLETE',
         });
 
-        Logger.info(`document:retry-graph COMPLETE for document ${documentId} — ${graph.entities.length} entities`);
+        Logger.info(
+          `document:retry-graph COMPLETE for document ${documentId} — ${graph.entities.length} entities`
+        );
         return { success: true };
       } catch (err) {
         const message = userFacingError(err, 'Graph retry failed. Please try again.');
-        Logger.error(`document:retry-graph error: ${err instanceof Error ? err.message : String(err)}`);
-        await AWS_DYNAMODB.updateDocumentStatus(projectId, documentId, 'GRAPH_FAILED', config.dynamoDB)
-          .catch(() => undefined);
+        Logger.error(
+          `document:retry-graph error: ${err instanceof Error ? err.message : String(err)}`
+        );
+        await AWS_DYNAMODB.updateDocumentStatus(
+          projectId,
+          documentId,
+          'GRAPH_FAILED',
+          config.dynamoDB
+        ).catch(() => undefined);
         BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-          projectId, documentId, status: 'GRAPH_FAILED',
+          projectId,
+          documentId,
+          status: 'GRAPH_FAILED',
         });
         return { success: false, error: message };
       }

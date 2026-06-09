@@ -1,4 +1,8 @@
-import { BedrockRuntimeClient, ConverseCommand, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+  InvokeModelCommand,
+} from '@aws-sdk/client-bedrock-runtime';
 import { Block } from '@aws-sdk/client-textract';
 
 import { AWS_STS } from './sts';
@@ -8,9 +12,21 @@ import { Logger } from '../utils/logger';
 export interface Entity {
   id: string;
   type:
-    | 'Person' | 'Organization' | 'Date' | 'Amount' | 'Location' | 'Product'
-    | 'Role' | 'Account' | 'Event' | 'Technology' | 'Concept' | 'Regulation'
-    | 'Agreement' | 'Asset' | 'Task';
+    | 'Person'
+    | 'Organization'
+    | 'Date'
+    | 'Amount'
+    | 'Location'
+    | 'Product'
+    | 'Role'
+    | 'Account'
+    | 'Event'
+    | 'Technology'
+    | 'Concept'
+    | 'Regulation'
+    | 'Agreement'
+    | 'Asset'
+    | 'Task';
   value: string;
 }
 
@@ -52,7 +68,10 @@ Rules:
 type BedrockJsonPayload = { entities?: Entity[]; relationships?: Relationship[] };
 
 function stripFences(raw: string): string {
-  return raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '');
+  return raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '');
 }
 
 // Returns the substring from the first '{' to its matching closing '}'.
@@ -64,12 +83,24 @@ function extractJsonObject(raw: string): string | null {
   let escape = false;
   for (let i = start; i < raw.length; i++) {
     const ch = raw[i];
-    if (escape)          { escape = false; continue; }
-    if (ch === '\\')     { escape = true;  continue; }
-    if (ch === '"')      { inString = !inString; continue; }
-    if (inString)        continue;
-    if (ch === '{')      depth++;
-    else if (ch === '}') { depth--; if (depth === 0) return raw.slice(start, i + 1); }
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === '\\') {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return raw.slice(start, i + 1);
+    }
   }
   return null;
 }
@@ -83,13 +114,34 @@ function sanitizeJsonStrings(raw: string): string {
   for (let i = 0; i < raw.length; i++) {
     const ch = raw[i];
     const code = ch.charCodeAt(0);
-    if (escape)     { escape = false; out += ch; continue; }
-    if (ch === '\\') { escape = true;  out += ch; continue; }
-    if (ch === '"')  { inString = !inString; out += ch; continue; }
+    if (escape) {
+      escape = false;
+      out += ch;
+      continue;
+    }
+    if (ch === '\\') {
+      escape = true;
+      out += ch;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      out += ch;
+      continue;
+    }
     if (inString && code < 0x20) {
-      if (ch === '\n') { out += '\\n'; continue; }
-      if (ch === '\r') { out += '\\r'; continue; }
-      if (ch === '\t') { out += '\\t'; continue; }
+      if (ch === '\n') {
+        out += '\\n';
+        continue;
+      }
+      if (ch === '\r') {
+        out += '\\r';
+        continue;
+      }
+      if (ch === '\t') {
+        out += '\\t';
+        continue;
+      }
       // Skip other control characters (NUL, BEL, etc.)
       continue;
     }
@@ -99,7 +151,11 @@ function sanitizeJsonStrings(raw: string): string {
 }
 
 function tryParse(candidate: string): BedrockJsonPayload | null {
-  try { return JSON.parse(candidate) as BedrockJsonPayload; } catch { return null; }
+  try {
+    return JSON.parse(candidate) as BedrockJsonPayload;
+  } catch {
+    return null;
+  }
 }
 
 function parseBedrockJson(raw: string, documentId: string): BedrockJsonPayload | null {
@@ -121,7 +177,7 @@ function parseBedrockJson(raw: string, documentId: string): BedrockJsonPayload |
 
   Logger.warn(
     `Bedrock: all JSON parse strategies failed for document ${documentId}. ` +
-    `Raw response (first 200 chars): ${raw.slice(0, 200)}`
+      `Raw response (first 200 chars): ${raw.slice(0, 200)}`
   );
   return null;
 }
@@ -170,10 +226,10 @@ export class AWS_BEDROCK {
     const body = JSON.stringify({ inputText: text });
     const response = await this.client.send(
       new InvokeModelCommand({
-        modelId:     EMBED_MODEL_ID,
-        body:        new TextEncoder().encode(body),
+        modelId: EMBED_MODEL_ID,
+        body: new TextEncoder().encode(body),
         contentType: 'application/json',
-        accept:      'application/json',
+        accept: 'application/json',
       })
     );
     const parsed = JSON.parse(new TextDecoder().decode(response.body)) as {
@@ -185,14 +241,12 @@ export class AWS_BEDROCK {
   public static async synthesize(prompt: string): Promise<string> {
     const result = await this.client.send(
       new ConverseCommand({
-        modelId:  this.modelId,
+        modelId: this.modelId,
         messages: [{ role: 'user', content: [{ text: prompt }] }],
         inferenceConfig: { maxTokens: 1024, temperature: 0.3 },
       })
     );
-    return (
-      result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? ''
-    );
+    return result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? '';
   }
 
   public static async extractRelationships(
@@ -216,7 +270,6 @@ export class AWS_BEDROCK {
     documentId: string,
     projectId: string
   ): Promise<RelationshipGraph> {
-
     const result = await this.client.send(
       new ConverseCommand({
         modelId: this.modelId,

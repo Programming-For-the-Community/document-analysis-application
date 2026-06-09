@@ -6,4 +6,4 @@ export interface FormFieldProps {
   placeholder?: string;
   autoComplete?: string;
   onChange: (value: string) => void;
-};
+}

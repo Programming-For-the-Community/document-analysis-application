@@ -18,7 +18,9 @@ export class AWS_STS {
     this.roleArn = roleArn;
     Logger.info(`Assuming IAM role: ${roleArn}`);
     this.credentials = await this.assumeRole();
-    Logger.info(`Role assumed successfully — session valid for 1h (keyId: ${this.credentials.accessKeyId})`);
+    Logger.info(
+      `Role assumed successfully — session valid for 1h (keyId: ${this.credentials.accessKeyId})`
+    );
   }
 
   // Refreshes credentials if expiring within 5 minutes or already expired.
@@ -34,7 +36,9 @@ export class AWS_STS {
           this.credentials = creds;
           Logger.info(`STS credentials refreshed — new expiry: ${creds.expiresAt.toISOString()}`);
         })
-        .finally(() => { this.refreshPromise = null; });
+        .finally(() => {
+          this.refreshPromise = null;
+        });
     }
 
     await this.refreshPromise;

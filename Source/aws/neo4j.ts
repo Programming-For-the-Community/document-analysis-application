@@ -1,17 +1,33 @@
 import neo4j, { Driver, Integer, ManagedTransaction } from 'neo4j-driver';
 
 import { RelationshipGraph } from './bedrock';
-import { Neo4JConfig } from '../interfaces/app';
+import { Neo4JConfig } from '../interfaces/config';
 import { Logger } from '../utils/logger';
 
 const VALID_ENTITY_TYPES = new Set([
-  'Person', 'Organization', 'Date', 'Amount', 'Location', 'Product', 'Role', 'Account',
+  'Person',
+  'Organization',
+  'Date',
+  'Amount',
+  'Location',
+  'Product',
+  'Role',
+  'Account',
 ]);
 
 const VALID_REL_TYPES = new Set([
-  'EMPLOYED_BY', 'MANAGES', 'PAID_BY', 'SHIPS_TO', 'SHIPS_FROM',
-  'ORDERED_FROM', 'INVOICED_BY', 'INVOICED_TO', 'REFERENCES', 'DATED',
-  'LOCATED_AT', 'HAS_ROLE',
+  'EMPLOYED_BY',
+  'MANAGES',
+  'PAID_BY',
+  'SHIPS_TO',
+  'SHIPS_FROM',
+  'ORDERED_FROM',
+  'INVOICED_BY',
+  'INVOICED_TO',
+  'REFERENCES',
+  'DATED',
+  'LOCATED_AT',
+  'HAS_ROLE',
 ]);
 
 // Tokens that should stay uppercased in title case (acronyms / initialisms).
@@ -20,33 +36,33 @@ const ALWAYS_UPPER = new Set(['LLC', 'LLP', 'LP', 'PLC', 'USA', 'UK', 'US', 'EU'
 // Maps lowercase suffix variants → canonical display form (Organization names only).
 const ORG_SUFFIX_MAP: Record<string, string> = {
   // Company
-  'co':            'Company',
-  'co.':           'Company',
-  'company':       'Company',
+  co: 'Company',
+  'co.': 'Company',
+  company: 'Company',
   // Corporation
-  'corp':          'Corporation',
-  'corp.':         'Corporation',
-  'corporation':   'Corporation',
+  corp: 'Corporation',
+  'corp.': 'Corporation',
+  corporation: 'Corporation',
   // Incorporated
-  'inc':           'Inc.',
-  'inc.':          'Inc.',
-  'incorporated':  'Inc.',
+  inc: 'Inc.',
+  'inc.': 'Inc.',
+  incorporated: 'Inc.',
   // Limited
-  'ltd':           'Ltd.',
-  'ltd.':          'Ltd.',
-  'limited':       'Ltd.',
+  ltd: 'Ltd.',
+  'ltd.': 'Ltd.',
+  limited: 'Ltd.',
   // Associates
-  'assoc':         'Associates',
-  'assoc.':        'Associates',
-  'associates':    'Associates',
+  assoc: 'Associates',
+  'assoc.': 'Associates',
+  associates: 'Associates',
   // Group / Holdings (common but not abbreviations — normalise spelling only)
-  'group':         'Group',
-  'holdings':      'Holdings',
-  'international': 'International',
-  'industries':    'Industries',
-  'enterprises':   'Enterprises',
-  'solutions':     'Solutions',
-  'services':      'Services',
+  group: 'Group',
+  holdings: 'Holdings',
+  international: 'International',
+  industries: 'Industries',
+  enterprises: 'Enterprises',
+  solutions: 'Solutions',
+  services: 'Services',
 };
 
 function isAllCaps(name: string): boolean {
@@ -88,7 +104,10 @@ export class Neo4J {
     await this.driver?.close();
   }
 
-  public static async getProjectGraph(projectId: string, minDocCount: number): Promise<{
+  public static async getProjectGraph(
+    projectId: string,
+    minDocCount: number
+  ): Promise<{
     nodes: Array<{ data: { id: string; label: string; type: string; docCount: number } }>;
     edges: Array<{ data: { id: string; source: string; target: string; label: string } }>;
   }> {
@@ -107,9 +126,9 @@ export class Neo4J {
 
       const nodes = nodeResult.records.map((r) => ({
         data: {
-          id:       r.get('id')    as string,
-          label:    r.get('label') as string,
-          type:     r.get('type')  as string,
+          id: r.get('id') as string,
+          label: r.get('label') as string,
+          type: r.get('type') as string,
           docCount: (r.get('docCount') as Integer).toNumber(),
         },
       }));
@@ -122,11 +141,12 @@ export class Neo4J {
       );
 
       const seen = new Set<string>();
-      const edges: Array<{ data: { id: string; source: string; target: string; label: string } }> = [];
+      const edges: Array<{ data: { id: string; source: string; target: string; label: string } }> =
+        [];
       for (const r of edgeResult.records) {
         const source = r.get('source') as string;
         const target = r.get('target') as string;
-        const label  = r.get('label')  as string;
+        const label = r.get('label') as string;
         if (!nodeIds.has(source) || !nodeIds.has(target)) continue;
         const key = `${source}→${label}→${target}`;
         if (!seen.has(key)) {
@@ -137,7 +157,7 @@ export class Neo4J {
 
       Logger.debug(
         `Neo4j graph for project ${projectId} (minDocCount=${minDocCount}): ` +
-        `${nodes.length} node(s), ${edges.length} edge(s)`
+          `${nodes.length} node(s), ${edges.length} edge(s)`
       );
       return { nodes, edges };
     } finally {
@@ -176,7 +196,12 @@ export class Neo4J {
     entityName: string,
     entityType: string
   ): Promise<{
-    connections: Array<{ relType: string; otherName: string; otherType: string; direction: 'out' | 'in' }>;
+    connections: Array<{
+      relType: string;
+      otherName: string;
+      otherType: string;
+      direction: 'out' | 'in';
+    }>;
     documentIds: string[];
   }> {
     const session = this.driver.session();
@@ -191,10 +216,10 @@ export class Neo4J {
       );
 
       const connections = connResult.records.map((r) => ({
-        otherName:  r.get('otherName')  as string,
-        otherType:  r.get('otherType')  as string,
-        relType:    r.get('relType')    as string,
-        direction:  r.get('direction')  as 'out' | 'in',
+        otherName: r.get('otherName') as string,
+        otherType: r.get('otherType') as string,
+        relType: r.get('relType') as string,
+        direction: r.get('direction') as 'out' | 'in',
       }));
 
       const docResult = await session.run(
@@ -205,7 +230,9 @@ export class Neo4J {
 
       const documentIds = docResult.records.map((r) => r.get('documentId') as string);
 
-      Logger.debug(`Neo4j getNodeDetail: ${connections.length} connection(s), ${documentIds.length} document(s) for "${entityName}" (${entityType})`);
+      Logger.debug(
+        `Neo4j getNodeDetail: ${connections.length} connection(s), ${documentIds.length} document(s) for "${entityName}" (${entityType})`
+      );
       return { connections, documentIds };
     } finally {
       await session.close();
@@ -217,10 +244,9 @@ export class Neo4J {
     if (documentIds.length === 0) return [];
     const session = this.driver.session();
     try {
-      const result = await session.run(
-        `MATCH (d:Document) WHERE d.id IN $ids RETURN d.id AS id`,
-        { ids: documentIds }
-      );
+      const result = await session.run(`MATCH (d:Document) WHERE d.id IN $ids RETURN d.id AS id`, {
+        ids: documentIds,
+      });
       const found = new Set(result.records.map((r) => r.get('id') as string));
       return documentIds.filter((id) => !found.has(id));
     } finally {
@@ -235,21 +261,19 @@ export class Neo4J {
     try {
       await session.executeWrite(async (tx: ManagedTransaction) => {
         // Remove all existing entity nodes for this document (index on documentId makes this fast)
-        await tx.run(
-          `MATCH (n:Entity {documentId: $documentId}) DETACH DELETE n`,
-          { documentId: graph.documentId }
-        );
+        await tx.run(`MATCH (n:Entity {documentId: $documentId}) DETACH DELETE n`, {
+          documentId: graph.documentId,
+        });
         // Remove the document node itself
-        await tx.run(
-          `MATCH (d:Document {id: $documentId}) DETACH DELETE d`,
-          { documentId: graph.documentId }
-        );
+        await tx.run(`MATCH (d:Document {id: $documentId}) DETACH DELETE d`, {
+          documentId: graph.documentId,
+        });
 
         // Create the document node
-        await tx.run(
-          `CREATE (:Document {id: $documentId, projectId: $projectId})`,
-          { documentId: graph.documentId, projectId: graph.projectId }
-        );
+        await tx.run(`CREATE (:Document {id: $documentId, projectId: $projectId})`, {
+          documentId: graph.documentId,
+          projectId: graph.projectId,
+        });
 
         // Group entities by type for batched inserts (one UNWIND per label)
         const byEntityType = new Map<string, { id: string; name: string }[]>();
@@ -317,7 +341,7 @@ export class Neo4J {
 
       Logger.info(
         `Neo4j: loaded graph for document ${graph.documentId} — ` +
-        `${graph.entities.length} node(s), ${graph.relationships.length} edge(s)`
+          `${graph.entities.length} node(s), ${graph.relationships.length} edge(s)`
       );
     } finally {
       await session.close();

@@ -1,7 +1,7 @@
 import path from 'path';
 import dotenv from 'dotenv';
 
-import { AppConfig } from '../interfaces/app';
+import { AppConfig } from '../interfaces/config';
 import { AWSConfig, SecretValues } from '../interfaces/aws';
 
 // In dev the .env overrides these; in the packaged app the file won't exist

@@ -2,17 +2,17 @@ import { AWS_BEDROCK } from '../../aws/bedrock';
 import { AWS_S3 } from '../../aws/s3';
 import { Qdrant } from '../../aws/qdrant';
 import { chunkText } from '../../utils/chunker';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { Logger } from '../../utils/logger';
 
 export interface EmbeddingFile {
-  documentId:   string;
-  projectId:    string;
+  documentId: string;
+  projectId: string;
   documentName: string;
   chunks: Array<{
     chunkIndex: number;
-    text:       string;
-    vector:     number[];
+    text: string;
+    vector: number[];
   }>;
 }
 
@@ -27,11 +27,11 @@ export function embeddingS3Key(ownerSub: string, projectId: string, documentId: 
 // Saves the raw extracted text to S3. Call this right after Textract / text extraction
 // so there is always a stable text source available for re-embedding after restarts.
 export async function saveDocumentText(
-  ownerSub:   string,
-  projectId:  string,
+  ownerSub: string,
+  projectId: string,
   documentId: string,
-  text:       string,
-  config:     AppConfig
+  text: string,
+  config: AppConfig
 ): Promise<void> {
   const key = textS3Key(ownerSub, projectId, documentId);
   await AWS_S3.putText(key, text, config.s3);
@@ -41,12 +41,12 @@ export async function saveDocumentText(
 // Chunks, embeds, and stores a document in both S3 and Qdrant.
 // Called at processing time and during re-embedding in qdrant-sync.
 export async function embedAndStore(
-  ownerSub:     string,
-  projectId:    string,
-  documentId:   string,
+  ownerSub: string,
+  projectId: string,
+  documentId: string,
   documentName: string,
-  text:         string,
-  config:       AppConfig
+  text: string,
+  config: AppConfig
 ): Promise<void> {
   const docTag = `[doc:${documentId}]`;
 
@@ -61,8 +61,8 @@ export async function embedAndStore(
 
   const chunks = textChunks.map((t, i) => ({
     chunkIndex: i,
-    text:       t,
-    vector:     vectors[i]!,
+    text: t,
+    vector: vectors[i]!,
   }));
 
   const embeddingFile: EmbeddingFile = { documentId, projectId, documentName, chunks };
@@ -71,7 +71,5 @@ export async function embedAndStore(
   await AWS_S3.putJson(key, embeddingFile, config.s3);
   Logger.info(`${docTag} Embeddings written to S3 → ${key}`);
 
-  await Qdrant.loadDocument(
-    chunks.map((c) => ({ ...c, documentId, projectId, documentName }))
-  );
+  await Qdrant.loadDocument(chunks.map((c) => ({ ...c, documentId, projectId, documentName })));
 }

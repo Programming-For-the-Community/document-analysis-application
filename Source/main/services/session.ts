@@ -4,11 +4,11 @@ import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { AWS_STS } from '../../aws/sts';
 import { AWS_COGNITO } from '../../aws/cognito';
 import { CognitoCredentials } from '../../interfaces/aws';
-import { DynamoDBConfig, CognitoConfig } from '../../interfaces/app';
+import { DynamoDBConfig, CognitoConfig } from '../../interfaces/config';
 import { getDeviceId } from './device';
 import { Logger } from '../../utils/logger';
 
-const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;  // 2 minutes
+const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 const TOKEN_REFRESH_THRESHOLD_MS = 50 * 60 * 1000; // refresh Cognito tokens after 50 min
 const MAX_REFRESH_FAILURES = 3; // force logout after this many consecutive Cognito refresh failures
 
@@ -82,7 +82,9 @@ export function startHeartbeat(opts: HeartbeatOptions): void {
           stopHeartbeat();
           opts.onInvalidated();
         } else {
-          Logger.debug(`Heartbeat OK for user ${opts.userSub} (device: ${myDeviceId}, session: ${sessionId ?? 'none'})`);
+          Logger.debug(
+            `Heartbeat OK for user ${opts.userSub} (device: ${myDeviceId}, session: ${sessionId ?? 'none'})`
+          );
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

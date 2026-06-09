@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 
 import { awsConfig } from '../config';
 import { AWS_SECRETS } from '../../aws/secrets';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { Logger } from '../../utils/logger';
 
 export function registerConfigHandlers(getAppConfig: () => AppConfig | null): void {
@@ -11,8 +11,8 @@ export function registerConfigHandlers(getAppConfig: () => AppConfig | null): vo
 
     Logger.debug(
       `config:get — region: ${awsConfig.region}, s3: ${config?.s3.documentBucket ?? 'n/a'}, ` +
-      `neo4j: ${config?.neo4j.uri ?? 'n/a'} (password: ********), ` +
-      `qdrant: ${config?.qdrant.url ?? 'n/a'} (key: ********)`
+        `neo4j: ${config?.neo4j.uri ?? 'n/a'} (password: ********), ` +
+        `qdrant: ${config?.qdrant.url ?? 'n/a'} (key: ********)`
     );
 
     return {

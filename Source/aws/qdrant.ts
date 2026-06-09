@@ -2,26 +2,26 @@ import crypto from 'crypto';
 
 import { QdrantClient } from '@qdrant/js-client-rest';
 
-import { QdrantConfig } from '../interfaces/app';
+import { QdrantConfig } from '../interfaces/config';
 import { Logger } from '../utils/logger';
 
-const COLLECTION  = 'document_chunks';
+const COLLECTION = 'document_chunks';
 const VECTOR_SIZE = 1024; // Titan Embed Text V2 default
 
 export interface DocumentChunk {
-  documentId:   string;
-  projectId:    string;
+  documentId: string;
+  projectId: string;
   documentName: string;
-  chunkIndex:   number;
-  text:         string;
-  vector:       number[];
+  chunkIndex: number;
+  text: string;
+  vector: number[];
 }
 
 export interface SearchHit {
-  documentId:   string;
+  documentId: string;
   documentName: string;
-  text:         string;
-  score:        number;
+  text: string;
+  score: number;
 }
 
 export class Qdrant {
@@ -79,11 +79,11 @@ export class Qdrant {
         id: crypto.randomUUID(),
         vector: c.vector,
         payload: {
-          documentId:   c.documentId,
-          projectId:    c.projectId,
+          documentId: c.documentId,
+          projectId: c.projectId,
           documentName: c.documentName,
-          chunkIndex:   c.chunkIndex,
-          text:         c.text,
+          chunkIndex: c.chunkIndex,
+          text: c.text,
         },
       })),
     });
@@ -104,10 +104,10 @@ export class Qdrant {
     do {
       const result = await this.client.scroll(COLLECTION, {
         filter: { must: [{ key: 'projectId', match: { value: projectId } }] },
-        limit:        200,
-        offset:       offset ?? undefined,
+        limit: 200,
+        offset: offset ?? undefined,
         with_payload: ['documentId'],
-        with_vector:  false,
+        with_vector: false,
       });
 
       for (const point of result.points) {
@@ -116,31 +116,27 @@ export class Qdrant {
       }
 
       const next = result.next_page_offset;
-      offset = (typeof next === 'number' || typeof next === 'string') ? next : null;
+      offset = typeof next === 'number' || typeof next === 'string' ? next : null;
     } while (offset !== null);
 
     return documentIds.filter((id) => !found.has(id));
   }
 
-  public static async search(
-    projectId: string,
-    vector: number[],
-    topK = 5
-  ): Promise<SearchHit[]> {
+  public static async search(projectId: string, vector: number[], topK = 5): Promise<SearchHit[]> {
     if (!this.available) return [];
 
     const results = await this.client.search(COLLECTION, {
       vector,
-      limit:        topK,
-      filter:       { must: [{ key: 'projectId', match: { value: projectId } }] },
+      limit: topK,
+      filter: { must: [{ key: 'projectId', match: { value: projectId } }] },
       with_payload: true,
     });
 
     return results.map((r) => ({
-      documentId:   r.payload?.['documentId']   as string ?? '',
-      documentName: r.payload?.['documentName'] as string ?? 'Unknown',
-      text:         r.payload?.['text']         as string ?? '',
-      score:        r.score,
+      documentId: (r.payload?.['documentId'] as string) ?? '',
+      documentName: (r.payload?.['documentName'] as string) ?? 'Unknown',
+      text: (r.payload?.['text'] as string) ?? '',
+      score: r.score,
     }));
   }
 

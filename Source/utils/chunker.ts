@@ -20,7 +20,7 @@ export function chunkText(
       // Prefer breaking at a paragraph or sentence boundary in the last 20% of the chunk
       const searchFrom = start + Math.floor(chunkSize * 0.8);
       const newline = trimmed.lastIndexOf('\n', end);
-      const period  = trimmed.lastIndexOf('. ', end);
+      const period = trimmed.lastIndexOf('. ', end);
       if (newline >= searchFrom) {
         end = newline + 1;
       } else if (period >= searchFrom) {

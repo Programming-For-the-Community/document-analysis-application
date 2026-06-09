@@ -7,12 +7,14 @@ import { getStoredTheme, applyTheme, fetchServerTheme } from '../../utils/render
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(getStoredTheme);
 
-  useEffect(() => { applyTheme(theme); }, [theme]);
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
-    void fetchServerTheme().then(serverTheme => {
+    void fetchServerTheme().then((serverTheme) => {
       if (!serverTheme) return;
-      setTheme(prev => {
+      setTheme((prev) => {
         if (serverTheme === prev) return prev;
         localStorage.setItem('doc-analysis-theme', serverTheme);
         return serverTheme;
@@ -21,8 +23,8 @@ export function useTheme() {
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setTheme(prev => {
-      const next: Theme = prev === THEME.PARCHMENT ? THEME.SLATE : THEME.PARCHMENT;
+    setTheme((prev) => {
+      const next: Theme = prev === THEME.LIGHT ? THEME.DARK : THEME.LIGHT;
       localStorage.setItem('doc-analysis-theme', next);
       void window.electron.preferences.setTheme(next);
       return next;

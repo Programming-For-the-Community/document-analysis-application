@@ -75,6 +75,8 @@
     "@qdrant/js-client-rest": "^1.17.0",
     "better-sqlite3": "^12.8.0",
     "cytoscape": "^3.30.4",
+    "cytoscape-dagre": "^4.0.0",
+    "dagre": "^0.8.5",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "mammoth": "^1.12.0",

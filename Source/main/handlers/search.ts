@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 
 import { AWS_BEDROCK } from '../../aws/bedrock';
 import { Qdrant } from '../../aws/qdrant';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';
 
@@ -12,7 +12,11 @@ export function registerSearchHandlers(
 ): void {
   ipcMain.handle(
     'search:query',
-    async (_event, projectId: string, query: string): Promise<{
+    async (
+      _event,
+      projectId: string,
+      query: string
+    ): Promise<{
       success: boolean;
       answer?: string;
       citations?: Array<{ documentName: string; excerpt: string; score: number }>;
@@ -62,10 +66,10 @@ export function registerSearchHandlers(
         const answer = await AWS_BEDROCK.synthesize(synthesisPrompt);
 
         const citations = hits.map((h) => ({
-          documentId:   h.documentId,
+          documentId: h.documentId,
           documentName: h.documentName,
-          excerpt:      h.text.length > 300 ? `${h.text.slice(0, 300)}…` : h.text,
-          score:        h.score,
+          excerpt: h.text.length > 300 ? `${h.text.slice(0, 300)}…` : h.text,
+          score: h.score,
         }));
 
         Logger.info(`search:query: returned ${hits.length} citation(s)`);

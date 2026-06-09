@@ -5,7 +5,7 @@ const watch = process.argv.includes('--watch');
 const buildOptions = [
   { page: 'home',    entry: 'renderer/home/index.tsx' },
   { page: 'login',   entry: 'renderer/login/index.tsx' },
-  { page: 'project', entry: 'renderer/project/index.ts' },
+  { page: 'project', entry: 'renderer/project/index.tsx' },
 ].map(({ page, entry }) => ({
   entryPoints: [entry],
   bundle: true,

@@ -5,7 +5,7 @@ import { AWS_S3 } from '../../aws/s3';
 import { Neo4J } from '../../aws/neo4j';
 import { Qdrant } from '../../aws/qdrant';
 import { RelationshipGraph } from '../../aws/bedrock';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { DocumentRecord } from '../../interfaces/document';
 import { EmbeddingFile, embeddingS3Key, textS3Key, embedAndStore } from './embedder';
 import { Logger } from '../../utils/logger';
@@ -48,22 +48,33 @@ async function loadDocIntoLocalStores(doc: DocumentRecord, config: AppConfig): P
     await Qdrant.loadDocument(
       file.chunks.map((c) => ({
         ...c,
-        documentId:   file.documentId,
-        projectId:    file.projectId,
+        documentId: file.documentId,
+        projectId: file.projectId,
         documentName: file.documentName,
       }))
     );
     Logger.debug(`${docTag} Loaded into Qdrant from embedding file`);
     return;
-  } catch { /* fall through to raw text */ }
+  } catch {
+    /* fall through to raw text */
+  }
 
   const rawKey = textS3Key(doc.ownerSub, doc.projectId, doc.documentId);
   try {
     const rawText = await AWS_S3.getObjectText(rawKey, config.s3);
-    await embedAndStore(doc.ownerSub, doc.projectId, doc.documentId, doc.documentName, rawText, config);
+    await embedAndStore(
+      doc.ownerSub,
+      doc.projectId,
+      doc.documentId,
+      doc.documentName,
+      rawText,
+      config
+    );
     Logger.debug(`${docTag} Loaded into Qdrant from raw text`);
   } catch (err) {
-    Logger.warn(`${docTag} Qdrant load failed: ${err instanceof Error ? err.message : String(err)}`);
+    Logger.warn(
+      `${docTag} Qdrant load failed: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }
 
@@ -71,16 +82,18 @@ async function pollProject(
   project: { id: string; name: string },
   config: AppConfig
 ): Promise<void> {
-  const documents  = await AWS_DYNAMODB.listDocuments(project.id, config.dynamoDB);
+  const documents = await AWS_DYNAMODB.listDocuments(project.id, config.dynamoDB);
   const currentIds = new Set(documents.map((d) => d.documentId));
-  const isFirst    = !trackedDocIds.has(project.id);
-  const prevIds    = trackedDocIds.get(project.id) ?? new Set<string>();
+  const isFirst = !trackedDocIds.has(project.id);
+  const prevIds = trackedDocIds.get(project.id) ?? new Set<string>();
 
   if (!isFirst) {
     // New documents added by another device or user
     for (const doc of documents) {
       if (!prevIds.has(doc.documentId)) {
-        Logger.info(`[project-poller] New document "${doc.documentName}" in project "${project.name}"`);
+        Logger.info(
+          `[project-poller] New document "${doc.documentName}" in project "${project.name}"`
+        );
         pushToRenderer('document:added', doc);
         if (doc.processingStatus === 'COMPLETE') {
           void loadDocIntoLocalStores(doc, config);
@@ -93,11 +106,15 @@ async function pollProject(
       if (!currentIds.has(prevId)) {
         Logger.info(`[project-poller] Document ${prevId} removed from project "${project.name}"`);
         await Neo4J.deleteDocument(prevId).catch((err: unknown) =>
-          Logger.warn(`[project-poller] Neo4j cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`)
+          Logger.warn(
+            `[project-poller] Neo4j cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`
+          )
         );
         if (Qdrant.isAvailable()) {
           await Qdrant.deleteDocument(prevId).catch((err: unknown) =>
-            Logger.warn(`[project-poller] Qdrant cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`)
+            Logger.warn(
+              `[project-poller] Qdrant cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`
+            )
           );
         }
         pushToRenderer('document:removed', { projectId: project.id, documentId: prevId });
@@ -114,9 +131,9 @@ async function pollProject(
           `[project-poller] Status change "${doc.documentName}": ${prevStatus} → ${doc.processingStatus}`
         );
         pushToRenderer('document:status-update', {
-          projectId:  doc.projectId,
+          projectId: doc.projectId,
           documentId: doc.documentId,
-          status:     doc.processingStatus,
+          status: doc.processingStatus,
         });
         if (doc.processingStatus === 'COMPLETE') {
           void loadDocIntoLocalStores(doc, config);
@@ -124,7 +141,9 @@ async function pollProject(
       }
     }
   } else {
-    Logger.debug(`[project-poller] First poll for project "${project.name}" — ${documents.length} document(s) tracked`);
+    Logger.debug(
+      `[project-poller] First poll for project "${project.name}" — ${documents.length} document(s) tracked`
+    );
   }
 
   // Update tracking maps
@@ -137,7 +156,7 @@ async function pollProject(
 async function pollOnce(): Promise<void> {
   if (!currentUserSub || !currentConfig) return;
   const userSub = currentUserSub;
-  const config  = currentConfig;
+  const config = currentConfig;
 
   try {
     const projects = await AWS_DYNAMODB.listProjectsForUser(userSub, config.dynamoDB);
@@ -146,7 +165,9 @@ async function pollOnce(): Promise<void> {
     // Projects deleted by another device or user
     for (const [projectId] of trackedDocIds) {
       if (!currentProjectIds.has(projectId)) {
-        Logger.info(`[project-poller] Project ${projectId} no longer exists — cleaning up local stores`);
+        Logger.info(
+          `[project-poller] Project ${projectId} no longer exists — cleaning up local stores`
+        );
         const orphanedDocs = trackedDocIds.get(projectId) ?? new Set<string>();
         for (const docId of orphanedDocs) trackedStatuses.delete(docId);
         trackedDocIds.delete(projectId);
@@ -158,7 +179,9 @@ async function pollOnce(): Promise<void> {
 
     await Promise.all(projects.map((p) => pollProject(p, config)));
   } catch (err) {
-    Logger.error(`[project-poller] Poll error: ${err instanceof Error ? err.message : String(err)}`);
+    Logger.error(
+      `[project-poller] Poll error: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 }
 
@@ -172,19 +195,24 @@ function scheduleNext(): void {
 export function startProjectPoller(userSub: string, config: AppConfig): void {
   stopProjectPoller();
   currentUserSub = userSub;
-  currentConfig  = config;
-  running        = true;
+  currentConfig = config;
+  running = true;
   trackedDocIds.clear();
   trackedStatuses.clear();
-  Logger.info(`[project-poller] Started for user ${userSub} (interval: ${POLL_INTERVAL_MS / 1000}s)`);
+  Logger.info(
+    `[project-poller] Started for user ${userSub} (interval: ${POLL_INTERVAL_MS / 1000}s)`
+  );
   scheduleNext();
 }
 
 export function stopProjectPoller(): void {
-  running        = false;
+  running = false;
   currentUserSub = null;
-  currentConfig  = null;
-  if (timer) { clearTimeout(timer); timer = null; }
+  currentConfig = null;
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
   trackedDocIds.clear();
   trackedStatuses.clear();
   Logger.info('[project-poller] Stopped');

@@ -1,58 +1,23 @@
-export interface DynamoDBConfig {
-  projectStateTable: string;
-  projectAccessTable: string;
-  userSessionsTable: string;
+import { ProjectRole, MemberRole } from '../types/app';
+
+export interface ProjectListItem {
+  id: string;
+  name: string;
+  documentCount: number;
+  lastModified: string;
+  role: ProjectRole;
 }
 
-export interface Neo4JConfig {
-  uri: string;
-  user: string;
-  password: string;
+export interface ProjectMember {
+  userSub: string;
+  username: string;
+  role: MemberRole;
 }
 
-export interface QdrantConfig {
-  url: string;
-  apiKey: string;
-}
-
-export interface CognitoConfig {
-  userPoolId: string;
-  clientId: string;
-}
-
-export interface S3Config {
-  documentBucket: string;
-}
-
-export interface SNSConfig {
-  topicArn: string;
-}
-
-export interface SQSConfig {
-  queueUrl: string;
-}
-
-export interface BedrockConfig {
-  modelId: string;
-}
-
-export interface AppConfig {
-  dynamoDB: DynamoDBConfig;
-  cognito: CognitoConfig;
-  s3: S3Config;
-  sns: SNSConfig;
-  sqs: SQSConfig;
-  bedrock: BedrockConfig;
-  neo4j: Neo4JConfig;
-  qdrant: QdrantConfig;
-}
-
-export interface LoggerConfig {
-  processor: string;
-  platform: string;
-  release: string;
-  app: string;
-  version: string;
-  format: string;
-  level: string;
+export interface ProjectInfo {
+  projectId: string;
+  projectName: string;
+  role: ProjectRole;
+  minDocFilter: number;
+  loading: boolean;
 }

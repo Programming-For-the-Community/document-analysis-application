@@ -11,7 +11,7 @@ import {
 
 import { AWS_STS } from './sts';
 import { awsConfig } from '../main/config';
-import { CognitoConfig } from '../interfaces/app';
+import { CognitoConfig } from '../interfaces/config';
 import { CognitoAuthResult } from '../types/aws';
 import { CognitoCredentials } from '../interfaces/aws';
 import { Logger } from '../utils/logger';
@@ -90,7 +90,9 @@ export class AWS_COGNITO {
       })
     );
 
-    Logger.debug(`Cognito user "${username}" created — setting permanent password (password: ********)`);
+    Logger.debug(
+      `Cognito user "${username}" created — setting permanent password (password: ********)`
+    );
 
     await this.client.send(
       new AdminSetUserPasswordCommand({
@@ -138,9 +140,7 @@ export class AWS_COGNITO {
         Limit: 10,
       })
     );
-    return (result.Users ?? [])
-      .map((u) => u.Username)
-      .filter((u): u is string => !!u);
+    return (result.Users ?? []).map((u) => u.Username).filter((u): u is string => !!u);
   }
 
   public static async refreshTokens(

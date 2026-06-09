@@ -1,4 +1,10 @@
-export type ProcessingStatus = 'UNPROCESSED' | 'QUEUED' | 'PROCESSING' | 'COMPLETE' | 'FAILED' | 'GRAPH_FAILED';
+export type ProcessingStatus =
+  | 'UNPROCESSED'
+  | 'QUEUED'
+  | 'PROCESSING'
+  | 'COMPLETE'
+  | 'FAILED'
+  | 'GRAPH_FAILED';
 
 export interface DocumentRecord {
   documentId: string;

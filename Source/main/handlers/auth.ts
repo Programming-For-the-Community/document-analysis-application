@@ -3,11 +3,17 @@ import path from 'path';
 
 import { AWS_STS } from '../../aws/sts';
 import { AWS_COGNITO } from '../../aws/cognito';
-import { AppConfig } from '../../interfaces/app';
+import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { CognitoCredentials } from '../../interfaces/aws';
 import { extractSub } from '../../utils/jwt';
-import { writeSession, startHeartbeat, stopHeartbeat, clearSession, HeartbeatOptions } from '../services/session';
+import {
+  writeSession,
+  startHeartbeat,
+  stopHeartbeat,
+  clearSession,
+  HeartbeatOptions,
+} from '../services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
 import { startProjectPoller, stopProjectPoller } from '../services/project-poller';
 import { syncNeo4jForUser } from '../services/neo4j-sync';
@@ -121,7 +127,9 @@ export function registerAuthHandlers(
         );
 
         if (!tokens || typeof tokens === 'boolean') {
-          Logger.warn(`Sign-up for "${credentials.username}" succeeded but sign-in returned incomplete tokens`);
+          Logger.warn(
+            `Sign-up for "${credentials.username}" succeeded but sign-in returned incomplete tokens`
+          );
           return { success: false, error: 'Account created but login failed — try signing in' };
         }
 
