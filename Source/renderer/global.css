@@ -764,7 +764,7 @@ body.page-project {
   border-color: #9ca3af;
 }
 
-#graph-canvas {
+.graph-canvas {
   flex: 1;
   width: 100%;
   min-height: 0;

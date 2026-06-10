@@ -1,11 +1,4 @@
-interface DocumentTextModalProps {
-  isOpen: boolean;
-  documentName: string;
-  text: string | null;
-  loading: boolean;
-  error: string | null;
-  onClose: () => void;
-}
+import { DocumentTextModalProps } from '../../../../interfaces/renderer/project';
 
 export function DocumentTextModal({ isOpen, documentName, text, loading, error, onClose }: DocumentTextModalProps) {
   if (!isOpen) return null;

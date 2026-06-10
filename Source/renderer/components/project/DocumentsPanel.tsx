@@ -1,24 +1,15 @@
 import { useState } from 'react';
-import { DocumentRow } from './DocumentRow';
 
-interface DocumentsPanelProps {
-  documents: DocumentRecord[];
-  loading: boolean;
-  uploadStatus: string | null;
-  uploadError: string | null;
-  role: ProjectRole;
-  onUpload: (files: Array<{ name: string; path: string; size: number }>) => void;
-  onDelete: (documentId: string, documentName: string) => void;
-  onRetry: (documentId: string) => void;
-  onViewText: (documentId: string, documentName: string) => void;
-}
+import { DocumentRow } from './DocumentRow';
+import { PROJECT_ROLES } from '../../../constants/app';
+import { DocumentsPanelProps } from '../../../interfaces/renderer/project';
 
 export function DocumentsPanel({
   documents, loading, uploadStatus, uploadError, role,
   onUpload, onDelete, onRetry, onViewText,
 }: DocumentsPanelProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const canEdit = role === 'OWNER' || role === 'EDIT';
+  const canEdit = role === PROJECT_ROLES.OWNER || role === PROJECT_ROLES.EDIT;
 
   const nameCounts = new Map<string, number>();
   documents.forEach(d => nameCounts.set(d.documentName, (nameCounts.get(d.documentName) ?? 0) + 1));
@@ -58,7 +49,7 @@ export function DocumentsPanel({
       onDragOver={e => { if (canEdit) e.preventDefault(); }}
       onDrop={handleDrop}>
 
-      {role === 'VIEW' && (
+      {role === PROJECT_ROLES.VIEW && (
         <div id="view-only-banner" className="view-only-banner">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
             <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.3" />

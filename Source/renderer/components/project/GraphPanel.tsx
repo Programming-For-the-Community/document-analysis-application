@@ -1,37 +1,12 @@
 import { useRef, useEffect, useState } from 'react';
-import { Theme } from '../../../types/renderer';
+
+import { GRAPH_LAYOUTS } from '../../../constants/renderer/project';
+import { GraphPanelProps } from '../../../interfaces/renderer/project';
 import {
   CyInstance, createCytoscape, wireGraphHover,
   applyTypeFilters, createCenteringResizeObserver,
   getEntityColors, getLayoutConfig, getGraphStyle,
 } from '../../../utils/renderer/graph';
-
-const LAYOUTS = [
-  { value: 'cose',      label: 'Classic' },
-  { value: 'fcose',     label: 'Force' },
-  { value: 'radial',    label: 'Radial' },
-  { value: 'tree',      label: 'Tree' },
-  { value: 'dagre',     label: 'Hierarchical' },
-  { value: 'concentric',label: 'Concentric' },
-  { value: 'circle',    label: 'Circle' },
-  { value: 'grid',      label: 'Grid' },
-];
-
-interface GraphPanelProps {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  loading: boolean;
-  hasSyncedData: boolean;
-  layout: string;
-  minDocs: number;
-  hiddenTypes: Set<string>;
-  theme: Theme;
-  onLayoutChange: (layout: string) => void;
-  onMinDocsChange: (value: number) => void;
-  onToggleHiddenType: (type: string) => void;
-  onNodeClick: (entityName: string, entityType: string) => void;
-  onExpand: () => void;
-}
 
 export function GraphPanel({
   nodes, edges, loading, hasSyncedData,
@@ -124,15 +99,15 @@ export function GraphPanel({
           <div className="graph-controls">
             <div className="layout-picker">
               <button className="layout-picker-btn" onClick={() => setLayoutMenuOpen(o => !o)}>
-                <span>{LAYOUTS.find(l => l.value === layout)?.label ?? 'Classic'}</span>
+                <span>{layout}</span>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               {layoutMenuOpen && (
                 <div className="layout-picker-menu" onClick={() => setLayoutMenuOpen(false)}>
-                  {LAYOUTS.map(l => (
-                    <div key={l.value} className={`layout-picker-item${layout === l.value ? ' active' : ''}`}
-                      onClick={() => { onLayoutChange(l.value); cyRef.current?.layout(getLayoutConfig(l.value)).run(); }}>
-                      {l.label}
+                  {[...GRAPH_LAYOUTS.keys()].map(name => (
+                    <div key={name} className={`layout-picker-item${layout === name ? ' active' : ''}`}
+                      onClick={() => { onLayoutChange(name); cyRef.current?.layout(getLayoutConfig(name)).run(); }}>
+                      {name}
                     </div>
                   ))}
                 </div>
@@ -154,19 +129,10 @@ export function GraphPanel({
                     <button className="layout-info-close" onClick={() => setInfoPopupOpen(false)}>&times;</button>
                   </div>
                   <div className="layout-info-body">
-                    {[
-                      ['Classic',      'Balanced force-directed layout.'],
-                      ['Force',        'Faster force-directed (fcose). Better for large graphs.'],
-                      ['Radial',       'Root node at center with rings radiating outward.'],
-                      ['Tree',         'Top-down breadth-first tree.'],
-                      ['Hierarchical', 'Layered rank-based layout (dagre).'],
-                      ['Concentric',   'Most-connected nodes at center.'],
-                      ['Circle',       'Nodes evenly spaced on a single circle.'],
-                      ['Grid',         'Nodes arranged in a uniform rectangular grid.'],
-                    ].map(([name, desc]) => (
+                    {[...GRAPH_LAYOUTS.entries()].map(([name, { description }]) => (
                       <div key={name} className="layout-info-row">
                         <span className="layout-info-name">{name}</span>
-                        <span className="layout-info-desc">{desc}</span>
+                        <span className="layout-info-desc">{description}</span>
                       </div>
                     ))}
                   </div>
@@ -218,13 +184,16 @@ export function GraphPanel({
 
       {hasData && typesPresent.length > 0 && (
         <div className="graph-legend">
-          {typesPresent.map(type => (
-            <div key={type} className={`graph-legend-item${hiddenTypes.has(type) ? ' muted' : ''}`}
-              title={`Click to show/hide ${type} nodes`} onClick={() => onToggleHiddenType(type)}>
-              <span className="graph-legend-swatch" style={{ background: colors[type] ?? colors['Other'] }}></span>
-              <span className="graph-legend-label">{type}</span>
-            </div>
-          ))}
+          {typesPresent.map(type => {
+            const color = colors[type as keyof typeof colors] ?? colors['Other'];
+            return (
+              <div key={type} className={`graph-legend-item${hiddenTypes.has(type) ? ' muted' : ''}`}
+                title={`Click to show/hide ${type} nodes`} onClick={() => onToggleHiddenType(type)}>
+                <span className="graph-legend-swatch" style={{ background: color }}></span>
+                <span className="graph-legend-label">{type}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 

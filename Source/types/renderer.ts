@@ -29,6 +29,7 @@ export type GraphLayoutName = (typeof GRAPH_LAYOUT_NAMES)[keyof typeof GRAPH_LAY
 
 export type GraphLayoutOptions = {
   name: GraphLayoutName;
+  description: string;
   animate: boolean;
   padding: number;
   directed?: boolean;

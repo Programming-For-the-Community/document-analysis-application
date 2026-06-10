@@ -16,7 +16,7 @@ export const PROJECT_ERRORS = {
     MEMBER_ROLE_UPDATE_FAILURE: 'Failed to update role.',
 } as const;
 
-export const DEFAULT_GRAPH_LAYOUT = 'cose';
+export const DEFAULT_GRAPH_LAYOUT = 'Classic';
 
 export const PROCESSING_STATUS = {
   UNPROCESSED: 'UNPROCESSED',
@@ -95,58 +95,66 @@ export const ENTITY_COLORS_PARCHMENT = {
 } as const;
 
 export const GRAPH_LAYOUTS = new Map([
-    ['dagre', { 
-        name: GRAPH_LAYOUT_NAMES.DAGRE, 
-        animate: false, 
-        rankDir: NODE_RANK_DIR.TOP_TO_BOTTOM, 
-        nodeSep: 60, 
-        rankSep: 80, 
-        padding: 24 
+    ['Hierarchical', {
+        name: GRAPH_LAYOUT_NAMES.DAGRE,
+        description: 'Layered rank-based layout (dagre).',
+        animate: false,
+        rankDir: NODE_RANK_DIR.TOP_TO_BOTTOM,
+        nodeSep: 60,
+        rankSep: 80,
+        padding: 24
     }],
-    ['concentric', { 
-        name: GRAPH_LAYOUT_NAMES.CONCENTRIC, 
-        animate: false, 
+    ['Concentric', {
+        name: GRAPH_LAYOUT_NAMES.CONCENTRIC,
+        description: 'Most-connected nodes at center.',
+        animate: false,
         concentric: (n: { connectedEdges(): { length: number } }) => n.connectedEdges().length,
-        levelWidth: () => 2, 
-        minNodeSpacing: 40, 
-        padding: 24 
+        levelWidth: () => 2,
+        minNodeSpacing: 40,
+        padding: 24
     }],
-    ['radial', {
+    ['Radial', {
         name: GRAPH_LAYOUT_NAMES.BREADTHFIRST,
+        description: 'Root node at center with rings radiating outward.',
         animate: false,
         directed: false,
         circle: true,
         spacingFactor: 1.75,
         padding: 24
     }],
-    ['tree', {
+    ['Tree', {
         name: GRAPH_LAYOUT_NAMES.BREADTHFIRST,
+        description: 'Top-down breadth-first tree.',
         animate: false,
         directed: false,
         circle: false,
         spacingFactor: 1.5,
         padding: 24
     }],
-    ['circle', { 
-        name: GRAPH_LAYOUT_NAMES.CIRCLE, 
-        animate: false, 
-        padding: 24 
+    ['Circle', {
+        name: GRAPH_LAYOUT_NAMES.CIRCLE,
+        description: 'Nodes evenly spaced on a single circle.',
+        animate: false,
+        padding: 24
     }],
-    ['grid', { 
-        name: GRAPH_LAYOUT_NAMES.GRID, 
-        animate: false, 
-        padding: 24, 
-        avoidOverlap: true 
+    ['Grid', {
+        name: GRAPH_LAYOUT_NAMES.GRID,
+        description: 'Nodes arranged in a uniform rectangular grid.',
+        animate: false,
+        padding: 24,
+        avoidOverlap: true
     }],
-    ['cose', {
+    ['Classic', {
         name: GRAPH_LAYOUT_NAMES.COSE,
+        description: 'Balanced force-directed layout.',
         animate: false,
         nodeRepulsion: () => 4096,
         idealEdgeLength: () => 100,
         padding: 24
     }],
-    ['fcose', {
+    ['Force', {
         name: GRAPH_LAYOUT_NAMES.FCOSE,
+        description: 'Faster force-directed (fcose). Better for large graphs.',
         animate: false,
         nodeRepulsion: 4500,
         idealEdgeLength: 100,

@@ -1,18 +1,5 @@
-import { Theme } from '../../../../types/renderer';
 import { getEntityColors } from '../../../../utils/renderer/graph';
-
-interface NodeDetailModalProps {
-  isOpen: boolean;
-  entityName: string;
-  entityType: string;
-  connections: Array<{ relType: string; otherName: string; otherType: string; direction: 'out' | 'in' }>;
-  documents: Array<{ documentId: string; documentName: string }>;
-  loading: boolean;
-  error: string | null;
-  theme: Theme;
-  onClose: () => void;
-  onViewDocument: (documentId: string, documentName: string) => void;
-}
+import { NodeDetailModalProps } from '../../../../interfaces/renderer/project';
 
 export function NodeDetailModal({
   isOpen, entityName, entityType, connections, documents,
@@ -20,13 +7,14 @@ export function NodeDetailModal({
 }: NodeDetailModalProps) {
   if (!isOpen) return null;
   const colors = getEntityColors(theme);
+  const getColor = (type: string) => colors[type as keyof typeof colors] ?? colors['Other'];
 
   return (
     <div className="doc-text-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="node-detail-modal">
         <div className="doc-text-modal-header">
           <div className="node-detail-header-info">
-            <span className="node-detail-swatch" style={{ background: colors[entityType] ?? colors['Other'] }}></span>
+            <span className="node-detail-swatch" style={{ background: getColor(entityType) }}></span>
             <span className="doc-text-modal-title">{entityName}</span>
             <span className="node-detail-type-badge">{entityType}</span>
           </div>
@@ -49,7 +37,7 @@ export function NodeDetailModal({
                   <div key={i} className="node-detail-connection">
                     <span className="node-detail-rel-type">{c.relType}</span>
                     <span className="node-detail-arrow">{c.direction === 'out' ? '→' : '←'}</span>
-                    <span className="node-detail-swatch-sm" style={{ background: colors[c.otherType] ?? colors['Other'] }}></span>
+                    <span className="node-detail-swatch-sm" style={{ background: getColor(c.otherType) }}></span>
                     <span className="node-detail-other-name">{c.otherName}</span>
                     <span className="node-detail-other-type">{c.otherType}</span>
                   </div>

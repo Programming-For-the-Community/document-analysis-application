@@ -1,21 +1,5 @@
-interface ShareModalProps {
-  isOpen: boolean;
-  members: ProjectMember[];
-  membersLoading: boolean;
-  shareUsername: string;
-  shareRole: 'VIEW' | 'EDIT';
-  sharing: boolean;
-  error: string | null;
-  suggestions: string[];
-  callerRole: ProjectRole;
-  onClose: () => void;
-  onShare: () => void;
-  onRemoveMember: (userSub: string) => void;
-  onUpdateRole: (userSub: string, newRole: 'VIEW' | 'EDIT') => void;
-  onUsernameInput: (value: string) => void;
-  onShareRoleChange: (role: 'VIEW' | 'EDIT') => void;
-  onSelectSuggestion: (username: string) => void;
-}
+import { MemberRole } from '../../../../types/app';
+import { ShareModalProps } from '../../../../interfaces/renderer/project';
 
 export function ShareModal({
   isOpen, members, membersLoading, shareUsername, shareRole, sharing, error, suggestions, callerRole,
@@ -50,7 +34,7 @@ export function ShareModal({
               )}
             </div>
             <select className="share-role-select" value={shareRole}
-              onChange={e => onShareRoleChange(e.target.value as 'VIEW' | 'EDIT')}>
+              onChange={e => onShareRoleChange(e.target.value as MemberRole)}>
               <option value="VIEW">View</option>
               {isOwner && <option value="EDIT">Edit</option>}
             </select>
@@ -70,7 +54,7 @@ export function ShareModal({
             <div key={member.userSub} className="member-item">
               <span className="member-username">{member.username}</span>
               <select className="member-role-select" value={member.role} disabled={!isOwner}
-                onChange={e => void onUpdateRole(member.userSub, e.target.value as 'VIEW' | 'EDIT')}>
+                onChange={e => void onUpdateRole(member.userSub, e.target.value as MemberRole)}>
                 <option value="VIEW">View</option>
                 <option value="EDIT">Edit</option>
               </select>

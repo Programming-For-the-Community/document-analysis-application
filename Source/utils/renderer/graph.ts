@@ -62,7 +62,7 @@ export function getGraphStyle(theme: Theme): unknown[] {
   ];
 }
 
-export function getLayoutConfig(name: string): GraphLayoutOptions {
+export function getLayoutConfig(name: string): Omit<GraphLayoutOptions, 'description'> {
   let layoutOptions: GraphLayoutOptions = GRAPH_LAYOUTS.get(DEFAULT_GRAPH_LAYOUT)!; // Set default to fcose options, which work decently for most graph shapes and sizes
 
   // GRAPH_LAYOUTS is a Map; check for presence of the key and return those layout options if found, otherwise default to fcose
@@ -70,7 +70,9 @@ export function getLayoutConfig(name: string): GraphLayoutOptions {
     layoutOptions = GRAPH_LAYOUTS.get(name)!;
   };
 
-  return layoutOptions;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { description, ...config } = layoutOptions;
+  return config;
 }
 
 export function calcDegreeMap(edges: GraphEdge[]): { map: Map<string, number>; max: number } {

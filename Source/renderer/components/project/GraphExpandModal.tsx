@@ -1,36 +1,11 @@
 import { useRef, useEffect, useState } from 'react';
-import { Theme } from '../../../types/renderer';
+import { GraphExpandModalProps } from '../../../interfaces/renderer/project';
+import { GRAPH_LAYOUTS } from '../../../constants/renderer/project';
 import {
   CyInstance, createCytoscape, wireGraphHover,
   applyTypeFilters, createCenteringResizeObserver,
   getEntityColors, getLayoutConfig, getGraphStyle,
 } from '../../../utils/renderer/graph';
-
-const LAYOUTS = [
-  { value: 'cose',      label: 'Classic' },
-  { value: 'fcose',     label: 'Force' },
-  { value: 'radial',    label: 'Radial' },
-  { value: 'tree',      label: 'Tree' },
-  { value: 'dagre',     label: 'Hierarchical' },
-  { value: 'concentric',label: 'Concentric' },
-  { value: 'circle',    label: 'Circle' },
-  { value: 'grid',      label: 'Grid' },
-];
-
-interface GraphExpandModalProps {
-  isOpen: boolean;
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  layout: string;
-  minDocs: number;
-  hiddenTypes: Set<string>;
-  theme: Theme;
-  onClose: () => void;
-  onLayoutChange: (layout: string) => void;
-  onMinDocsChange: (value: number) => void;
-  onToggleHiddenType: (type: string) => void;
-  onNodeClick: (entityName: string, entityType: string) => void;
-}
 
 export function GraphExpandModal({
   isOpen, nodes, edges, layout, minDocs, hiddenTypes, theme,
@@ -95,15 +70,15 @@ export function GraphExpandModal({
 
             <div className="layout-picker">
               <button className="layout-picker-btn" onClick={() => setLayoutMenuOpen(o => !o)}>
-                <span>{LAYOUTS.find(l => l.value === layout)?.label ?? 'Classic'}</span>
+                <span>{layout}</span>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               {layoutMenuOpen && (
                 <div className="layout-picker-menu" onClick={() => setLayoutMenuOpen(false)}>
-                  {LAYOUTS.map(l => (
-                    <div key={l.value} className={`layout-picker-item${layout === l.value ? ' active' : ''}`}
-                      onClick={() => { onLayoutChange(l.value); cyRef.current?.layout(getLayoutConfig(l.value)).run(); }}>
-                      {l.label}
+                  {[...GRAPH_LAYOUTS.keys()].map(name => (
+                    <div key={name} className={`layout-picker-item${layout === name ? ' active' : ''}`}
+                      onClick={() => { onLayoutChange(name); cyRef.current?.layout(getLayoutConfig(name)).run(); }}>
+                      {name}
                     </div>
                   ))}
                 </div>
@@ -146,13 +121,16 @@ export function GraphExpandModal({
           <div ref={containerRef} className="graph-expand-canvas"></div>
           {typesPresent.length > 0 && (
             <div className="graph-legend">
-              {typesPresent.map(type => (
-                <div key={type} className={`graph-legend-item${hiddenTypes.has(type) ? ' muted' : ''}`}
-                  onClick={() => onToggleHiddenType(type)}>
-                  <span className="graph-legend-swatch" style={{ background: colors[type] ?? colors['Other'] }}></span>
-                  <span className="graph-legend-label">{type}</span>
-                </div>
-              ))}
+              {typesPresent.map(type => {
+                const swatchColor = colors[type as keyof typeof colors] ?? colors.Other;
+                return (
+                  <div key={type} className={`graph-legend-item${hiddenTypes.has(type) ? ' muted' : ''}`}
+                    onClick={() => onToggleHiddenType(type)}>
+                    <span className="graph-legend-swatch" style={{ background: swatchColor }}></span>
+                    <span className="graph-legend-label">{type}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,3 +1,6 @@
+import { ProcessingStatus } from '../../../types/renderer';
+import { DocumentRowProps } from '../../../interfaces/renderer/project';
+
 const STATUS_BADGE: Record<ProcessingStatus, { label: string; cls: string }> = {
   UNPROCESSED:  { label: 'not processed', cls: 'doc-status-badge doc-status-unprocessed' },
   QUEUED:       { label: 'queued',         cls: 'doc-status-badge doc-status-queued' },
@@ -15,15 +18,6 @@ function formatFileSize(bytes: number): string {
 
 function formatUploadDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-interface DocumentRowProps {
-  doc: DocumentRecord;
-  isDuplicate: boolean;
-  canEdit: boolean;
-  onDelete: (documentId: string, documentName: string) => void;
-  onRetry: (documentId: string) => void;
-  onViewText: (documentId: string, documentName: string) => void;
 }
 
 export function DocumentRow({ doc, isDuplicate, canEdit, onDelete, onRetry, onViewText }: DocumentRowProps) {
