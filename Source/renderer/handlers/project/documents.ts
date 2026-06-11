@@ -1,5 +1,5 @@
-import { PROJECT_ERRORS } from '../../../constants/renderer/project';
-import { DocumentRecord } from '../../../interfaces/renderer/project';
+import { PROJECT_ERRORS } from '../../../constants/renderer/project/errors';
+import { DocumentRecord, UploadFileInfo } from '../../../interfaces/document';
 
 export async function loadDocuments(
   projectId: string
@@ -12,7 +12,7 @@ export async function loadDocuments(
 
 export async function uploadFiles(
   projectId: string,
-  files: Array<{ name: string; path: string; size: number }>
+  files: UploadFileInfo[]
 ): Promise<{ error: string | null; partialErrors: string[] }> {
   const result = await window.electron.documents.upload(projectId, files);
   if (!result.success) return { error: result.error ?? PROJECT_ERRORS.DOC_UPLOAD_FAILURE, partialErrors: [] };

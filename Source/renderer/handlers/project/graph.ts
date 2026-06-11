@@ -1,5 +1,6 @@
-import { PROJECT_ERRORS } from '../../../constants/renderer/project';
-import { GraphNode, GraphEdge } from '../../../interfaces/renderer/project';
+import { PROJECT_ERRORS } from '../../../constants/renderer/project/errors';
+import { GraphNode, GraphEdge } from '../../../interfaces/renderer/project/graph';
+import { EntityConnection } from '../../../interfaces/graph';
 
 export async function syncAndLoadGraph(
   projectId: string,
@@ -42,12 +43,7 @@ export async function fetchNodeDetail(
   entityName: string,
   entityType: string
 ): Promise<{
-  connections?: Array<{
-    relType: string;
-    otherName: string;
-    otherType: string;
-    direction: 'out' | 'in';
-  }>;
+  connections?: EntityConnection[];
   documents?: Array<{ documentId: string; documentName: string }>;
   error: string | null;
 }> {

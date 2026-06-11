@@ -1,31 +1,4 @@
-export const PROJECT_ERRORS = {
-    FULL_TEXT_UNAVIALABLE: 'Full text not available.',
-    MISSING_SHARE_USERNAME: 'Please enter a username.',
-    DOC_LOAD_FAILURE: 'Failed to load documents.',
-    DOC_UPLOAD_FAILURE: 'Upload failed .',
-    DOC_DELETE_FAILURE: 'Failed to delete document.',
-    GRAPH_RETRY_FAILURE: 'Graph retry failed.',
-    GRAPH_LOAD_FAILURE: 'Failed to load graph.',
-    GRAPH_RELOAD_FAILURE: 'Failed to reload graph.',
-    FAILED_TO_LOAD_NODE_DETAIL: 'Failed to load node details.',
-    SEARCH_FAILURE: 'Search failed.',
-    UNEXPECTED_ERROR: 'An unexpected error occurred.',
-    SHARE_MEMEBER_RETREIVAL_FAILURE: 'Failed to load members.',
-    PROJECT_SHARE_FAILURE: 'Failed to share project.',
-    PROJECT_UNSHARE_FAILURE: 'Failed to remove access.',
-    MEMBER_ROLE_UPDATE_FAILURE: 'Failed to update role.',
-} as const;
-
 export const DEFAULT_GRAPH_LAYOUT = 'Classic';
-
-export const PROCESSING_STATUS = {
-  UNPROCESSED: 'UNPROCESSED',
-  QUEUED: 'QUEUED',
-  PROCESSING: 'PROCESSING',
-  COMPLETE: 'COMPLETE',
-  FAILED: 'FAILED',
-  GRAPH_FAILED: 'GRAPH_FAILED'
-} as const;
 
 export const NODE_RANK_DIR = {
   TOP_TO_BOTTOM: 'TB',

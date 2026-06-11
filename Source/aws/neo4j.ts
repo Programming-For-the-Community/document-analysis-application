@@ -2,6 +2,7 @@ import neo4j, { Driver, Integer, ManagedTransaction } from 'neo4j-driver';
 
 import { RelationshipGraph } from './bedrock';
 import { Neo4JConfig } from '../interfaces/config';
+import { EntityConnection } from '../interfaces/graph';
 import { Logger } from '../utils/logger';
 
 const VALID_ENTITY_TYPES = new Set([
@@ -196,12 +197,7 @@ export class Neo4J {
     entityName: string,
     entityType: string
   ): Promise<{
-    connections: Array<{
-      relType: string;
-      otherName: string;
-      otherType: string;
-      direction: 'out' | 'in';
-    }>;
+    connections: EntityConnection[];
     documentIds: string[];
   }> {
     const session = this.driver.session();
@@ -219,7 +215,7 @@ export class Neo4J {
         otherName: r.get('otherName') as string,
         otherType: r.get('otherType') as string,
         relType: r.get('relType') as string,
-        direction: r.get('direction') as 'out' | 'in',
+        direction: r.get('direction') as EntityConnection['direction'],
       }));
 
       const docResult = await session.run(

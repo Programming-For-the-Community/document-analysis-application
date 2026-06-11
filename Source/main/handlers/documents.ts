@@ -15,6 +15,7 @@ import { embeddingS3Key, textS3Key, saveDocumentText, embedAndStore } from '../s
 import { extractTextFromBuffer } from '../services/doc-extractor';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
+import { ProcessingStatus } from '../../types/document';
 import { Logger } from '../../utils/logger';
 import { userFacingError } from '../../utils/errors';
 
@@ -75,7 +76,7 @@ function isStaleProcessing(doc: DocumentRecord): boolean {
 // Returns the status to reset a stale PROCESSING doc to:
 // - QUEUED if Textract results are still available (within 7-day TTL)
 // - UNPROCESSED if results have expired and Textract must be re-run
-function staleProcessingResetStatus(doc: DocumentRecord): 'QUEUED' | 'UNPROCESSED' {
+function staleProcessingResetStatus(doc: DocumentRecord): Extract<ProcessingStatus, 'QUEUED' | 'UNPROCESSED'> {
   if (!doc.queuedAt) return 'UNPROCESSED';
   const age = Date.now() - new Date(doc.queuedAt).getTime();
   return age < TEXTRACT_TTL_MS ? 'QUEUED' : 'UNPROCESSED';

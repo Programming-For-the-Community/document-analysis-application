@@ -1,5 +1,5 @@
 import { MemberRole } from '../../../../types/app';
-import { ShareModalProps } from '../../../../interfaces/renderer/project';
+import { ShareModalProps } from '../../../../interfaces/renderer/project/share';
 
 export function ShareModal({
   isOpen, members, membersLoading, shareUsername, shareRole, sharing, error, suggestions, callerRole,

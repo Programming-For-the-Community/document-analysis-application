@@ -1,10 +1,4 @@
-export type ProcessingStatus =
-  | 'UNPROCESSED'
-  | 'QUEUED'
-  | 'PROCESSING'
-  | 'COMPLETE'
-  | 'FAILED'
-  | 'GRAPH_FAILED';
+import { ProcessingStatus } from '../types/document';
 
 export interface DocumentRecord {
   documentId: string;

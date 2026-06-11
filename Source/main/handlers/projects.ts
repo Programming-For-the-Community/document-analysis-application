@@ -8,6 +8,7 @@ import { Qdrant } from '../../aws/qdrant';
 import { AppConfig } from '../../interfaces/config';
 import { ProjectListItem } from '../../interfaces/app';
 import { CognitoAuthResult } from '../../types/aws';
+import { MemberRole } from '../../types/app';
 import { Logger } from '../../utils/logger';
 import { userFacingError } from '../../utils/errors';
 
@@ -184,7 +185,7 @@ export function registerProjectHandlers(
       _event,
       projectId: string,
       targetUsername: string,
-      role: 'VIEW' | 'EDIT'
+      role: MemberRole
     ): Promise<SimpleResult> => {
       const config = getAppConfig();
       const tokens = getTokens();
@@ -391,7 +392,7 @@ export function registerProjectHandlers(
       _event,
       projectId: string,
       targetSub: string,
-      newRole: 'VIEW' | 'EDIT'
+      newRole: MemberRole
     ): Promise<SimpleResult> => {
       const config = getAppConfig();
       const tokens = getTokens();

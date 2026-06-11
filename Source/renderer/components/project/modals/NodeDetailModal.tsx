@@ -1,5 +1,5 @@
 import { getEntityColors } from '../../../../utils/renderer/graph';
-import { NodeDetailModalProps } from '../../../../interfaces/renderer/project';
+import { NodeDetailModalProps } from '../../../../interfaces/renderer/project/node-detail';
 
 export function NodeDetailModal({
   isOpen, entityName, entityType, connections, documents,

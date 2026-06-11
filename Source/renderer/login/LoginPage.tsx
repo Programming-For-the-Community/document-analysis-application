@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FormField } from '../components/FormField';
-import { LoginTab } from '../../types/renderer';
+import { LoginTab } from '../../types/renderer/login';
 import { useSignIn } from '../hooks/login/useSignIn';
 import { useSignUp } from '../hooks/login/useSignUp';
 

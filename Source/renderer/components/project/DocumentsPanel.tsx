@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { DocumentRow } from './DocumentRow';
 import { PROJECT_ROLES } from '../../../constants/app';
-import { DocumentsPanelProps } from '../../../interfaces/renderer/project';
+import { DocumentsPanelProps } from '../../../interfaces/renderer/project/documents';
 
 export function DocumentsPanel({
   documents, loading, uploadStatus, uploadError, role,

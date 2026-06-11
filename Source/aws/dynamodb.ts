@@ -16,10 +16,11 @@ import {
 import { AWS_STS } from './sts';
 import { Logger } from '../utils/logger';
 import { awsConfig } from '../main/config';
-import { ProjectRole } from '../types/app';
+import { ProjectRole, MemberRole } from '../types/app';
 import { DynamoDBConfig } from '../interfaces/config';
 import { ProjectListItem, ProjectMember } from '../interfaces/app';
-import { DocumentRecord, ProcessingStatus } from '../interfaces/document';
+import { DocumentRecord } from '../interfaces/document';
+import { ProcessingStatus } from '../types/document';
 
 export class AWS_DYNAMODB {
   // Client is created inside init() because it needs STS credentials
@@ -114,7 +115,7 @@ export class AWS_DYNAMODB {
     projectId: string,
     targetSub: string,
     targetUsername: string,
-    role: 'VIEW' | 'EDIT',
+    role: MemberRole,
     config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(
@@ -166,14 +167,14 @@ export class AWS_DYNAMODB {
     return (result.Items ?? []).map((item) => ({
       userSub: item['user_sub'] as string,
       username: item['username'] as string,
-      role: item['role'] as 'VIEW' | 'EDIT',
+      role: item['role'] as MemberRole,
     }));
   }
 
   public static async updateProjectRole(
     projectId: string,
     targetSub: string,
-    newRole: 'VIEW' | 'EDIT',
+    newRole: MemberRole,
     config: DynamoDBConfig
   ): Promise<void> {
     await this.client.send(

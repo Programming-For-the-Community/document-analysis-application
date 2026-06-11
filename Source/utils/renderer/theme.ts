@@ -1,5 +1,5 @@
 import { THEME } from '../../constants/renderer/shared';
-import { Theme } from '../../types/renderer';
+import { Theme } from '../../types/renderer/shared';
 
 export function getStoredTheme(): Theme {
   return localStorage.getItem('doc-analysis-theme') === THEME.LIGHT

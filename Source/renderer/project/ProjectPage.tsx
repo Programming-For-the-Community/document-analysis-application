@@ -16,7 +16,7 @@ import { useSearch } from '../hooks/project/useSearch';
 import { useNodeDetail } from '../hooks/project/useNodeDetail';
 import { useDocumentText } from '../hooks/project/useDocumentText';
 import { useShareProject } from '../hooks/project/useShareProject';
-import { PROCESSING_STATUS } from '../../constants/renderer/project';
+import { PROCESSING_STATUS } from '../../constants/document';
 import { PROJECT_ROLES } from '../../constants/app';
 
 export function ProjectPage() {

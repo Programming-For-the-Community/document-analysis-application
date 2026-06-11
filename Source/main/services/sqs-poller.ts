@@ -8,7 +8,7 @@ import { AWS_DYNAMODB } from '../../aws/dynamodb';
 import { Neo4J } from '../../aws/neo4j';
 import { AppConfig } from '../../interfaces/config';
 import { saveDocumentText, embedAndStore } from './embedder';
-import { ProcessingStatus } from '../../interfaces/document';
+import { ProcessingStatus } from '../../types/document';
 import { getSessionId } from './session';
 import { Logger } from '../../utils/logger';
 

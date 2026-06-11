@@ -1,7 +1,9 @@
 import { ProjectListItem, ProjectMember } from '../app';
-import { ProcessingStatus } from '../../types/renderer';
 import { ProjectRole, MemberRole } from '../../types/app';
-import { GraphNode, GraphEdge, DocumentRecord, SearchCitation } from './project';
+import { GraphNode, GraphEdge, SearchCitation } from './project';
+import { DocumentRecord, UploadFileInfo } from '../interfaces/document';
+import { ProcessingStatus } from '../../types/document';
+import { EntityConnection } from '../interfaces/graph';
 
 export {};
 
@@ -79,15 +81,15 @@ declare global {
       documents: {
         selectFiles: () => Promise<{
           success: boolean;
-          files: Array<{ name: string; path: string; size: number }>;
+          files: UploadFileInfo[];
         }>;
         selectFolder: () => Promise<{
           success: boolean;
-          files: Array<{ name: string; path: string; size: number }>;
+          files: UploadFileInfo[];
         }>;
         upload: (
           projectId: string,
-          files: Array<{ name: string; path: string; size: number }>
+          files: UploadFileInfo[]
         ) => Promise<{
           success: boolean;
           uploaded?: DocumentRecord[];
@@ -157,12 +159,7 @@ declare global {
           entityType: string
         ) => Promise<{
           success: boolean;
-          connections?: Array<{
-            relType: string;
-            otherName: string;
-            otherType: string;
-            direction: 'out' | 'in';
-          }>;
+          connections?: EntityConnection[];
           documents?: Array<{ documentId: string; documentName: string }>;
           error?: string;
         }>;

@@ -3,11 +3,11 @@ import fcose from 'cytoscape-fcose';
 import dagre from 'cytoscape-dagre';
 
 import { THEME } from '../../constants/renderer/shared';
-import { CyInstance, GraphEdge, GraphNode } from '../../interfaces/renderer/project';
-import { Theme, EntityColorMap, GraphLayoutOptions, EdgeColorMap } from '../../types/renderer';
-import { ENTITY_COLORS_DARK, ENTITY_COLORS_PARCHMENT, GRAPH_LAYOUTS, EDGE_COLORS_DARK, EDGE_COLORS_PARCHMENT, DEFAULT_GRAPH_LAYOUT } from '../../constants/renderer/project';
+import { GraphEdge, GraphNode, GraphLayoutOptions } from '../../interfaces/renderer/project/graph';
+import { Theme, EntityColorMap, EdgeColorMap } from '../../types/renderer/shared';
+import { ENTITY_COLORS_DARK, ENTITY_COLORS_PARCHMENT, GRAPH_LAYOUTS, EDGE_COLORS_DARK, EDGE_COLORS_PARCHMENT, DEFAULT_GRAPH_LAYOUT } from '../../constants/renderer/project/graph';
 
-export type { CyInstance };
+export type CyInstance = cytoscape.Core;
 
 cytoscape.use(fcose);
 cytoscape.use(dagre);
@@ -16,7 +16,7 @@ export function getEntityColors(theme: Theme): EntityColorMap {
   return theme === THEME.LIGHT ? ENTITY_COLORS_PARCHMENT : ENTITY_COLORS_DARK;
 }
 
-export function getGraphStyle(theme: Theme): unknown[] {
+export function getGraphStyle(theme: Theme): cytoscape.StylesheetJsonBlock[] {
   const edgeColors: EdgeColorMap = theme === THEME.LIGHT ? EDGE_COLORS_PARCHMENT : EDGE_COLORS_DARK;
   return [
     {
@@ -126,13 +126,13 @@ export function createCytoscape(
   theme: Theme
 ): CyInstance {
   const { map, max } = calcDegreeMap(edges);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return cytoscape({
     container,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     elements: buildGraphElements(nodes, edges, map, max, theme) as any,
-    style: getGraphStyle(theme) as any,
+    style: getGraphStyle(theme),
     layout: getLayoutConfig(layout),
-  }) as unknown as CyInstance;
+  });
 }
 
 export function wireGraphHover(
@@ -140,9 +140,9 @@ export function wireGraphHover(
   container: HTMLElement,
   tooltipEl: HTMLElement | null
 ): void {
-  cy.on('mouseover', 'node', (e) => {
+  cy.on('mouseover', 'node', (e: cytoscape.EventObjectNode) => {
     const node = e.target;
-    const rendPos = e.renderedPosition!;
+    const rendPos = e.renderedPosition;
     const rect = container.getBoundingClientRect();
     const hoveredLabel = String(node.data('label'));
     if (tooltipEl) {
@@ -157,7 +157,9 @@ export function wireGraphHover(
     }
     const sameNodes = cy.nodes().filter((n) => String(n.data('label')) === hoveredLabel);
     const highlightedIds = new Set<string>();
-    sameNodes.forEach((n) => highlightedIds.add(String(n.data('id'))));
+    sameNodes.forEach((n) => {
+      highlightedIds.add(String(n.data('id')));
+    });
     for (const comp of cy.elements().components()) {
       let matchFound = false;
       sameNodes.forEach((n) => {
@@ -166,7 +168,9 @@ export function wireGraphHover(
       if (matchFound)
         cy.nodes()
           .filter((n) => comp.has(n))
-          .forEach((n) => highlightedIds.add(String(n.data('id'))));
+          .forEach((n) => {
+            highlightedIds.add(String(n.data('id')));
+          });
     }
     const highlightNodes = cy.nodes().filter((n) => highlightedIds.has(String(n.data('id'))));
     const highlightEdges = cy
@@ -183,21 +187,24 @@ export function wireGraphHover(
     tooltipEl?.classList.add('hidden');
     cy.elements().removeClass('faded labelled');
   });
-  cy.on('mouseover', 'edge', (e) => {
+  cy.on('mouseover', 'edge', (e: cytoscape.EventObjectEdge) => {
     e.target.addClass('labelled');
   });
-  cy.on('mouseout', 'edge', (e) => {
+  cy.on('mouseout', 'edge', (e: cytoscape.EventObjectEdge) => {
     e.target.removeClass('labelled');
   });
 }
 
+// eles.hide()/eles.show() exist at runtime but are missing from the bundled cytoscape types.
+type Toggleable = { hide(): void; show(): void };
+
 export function applyTypeFilters(cy: CyInstance, hiddenTypes: Set<string>): void {
-  cy.nodes().show();
-  cy.edges().show();
+  (cy.nodes() as unknown as Toggleable).show();
+  (cy.edges() as unknown as Toggleable).show();
   for (const type of hiddenTypes) {
     const ns = cy.nodes(`[type="${type}"]`);
-    ns.hide();
-    ns.connectedEdges().hide();
+    (ns as unknown as Toggleable).hide();
+    (ns.connectedEdges() as unknown as Toggleable).hide();
   }
 }
 

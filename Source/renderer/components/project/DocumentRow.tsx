@@ -1,5 +1,5 @@
-import { ProcessingStatus } from '../../../types/renderer';
-import { DocumentRowProps } from '../../../interfaces/renderer/project';
+import { ProcessingStatus } from '../../../types/document';
+import { DocumentRowProps } from '../../../interfaces/renderer/project/documents';
 
 const STATUS_BADGE: Record<ProcessingStatus, { label: string; cls: string }> = {
   UNPROCESSED:  { label: 'not processed', cls: 'doc-status-badge doc-status-unprocessed' },

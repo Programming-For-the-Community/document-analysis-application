@@ -1,6 +1,6 @@
 import { MemberRole } from '../../../types/app';
 import { ProjectMember } from '../../../interfaces/app';
-import { PROJECT_ERRORS } from '../../../constants/renderer/project';
+import { PROJECT_ERRORS } from '../../../constants/renderer/project/errors';
 
 export async function loadMembers(
   projectId: string

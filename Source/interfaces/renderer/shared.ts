@@ -1,6 +1,8 @@
+import { Theme } from '../../types/renderer/shared';
+
 export interface TopbarProps {
   username: string;
-  theme: 'parchment' | 'slate';
+  theme: Theme;
   onToggleTheme: () => void;
   onLogout: () => void;
   projectName?: string;

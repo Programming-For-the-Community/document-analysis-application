@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-import { Theme } from '../../types/renderer';
+import { Theme } from '../../types/renderer/shared';
 import { THEME } from '../../constants/renderer/shared';
 import { getStoredTheme, applyTheme, fetchServerTheme } from '../../utils/renderer/theme';
 

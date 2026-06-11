@@ -5,6 +5,7 @@ import {
   deleteDocument,
   retryGraph,
 } from '../../handlers/project/documents';
+import { DocumentRecord, UploadFileInfo } from '../../../interfaces/document';
 
 export function useDocuments(projectId: string) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -48,7 +49,7 @@ export function useDocuments(projectId: string) {
   }, [projectId, reload]);
 
   const upload = useCallback(
-    async (files: Array<{ name: string; path: string; size: number }>) => {
+    async (files: UploadFileInfo[]) => {
       if (!files.length) return;
       setUploadStatus(`Uploading ${files.length} file${files.length !== 1 ? 's' : ''}…`);
       setUploadError(null);

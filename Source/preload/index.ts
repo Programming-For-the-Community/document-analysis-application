@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
+import { EntityConnection } from '../interfaces/graph';
+import { MemberRole } from '../types/app';
+
 contextBridge.exposeInMainWorld('electron', {
   auth: {
     start: (credentials: {
@@ -61,7 +64,7 @@ contextBridge.exposeInMainWorld('electron', {
     share: (
       projectId: string,
       username: string,
-      role: 'VIEW' | 'EDIT'
+      role: MemberRole
     ): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:share', projectId, username, role),
     unshare: (
@@ -79,7 +82,7 @@ contextBridge.exposeInMainWorld('electron', {
     updateRole: (
       projectId: string,
       targetSub: string,
-      newRole: 'VIEW' | 'EDIT'
+      newRole: MemberRole
     ): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('project:update-role', projectId, targetSub, newRole),
     searchUsers: (
@@ -160,12 +163,7 @@ contextBridge.exposeInMainWorld('electron', {
       entityType: string
     ): Promise<{
       success: boolean;
-      connections?: Array<{
-        relType: string;
-        otherName: string;
-        otherType: string;
-        direction: 'out' | 'in';
-      }>;
+      connections?: EntityConnection[];
       documents?: Array<{ documentId: string; documentName: string }>;
       error?: string;
     }> => ipcRenderer.invoke('graph:get-node-detail', projectId, entityName, entityType),

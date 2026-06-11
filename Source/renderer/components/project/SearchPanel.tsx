@@ -1,4 +1,4 @@
-import { SearchPanelProps } from '../../../interfaces/renderer/project';
+import { SearchPanelProps } from '../../../interfaces/renderer/project/search';
 
 export function SearchPanel({
   query, answer, citations, loading, error,

@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 import { PROJECT_ROLES } from '../../../constants/app';
 import { ProjectMember } from '../../../interfaces/app';
 import { MemberRole, ProjectRole } from '../../../types/app';
-import { PROJECT_ERRORS } from '../../../constants/renderer/project';
+import { PROJECT_ERRORS } from '../../../constants/renderer/project/errors';
 import {
   loadMembers,
   shareUser,

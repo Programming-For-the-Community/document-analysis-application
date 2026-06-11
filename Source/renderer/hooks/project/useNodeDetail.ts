@@ -1,13 +1,12 @@
 import { useState, useCallback } from 'react';
 import { fetchNodeDetail } from '../../handlers/project/graph';
+import { EntityConnection } from '../../../interfaces/graph';
 
 export function useNodeDetail(projectId: string) {
   const [isOpen, setIsOpen] = useState(false);
   const [entityName, setEntityName] = useState('');
   const [entityType, setEntityType] = useState('');
-  const [connections, setConnections] = useState<
-    Array<{ relType: string; otherName: string; otherType: string; direction: 'out' | 'in' }>
-  >([]);
+  const [connections, setConnections] = useState<EntityConnection[]>([]);
   const [documents, setDocuments] = useState<Array<{ documentId: string; documentName: string }>>(
     []
   );

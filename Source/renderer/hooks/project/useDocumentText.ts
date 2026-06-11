@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-import { PROJECT_ERRORS } from '../../../constants/renderer/project';
+import { PROJECT_ERRORS } from '../../../constants/renderer/project/errors';
 
 export function useDocumentText(projectId: string) {
   const [isOpen, setIsOpen] = useState(false);

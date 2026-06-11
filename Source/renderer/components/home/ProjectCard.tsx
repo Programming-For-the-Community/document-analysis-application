@@ -1,8 +1,8 @@
-import { PROJECT_ROLE } from '../../../constants/renderer/home';
+import { PROJECT_ROLES } from '../../../constants/app';
 import { ProjectCardProps } from '../../../interfaces/renderer/home';
 
 export function ProjectCard({ project, onRename, onDelete }: ProjectCardProps) {
-  const isOwner  = project.role === PROJECT_ROLE.OWNER;
+  const isOwner  = project.role === PROJECT_ROLES.OWNER;
   const docCount = project.documentCount === 1 ? '1 document' : `${project.documentCount} documents`;
 
   return (
@@ -33,7 +33,7 @@ export function ProjectCard({ project, onRename, onDelete }: ProjectCardProps) {
           </>
         ) : (
           <span className={`project-role-badge project-role-${project.role.toLowerCase()}`}>
-            {project.role === PROJECT_ROLE.EDIT ? 'Can edit' : 'View only'}
+            {project.role === PROJECT_ROLES.EDIT ? 'Can edit' : 'View only'}
           </span>
         )}
       </div>

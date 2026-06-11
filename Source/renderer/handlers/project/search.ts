@@ -1,5 +1,5 @@
-import { PROJECT_ERRORS } from '../../../constants/renderer/project';
-import { SearchCitation } from '../../../interfaces/renderer/project';
+import { PROJECT_ERRORS } from '../../../constants/renderer/project/errors';
+import { SearchCitation } from '../../../interfaces/renderer/project/search';
 
 export async function searchDocuments(
   projectId: string,

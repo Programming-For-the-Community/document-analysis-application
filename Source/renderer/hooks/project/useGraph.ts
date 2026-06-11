@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-import { GraphNode, GraphEdge } from '../../../interfaces/renderer/project';
-import { DEFAULT_GRAPH_LAYOUT } from '../../../constants/renderer/project';
+import { GraphNode, GraphEdge } from '../../../interfaces/renderer/project/graph';
+import { DEFAULT_GRAPH_LAYOUT } from '../../../constants/renderer/project/graph';
 import { syncAndLoadGraph, loadGraphWithFilter } from '../../handlers/project/graph';
 
 export function useGraph(projectId: string, initialMinDocs: number) {
