@@ -5,12 +5,10 @@ import {
   Block,
 } from '@aws-sdk/client-textract';
 
-export type { Block };
-
 import { AWS_STS } from './sts';
 import { AWS_SECRETS } from './secrets';
-import { awsConfig } from '../main/config';
-import { Logger } from '../utils/logger';
+import { awsConfig } from '../../main/config';
+import { Logger } from '../../utils/logger';
 
 export class AWS_TEXTRACT {
   private static client: TextractClient;

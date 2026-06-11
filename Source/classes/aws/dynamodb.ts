@@ -14,13 +14,13 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 
 import { AWS_STS } from './sts';
-import { Logger } from '../utils/logger';
-import { awsConfig } from '../main/config';
-import { ProjectRole, MemberRole } from '../types/app';
-import { DynamoDBConfig } from '../interfaces/config';
-import { ProjectListItem, ProjectMember } from '../interfaces/app';
-import { DocumentRecord } from '../interfaces/document';
-import { ProcessingStatus } from '../types/document';
+import { Logger } from '../../utils/logger';
+import { awsConfig } from '../../main/config';
+import { ProjectRole, MemberRole } from '../../types/app';
+import { DynamoDBConfig } from '../../interfaces/config';
+import { ProjectListItem, ProjectMember } from '../../interfaces/app';
+import { DocumentRecord } from '../../interfaces/document';
+import { ProcessingStatus } from '../../types/document';
 
 export class AWS_DYNAMODB {
   // Client is created inside init() because it needs STS credentials

@@ -9,9 +9,9 @@ import {
 } from '@aws-sdk/client-s3';
 
 import { AWS_STS } from './sts';
-import { awsConfig } from '../main/config';
-import { S3Config } from '../interfaces/config';
-import { Logger } from '../utils/logger';
+import { awsConfig } from '../../main/config';
+import { S3Config } from '../../interfaces/config';
+import { Logger } from '../../utils/logger';
 
 export class AWS_S3 {
   // Client is created inside init() because it needs STS credentials

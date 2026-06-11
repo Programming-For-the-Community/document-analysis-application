@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 
-import { AWS_BEDROCK } from '../../aws/bedrock';
-import { Qdrant } from '../../aws/qdrant';
+import { AWS_BEDROCK } from '../../classes/aws/bedrock';
+import { Qdrant } from '../../classes/qdrant';
 import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';

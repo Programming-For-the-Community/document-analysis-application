@@ -1,16 +1,16 @@
 import path from 'path';
 import { app, BrowserWindow, dialog, Menu, screen } from 'electron';
 
-import { AWS_STS } from '../aws/sts';
-import { AWS_SECRETS } from '../aws/secrets';
-import { AWS_COGNITO } from '../aws/cognito';
-import { AWS_DYNAMODB } from '../aws/dynamodb';
-import { AWS_S3 } from '../aws/s3';
-import { AWS_SQS } from '../aws/sqs';
-import { AWS_TEXTRACT } from '../aws/textract';
-import { AWS_BEDROCK } from '../aws/bedrock';
-import { Neo4J } from '../aws/neo4j';
-import { Qdrant } from '../aws/qdrant';
+import { AWS_STS } from '../classes/aws/sts';
+import { AWS_SECRETS } from '../classes/aws/secrets';
+import { AWS_COGNITO } from '../classes/aws/cognito';
+import { AWS_DYNAMODB } from '../classes/aws/dynamodb';
+import { AWS_S3 } from '../classes/aws/s3';
+import { AWS_SQS } from '../classes/aws/sqs';
+import { AWS_TEXTRACT } from '../classes/aws/textract';
+import { AWS_BEDROCK } from '../classes/aws/bedrock';
+import { Neo4J } from '../classes/neo4j';
+import { Qdrant } from '../classes/qdrant';
 import { awsConfig, buildAppConfig } from './config';
 import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';

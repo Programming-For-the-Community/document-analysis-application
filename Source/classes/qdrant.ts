@@ -1,28 +1,10 @@
 import crypto from 'crypto';
-
 import { QdrantClient } from '@qdrant/js-client-rest';
 
-import { QdrantConfig } from '../interfaces/config';
 import { Logger } from '../utils/logger';
-
-const COLLECTION = 'document_chunks';
-const VECTOR_SIZE = 1024; // Titan Embed Text V2 default
-
-export interface DocumentChunk {
-  documentId: string;
-  projectId: string;
-  documentName: string;
-  chunkIndex: number;
-  text: string;
-  vector: number[];
-}
-
-export interface SearchHit {
-  documentId: string;
-  documentName: string;
-  text: string;
-  score: number;
-}
+import { QdrantConfig } from '../interfaces/config';
+import { COLLECTION, VECTOR_SIZE } from '../constants/qdrant';
+import { DocumentChunk, SearchHit } from '../interfaces/qdrant';
 
 export class Qdrant {
   private static client: QdrantClient;

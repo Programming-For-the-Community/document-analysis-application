@@ -1,8 +1,8 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-import { awsConfig } from '../main/config';
-import { SecretValues } from '../interfaces/aws';
-import { Logger } from '../utils/logger';
+import { awsConfig } from '../../main/config';
+import { SecretValues } from '../../interfaces/aws';
+import { Logger } from '../../utils/logger';
 
 export class AWS_SECRETS {
   private static client: SecretsManagerClient;

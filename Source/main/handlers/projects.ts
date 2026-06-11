@@ -1,10 +1,10 @@
 import { ipcMain } from 'electron';
 
-import { AWS_DYNAMODB } from '../../aws/dynamodb';
-import { AWS_COGNITO } from '../../aws/cognito';
-import { AWS_S3 } from '../../aws/s3';
-import { Neo4J } from '../../aws/neo4j';
-import { Qdrant } from '../../aws/qdrant';
+import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
+import { AWS_COGNITO } from '../../classes/aws/cognito';
+import { AWS_S3 } from '../../classes/aws/s3';
+import { Neo4J } from '../../classes/neo4j';
+import { Qdrant } from '../../classes/qdrant';
 import { AppConfig } from '../../interfaces/config';
 import { ProjectListItem } from '../../interfaces/app';
 import { CognitoAuthResult } from '../../types/aws';

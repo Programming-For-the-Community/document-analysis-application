@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 
-import { AWS_DYNAMODB } from '../../aws/dynamodb';
-import { AWS_STS } from '../../aws/sts';
-import { AWS_COGNITO } from '../../aws/cognito';
+import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
+import { AWS_STS } from '../../classes/aws/sts';
+import { AWS_COGNITO } from '../../classes/aws/cognito';
 import { CognitoCredentials } from '../../interfaces/aws';
 import { DynamoDBConfig, CognitoConfig } from '../../interfaces/config';
 import { getDeviceId } from './device';

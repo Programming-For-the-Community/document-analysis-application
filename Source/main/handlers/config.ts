@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron';
 
 import { awsConfig } from '../config';
-import { AWS_SECRETS } from '../../aws/secrets';
+import { AWS_SECRETS } from '../../classes/aws/secrets';
 import { AppConfig } from '../../interfaces/config';
 import { Logger } from '../../utils/logger';
 

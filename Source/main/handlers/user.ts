@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 
-import { AWS_DYNAMODB } from '../../aws/dynamodb';
+import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
 import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';

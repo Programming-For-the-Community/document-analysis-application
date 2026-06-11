@@ -1,10 +1,10 @@
 import { BrowserWindow } from 'electron';
 
-import { AWS_DYNAMODB } from '../../aws/dynamodb';
-import { AWS_S3 } from '../../aws/s3';
-import { Neo4J } from '../../aws/neo4j';
-import { Qdrant } from '../../aws/qdrant';
-import { RelationshipGraph } from '../../aws/bedrock';
+import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
+import { AWS_S3 } from '../../classes/aws/s3';
+import { Neo4J } from '../../classes/neo4j';
+import { Qdrant } from '../../classes/qdrant';
+import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
 import { DocumentRecord } from '../../interfaces/document';
 import { EmbeddingFile, embeddingS3Key, textS3Key, embedAndStore } from './embedder';

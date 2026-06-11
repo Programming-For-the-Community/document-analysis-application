@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron';
 
-import { Neo4J } from '../../aws/neo4j';
-import { AWS_S3 } from '../../aws/s3';
-import { AWS_DYNAMODB } from '../../aws/dynamodb';
-import { RelationshipGraph } from '../../aws/bedrock';
+import { Neo4J } from '../../classes/neo4j';
+import { AWS_S3 } from '../../classes/aws/s3';
+import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
+import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { Logger } from '../../utils/logger';

@@ -1,14 +1,17 @@
 import { BrowserWindow } from 'electron';
+import { Message } from '@aws-sdk/client-sqs';
 
-import { AWS_SQS, Message } from '../../aws/sqs';
-import { AWS_S3 } from '../../aws/s3';
-import { AWS_TEXTRACT } from '../../aws/textract';
-import { AWS_BEDROCK, GraphExtractionError } from '../../aws/bedrock';
-import { AWS_DYNAMODB } from '../../aws/dynamodb';
-import { Neo4J } from '../../aws/neo4j';
+import { AWS_SQS } from '../../classes/aws/sqs';
+import { AWS_S3 } from '../../classes/aws/s3';
+import { AWS_TEXTRACT } from '../../classes/aws/textract';
+import { AWS_BEDROCK } from '../../classes/aws/bedrock';
+import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
+import { Neo4J } from '../../classes/neo4j';
+import { GraphExtractionError } from '../../classes/graphExtractionError';
 import { AppConfig } from '../../interfaces/config';
 import { saveDocumentText, embedAndStore } from './embedder';
 import { ProcessingStatus } from '../../types/document';
+import { extractDocumentText } from '../../utils/textract';
 import { getSessionId } from './session';
 import { Logger } from '../../utils/logger';
 
@@ -84,7 +87,7 @@ async function processOneDocument(msg: PendingMessage, config: AppConfig): Promi
       `${docTag} Textract results fetched — ${blocks.length} block(s) in ${Date.now() - textractStart}ms`
     );
 
-    const documentText = AWS_BEDROCK.extractText(blocks);
+    const documentText = extractDocumentText(blocks);
 
     // Save raw text to S3 so re-embedding is always possible after restarts
     await saveDocumentText(msg.ownerSub, msg.projectId, msg.documentId, documentText, config);

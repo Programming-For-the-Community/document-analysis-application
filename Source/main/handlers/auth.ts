@@ -1,8 +1,8 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import path from 'path';
 
-import { AWS_STS } from '../../aws/sts';
-import { AWS_COGNITO } from '../../aws/cognito';
+import { AWS_STS } from '../../classes/aws/sts';
+import { AWS_COGNITO } from '../../classes/aws/cognito';
 import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { CognitoCredentials } from '../../interfaces/aws';

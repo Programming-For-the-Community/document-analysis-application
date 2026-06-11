@@ -7,10 +7,8 @@ import {
 } from '@aws-sdk/client-sqs';
 
 import { AWS_STS } from './sts';
-import { awsConfig } from '../main/config';
-import { Logger } from '../utils/logger';
-
-export type { Message };
+import { Logger } from '../../utils/logger';
+import { awsConfig } from '../../main/config';
 
 export class AWS_SQS {
   private static client: SQSClient;

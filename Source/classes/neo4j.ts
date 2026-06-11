@@ -1,97 +1,12 @@
 import neo4j, { Driver, Integer, ManagedTransaction } from 'neo4j-driver';
 
-import { RelationshipGraph } from './bedrock';
+import { RelationshipGraph } from '../interfaces/bedrock';
 import { Neo4JConfig } from '../interfaces/config';
 import { EntityConnection } from '../interfaces/graph';
 import { Logger } from '../utils/logger';
-
-const VALID_ENTITY_TYPES = new Set([
-  'Person',
-  'Organization',
-  'Date',
-  'Amount',
-  'Location',
-  'Product',
-  'Role',
-  'Account',
-]);
-
-const VALID_REL_TYPES = new Set([
-  'EMPLOYED_BY',
-  'MANAGES',
-  'PAID_BY',
-  'SHIPS_TO',
-  'SHIPS_FROM',
-  'ORDERED_FROM',
-  'INVOICED_BY',
-  'INVOICED_TO',
-  'REFERENCES',
-  'DATED',
-  'LOCATED_AT',
-  'HAS_ROLE',
-]);
-
-// Tokens that should stay uppercased in title case (acronyms / initialisms).
-const ALWAYS_UPPER = new Set(['LLC', 'LLP', 'LP', 'PLC', 'USA', 'UK', 'US', 'EU']);
-
-// Maps lowercase suffix variants → canonical display form (Organization names only).
-const ORG_SUFFIX_MAP: Record<string, string> = {
-  // Company
-  co: 'Company',
-  'co.': 'Company',
-  company: 'Company',
-  // Corporation
-  corp: 'Corporation',
-  'corp.': 'Corporation',
-  corporation: 'Corporation',
-  // Incorporated
-  inc: 'Inc.',
-  'inc.': 'Inc.',
-  incorporated: 'Inc.',
-  // Limited
-  ltd: 'Ltd.',
-  'ltd.': 'Ltd.',
-  limited: 'Ltd.',
-  // Associates
-  assoc: 'Associates',
-  'assoc.': 'Associates',
-  associates: 'Associates',
-  // Group / Holdings (common but not abbreviations — normalise spelling only)
-  group: 'Group',
-  holdings: 'Holdings',
-  international: 'International',
-  industries: 'Industries',
-  enterprises: 'Enterprises',
-  solutions: 'Solutions',
-  services: 'Services',
-};
-
-function isAllCaps(name: string): boolean {
-  return name === name.toUpperCase() && /[A-Z]{2,}/.test(name);
-}
-
-function toTitleCase(word: string): string {
-  if (ALWAYS_UPPER.has(word.toUpperCase())) return word.toUpperCase();
-  // Preserve short all-caps tokens — likely acronyms or geographic codes (NY, UAE, etc.)
-  if (word.length <= 4 && word === word.toUpperCase()) return word;
-  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-}
-
-function normalizeEntityName(name: string, type: string): string {
-  const trimmed = name.trim();
-  const tokens = trimmed.split(/\s+/);
-  const cased = isAllCaps(trimmed) ? tokens.map(toTitleCase) : tokens;
-
-  if (type === 'Organization') {
-    // Normalize the last two tokens to catch compound suffixes like "Co. Ltd."
-    for (let i = Math.max(0, cased.length - 2); i < cased.length; i++) {
-      const canonical = ORG_SUFFIX_MAP[cased[i].toLowerCase()];
-      if (canonical) cased[i] = canonical;
-    }
-  }
-
-  return cased.join(' ');
-}
+import { normalizeEntityName } from '../utils/entityNormalization';
+import { OTHER_ENTITY_TYPE, FALLBACK_RELATIONSHIP_TYPE } from '../constants/bedrock';
+import { VALID_ENTITY_TYPES, VALID_REL_TYPES } from '../constants/neo4j';
 
 export class Neo4J {
   private static driver: Driver;
@@ -274,7 +189,7 @@ export class Neo4J {
         // Group entities by type for batched inserts (one UNWIND per label)
         const byEntityType = new Map<string, { id: string; name: string }[]>();
         for (const entity of graph.entities) {
-          const label = VALID_ENTITY_TYPES.has(entity.type) ? entity.type : 'Other';
+          const label = VALID_ENTITY_TYPES.has(entity.type) ? entity.type : OTHER_ENTITY_TYPE;
           const group = byEntityType.get(label) ?? [];
           group.push({
             id: `${graph.documentId}:${entity.id}`,
@@ -314,7 +229,7 @@ export class Neo4J {
           { srcId: string; tgtId: string; attributes: Record<string, string> }[]
         >();
         for (const rel of graph.relationships) {
-          const type = VALID_REL_TYPES.has(rel.type) ? rel.type : 'REFERENCES';
+          const type = VALID_REL_TYPES.has(rel.type) ? rel.type : FALLBACK_RELATIONSHIP_TYPE;
           const group = byRelType.get(type) ?? [];
           group.push({
             srcId: `${graph.documentId}:${rel.source}`,

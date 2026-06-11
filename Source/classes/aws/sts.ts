@@ -1,8 +1,8 @@
 import { STSClient, AssumeRoleCommand, AssumeRoleCommandOutput } from '@aws-sdk/client-sts';
 
-import { awsConfig } from '../main/config';
-import { RoleCredentials } from '../interfaces/aws';
-import { Logger } from '../utils/logger';
+import { Logger } from '../../utils/logger';
+import { awsConfig } from '../../main/config';
+import { RoleCredentials } from '../../interfaces/aws';
 
 export class AWS_STS {
   // Client is created at class load time — no credentials needed to call AssumeRole,

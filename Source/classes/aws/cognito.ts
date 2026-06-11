@@ -10,11 +10,11 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 
 import { AWS_STS } from './sts';
-import { awsConfig } from '../main/config';
-import { CognitoConfig } from '../interfaces/config';
-import { CognitoAuthResult } from '../types/aws';
-import { CognitoCredentials } from '../interfaces/aws';
-import { Logger } from '../utils/logger';
+import { Logger } from '../../utils/logger';
+import { awsConfig } from '../../main/config';
+import { CognitoAuthResult } from '../../types/aws';
+import { CognitoConfig } from '../../interfaces/config';
+import { CognitoCredentials } from '../../interfaces/aws';
 
 export class AWS_COGNITO {
   // Client is created inside init() rather than as a static field initializer because

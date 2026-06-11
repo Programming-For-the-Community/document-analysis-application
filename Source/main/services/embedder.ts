@@ -1,6 +1,6 @@
-import { AWS_BEDROCK } from '../../aws/bedrock';
-import { AWS_S3 } from '../../aws/s3';
-import { Qdrant } from '../../aws/qdrant';
+import { AWS_BEDROCK } from '../../classes/aws/bedrock';
+import { AWS_S3 } from '../../classes/aws/s3';
+import { Qdrant } from '../../classes/qdrant';
 import { chunkText } from '../../utils/chunker';
 import { AppConfig } from '../../interfaces/config';
 import { Logger } from '../../utils/logger';
