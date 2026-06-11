@@ -7,10 +7,10 @@ import { Qdrant } from '../../classes/qdrant';
 import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
 import { DocumentRecord } from '../../interfaces/document';
-import { EmbeddingFile, embeddingS3Key, textS3Key, embedAndStore } from './embedder';
+import { EmbeddingFile } from '../../interfaces/services/embedder';
+import { POLL_INTERVAL_MS } from '../../constants/services/projectPoller';
+import { embedAndStore } from './embedder';
 import { Logger } from '../../utils/logger';
-
-const POLL_INTERVAL_MS = 30_000;
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
@@ -41,7 +41,7 @@ async function loadDocIntoLocalStores(doc: DocumentRecord, config: AppConfig): P
 
   if (!Qdrant.isAvailable()) return;
 
-  const embKey = embeddingS3Key(doc.ownerSub, doc.projectId, doc.documentId);
+  const embKey = AWS_S3.embeddingKey(doc.ownerSub, doc.projectId, doc.documentId);
   try {
     const embText = await AWS_S3.getObjectText(embKey, config.s3);
     const file = JSON.parse(embText) as EmbeddingFile;
@@ -59,7 +59,7 @@ async function loadDocIntoLocalStores(doc: DocumentRecord, config: AppConfig): P
     /* fall through to raw text */
   }
 
-  const rawKey = textS3Key(doc.ownerSub, doc.projectId, doc.documentId);
+  const rawKey = AWS_S3.textKey(doc.ownerSub, doc.projectId, doc.documentId);
   try {
     const rawText = await AWS_S3.getObjectText(rawKey, config.s3);
     await embedAndStore(

@@ -11,7 +11,7 @@ import { AWS_BEDROCK } from '../../classes/aws/bedrock';
 import { Neo4J } from '../../classes/neo4j';
 import { Qdrant } from '../../classes/qdrant';
 import { AppConfig } from '../../interfaces/config';
-import { embeddingS3Key, textS3Key, saveDocumentText, embedAndStore } from '../services/embedder';
+import { saveDocumentText, embedAndStore } from '../services/embedder';
 import { extractTextFromBuffer } from '../services/doc-extractor';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
@@ -561,8 +561,8 @@ export function registerDocumentHandlers(
           [
             s3Key,
             `${ownerSub}/${projectId}/analysis/${documentId}.json`,
-            textS3Key(ownerSub, projectId, documentId),
-            embeddingS3Key(ownerSub, projectId, documentId),
+            AWS_S3.textKey(ownerSub, projectId, documentId),
+            AWS_S3.embeddingKey(ownerSub, projectId, documentId),
           ],
           config.s3
         );
@@ -608,7 +608,7 @@ export function registerDocumentHandlers(
         const rec = await AWS_DYNAMODB.getDocumentRecord(projectId, documentId, config.dynamoDB);
         if (!rec) return { success: false, error: 'Document not found' };
 
-        const key = textS3Key(rec.ownerSub, projectId, documentId);
+        const key = AWS_S3.textKey(rec.ownerSub, projectId, documentId);
         try {
           const text = await AWS_S3.getObjectText(key, config.s3);
           return { success: true, text };
@@ -644,7 +644,7 @@ export function registerDocumentHandlers(
         if (!rec) return { success: false, error: 'Document not found' };
 
         const text = await AWS_S3.getObjectText(
-          textS3Key(rec.ownerSub, projectId, documentId),
+          AWS_S3.textKey(rec.ownerSub, projectId, documentId),
           config.s3
         ).catch(() => null);
 

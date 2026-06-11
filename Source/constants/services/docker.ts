@@ -1,0 +1,1 @@
+export const COMPOSE_FILE = 'docker-compose.yml';

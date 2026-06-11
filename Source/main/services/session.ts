@@ -3,14 +3,15 @@ import crypto from 'crypto';
 import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
 import { AWS_STS } from '../../classes/aws/sts';
 import { AWS_COGNITO } from '../../classes/aws/cognito';
-import { CognitoCredentials } from '../../interfaces/aws';
-import { DynamoDBConfig, CognitoConfig } from '../../interfaces/config';
+import { DynamoDBConfig } from '../../interfaces/config';
+import { HeartbeatOptions } from '../../interfaces/services/session';
+import {
+  HEARTBEAT_INTERVAL_MS,
+  TOKEN_REFRESH_THRESHOLD_MS,
+  MAX_REFRESH_FAILURES,
+} from '../../constants/services/session';
 import { getDeviceId } from './device';
 import { Logger } from '../../utils/logger';
-
-const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
-const TOKEN_REFRESH_THRESHOLD_MS = 50 * 60 * 1000; // refresh Cognito tokens after 50 min
-const MAX_REFRESH_FAILURES = 3; // force logout after this many consecutive Cognito refresh failures
 
 let sessionId: string | null = null;
 let tokenIssuedAt = 0;
@@ -24,15 +25,6 @@ export async function writeSession(userSub: string, config: DynamoDBConfig): Pro
   tokenIssuedAt = Date.now();
   Logger.info(`Session established for user ${userSub} on device ${deviceId}: ${sessionId}`);
   return sessionId;
-}
-
-export interface HeartbeatOptions {
-  userSub: string;
-  dbConfig: DynamoDBConfig;
-  cognitoConfig: CognitoConfig;
-  getRefreshToken: () => string | null;
-  setTokens: (tokens: CognitoCredentials) => void;
-  onInvalidated: () => void;
 }
 
 export function startHeartbeat(opts: HeartbeatOptions): void {

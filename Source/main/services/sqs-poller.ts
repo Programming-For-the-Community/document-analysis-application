@@ -9,6 +9,12 @@ import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
 import { Neo4J } from '../../classes/neo4j';
 import { GraphExtractionError } from '../../classes/graphExtractionError';
 import { AppConfig } from '../../interfaces/config';
+import { ParsedMessage } from '../../interfaces/services/sqsPoller';
+import {
+  TRAILING_WINDOW_MS,
+  MAX_BATCH_WAIT_MS,
+  BEDROCK_CONCURRENCY,
+} from '../../constants/services/sqsPoller';
 import { saveDocumentText, embedAndStore } from './embedder';
 import { ProcessingStatus } from '../../types/document';
 import { extractDocumentText } from '../../utils/textract';
@@ -23,34 +29,15 @@ function pushStatusUpdate(projectId: string, documentId: string, status: Process
   });
 }
 
-const TRAILING_WINDOW_MS = 2 * 60 * 1000; // 2 min after last completion
-const MAX_BATCH_WAIT_MS = 10 * 60 * 1000; // 10 min hard cap
-
-interface ParsedMessage {
-  receiptHandle: string;
-  jobId: string;
-  s3Key: string; // owner_sub/project_id/document_id
-  ownerSub: string;
-  projectId: string;
-  documentId: string;
-  status: string;
-  statusMessage: string;
-}
-
-// Subset used for the SUCCEEDED batch pipeline
-type PendingMessage = ParsedMessage;
-
 let running = false;
 let currentUserSub: string | null = null;
 let currentConfig: AppConfig | null = null;
 
-const pending = new Map<string, PendingMessage>(); // documentId → message
+const pending = new Map<string, ParsedMessage>(); // documentId → message
 let trailingTimer: ReturnType<typeof setTimeout> | null = null;
 let maxBatchTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── Batch processing ─────────────────────────────────────────────────────────
-
-const BEDROCK_CONCURRENCY = 5; // max parallel Bedrock requests
 
 // Runs fn over every item with at most `limit` concurrent in-flight promises.
 async function withConcurrency<T>(
@@ -67,7 +54,7 @@ async function withConcurrency<T>(
   await Promise.all(active);
 }
 
-async function processOneDocument(msg: PendingMessage, config: AppConfig): Promise<void> {
+async function processOneDocument(msg: ParsedMessage, config: AppConfig): Promise<void> {
   const docTag = `[doc:${msg.documentId} project:${msg.projectId}]`;
   const batchStart = Date.now();
   Logger.info(`${docTag} Processing started (Textract job: ${msg.jobId})`);

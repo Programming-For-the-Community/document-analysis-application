@@ -7,13 +7,8 @@ import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
 import { CognitoCredentials } from '../../interfaces/aws';
 import { extractSub } from '../../utils/jwt';
-import {
-  writeSession,
-  startHeartbeat,
-  stopHeartbeat,
-  clearSession,
-  HeartbeatOptions,
-} from '../services/session';
+import { writeSession, startHeartbeat, stopHeartbeat, clearSession } from '../services/session';
+import { HeartbeatOptions } from '../../interfaces/services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
 import { startProjectPoller, stopProjectPoller } from '../services/project-poller';
 import { syncNeo4jForUser } from '../services/neo4j-sync';

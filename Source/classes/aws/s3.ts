@@ -88,6 +88,14 @@ export class AWS_S3 {
     return keys;
   }
 
+  public static textKey(ownerSub: string, projectId: string, documentId: string): string {
+    return `${ownerSub}/${projectId}/text/${documentId}.txt`;
+  }
+
+  public static embeddingKey(ownerSub: string, projectId: string, documentId: string): string {
+    return `${ownerSub}/${projectId}/embeddings/${documentId}.json`;
+  }
+
   public static async getObjectText(key: string, config: S3Config): Promise<string> {
     const result = await this.client.send(
       new GetObjectCommand({ Bucket: config.documentBucket, Key: key })

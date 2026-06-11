@@ -3,26 +3,8 @@ import { AWS_S3 } from '../../classes/aws/s3';
 import { Qdrant } from '../../classes/qdrant';
 import { chunkText } from '../../utils/chunker';
 import { AppConfig } from '../../interfaces/config';
+import { EmbeddingFile } from '../../interfaces/services/embedder';
 import { Logger } from '../../utils/logger';
-
-export interface EmbeddingFile {
-  documentId: string;
-  projectId: string;
-  documentName: string;
-  chunks: Array<{
-    chunkIndex: number;
-    text: string;
-    vector: number[];
-  }>;
-}
-
-export function textS3Key(ownerSub: string, projectId: string, documentId: string): string {
-  return `${ownerSub}/${projectId}/text/${documentId}.txt`;
-}
-
-export function embeddingS3Key(ownerSub: string, projectId: string, documentId: string): string {
-  return `${ownerSub}/${projectId}/embeddings/${documentId}.json`;
-}
 
 // Saves the raw extracted text to S3. Call this right after Textract / text extraction
 // so there is always a stable text source available for re-embedding after restarts.
@@ -33,7 +15,7 @@ export async function saveDocumentText(
   text: string,
   config: AppConfig
 ): Promise<void> {
-  const key = textS3Key(ownerSub, projectId, documentId);
+  const key = AWS_S3.textKey(ownerSub, projectId, documentId);
   await AWS_S3.putText(key, text, config.s3);
   Logger.debug(`[doc:${documentId}] Raw text saved → ${key}`);
 }
@@ -67,7 +49,7 @@ export async function embedAndStore(
 
   const embeddingFile: EmbeddingFile = { documentId, projectId, documentName, chunks };
 
-  const key = embeddingS3Key(ownerSub, projectId, documentId);
+  const key = AWS_S3.embeddingKey(ownerSub, projectId, documentId);
   await AWS_S3.putJson(key, embeddingFile, config.s3);
   Logger.info(`${docTag} Embeddings written to S3 → ${key}`);
 

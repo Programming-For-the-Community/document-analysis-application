@@ -4,6 +4,7 @@ import { Neo4J } from '../../classes/neo4j';
 import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
 import { Logger } from '../../utils/logger';
+import { PROCESSING_STATUS } from '../../constants/document';
 
 export async function syncNeo4jForUser(userSub: string, config: AppConfig): Promise<void> {
   Logger.info(`Neo4j sync: starting full sync for user ${userSub}`);
@@ -15,7 +16,7 @@ export async function syncNeo4jForUser(userSub: string, config: AppConfig): Prom
     for (const project of projects) {
       try {
         const documents = await AWS_DYNAMODB.listDocuments(project.id, config.dynamoDB);
-        const complete = documents.filter((d) => d.processingStatus === 'COMPLETE');
+        const complete = documents.filter((d) => d.processingStatus === PROCESSING_STATUS.COMPLETE);
         if (complete.length === 0) continue;
 
         const missing = await Neo4J.findMissingDocuments(complete.map((d) => d.documentId));

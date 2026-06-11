@@ -165,6 +165,34 @@ export class Neo4J {
     }
   }
 
+  // Builds a readable text representation from a relationship graph for documents
+  // where the original text is no longer available (e.g. Textract-processed PDFs
+  // that pre-date raw text storage). Quality is lower than full-text embedding but
+  // still enables entity-based semantic search.
+  public static synthesizeTextFromGraph(graph: RelationshipGraph): string {
+    const entityById = new Map(graph.entities.map((e) => [e.id, e]));
+
+    const entityLines = graph.entities.map((e) => `${e.value} (${e.type})`).join('\n');
+
+    const relLines = graph.relationships
+      .map((r) => {
+        const src = entityById.get(r.source)?.value ?? r.source;
+        const tgt = entityById.get(r.target)?.value ?? r.target;
+        const attrs = r.attributes
+          ? ' ' +
+            Object.entries(r.attributes)
+              .map(([k, v]) => `${k}: ${v}`)
+              .join(', ')
+          : '';
+        return `${src} — ${r.type.replace(/_/g, ' ')} — ${tgt}${attrs}`;
+      })
+      .join('\n');
+
+    return [`Entities:\n${entityLines || '(none)'}`, `Relationships:\n${relLines || '(none)'}`].join(
+      '\n\n'
+    );
+  }
+
   // Replaces the stored graph for a document atomically.
   // Delete-then-insert (not MERGE) ensures stale entities from re-runs are removed.
   public static async loadGraph(graph: RelationshipGraph): Promise<void> {

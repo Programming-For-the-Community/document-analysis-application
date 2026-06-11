@@ -44,7 +44,7 @@ export const ENTITY_COLORS_DARK = {
   Regulation: '#fb7185',
   Agreement: '#c084fc',
   Asset: '#38bdf8',
-  Task: '#fb923c',
+  Task: '#4ade80',
   Other: '#a1a1aa',
 } as const;
 
@@ -63,7 +63,7 @@ export const ENTITY_COLORS_PARCHMENT = {
   Regulation: '#be123c',
   Agreement: '#7e22ce',
   Asset: '#0369a1',
-  Task: '#c2410c',
+  Task: '#15803d',
   Other: '#78716c',
 } as const;
 

@@ -1,6 +1,6 @@
 {
   "name": "document-analysis-app",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Charlie Hahm",
   "description": "Desktop app for document relationship analysis with AI",
   "main": "./dist/main/index.js",
@@ -96,7 +96,7 @@
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "electron": "^41.1.1",
     "electron-builder": "^26.8.1",
     "esbuild": "^0.25.12",

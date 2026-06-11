@@ -2,41 +2,14 @@ import path from 'path';
 
 import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
 import { AWS_S3 } from '../../classes/aws/s3';
+import { Neo4J } from '../../classes/neo4j';
 import { Qdrant } from '../../classes/qdrant';
 import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
+import { TEXT_EXTENSIONS } from '../../constants/document';
 import { Logger } from '../../utils/logger';
-import { EmbeddingFile, embeddingS3Key, textS3Key, embedAndStore } from './embedder';
-
-const TEXT_EXTENSIONS = new Set(['.txt', '.csv', '.md']);
-
-// Builds a readable text representation from a relationship graph for documents
-// where the original text is no longer available (e.g. Textract-processed PDFs
-// that pre-date raw text storage). Quality is lower than full-text embedding but
-// still enables entity-based semantic search.
-function synthesizeTextFromGraph(graph: RelationshipGraph): string {
-  const entityById = new Map(graph.entities.map((e) => [e.id, e]));
-
-  const entityLines = graph.entities.map((e) => `${e.value} (${e.type})`).join('\n');
-
-  const relLines = graph.relationships
-    .map((r) => {
-      const src = entityById.get(r.source)?.value ?? r.source;
-      const tgt = entityById.get(r.target)?.value ?? r.target;
-      const attrs = r.attributes
-        ? ' ' +
-          Object.entries(r.attributes)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(', ')
-        : '';
-      return `${src} — ${r.type.replace(/_/g, ' ')} — ${tgt}${attrs}`;
-    })
-    .join('\n');
-
-  return [`Entities:\n${entityLines || '(none)'}`, `Relationships:\n${relLines || '(none)'}`].join(
-    '\n\n'
-  );
-}
+import { EmbeddingFile } from '../../interfaces/services/embedder';
+import { embedAndStore } from './embedder';
 
 async function recoverFromS3Origin(
   doc: {
@@ -82,7 +55,7 @@ async function recoverFromS3Origin(
     return;
   }
 
-  const syntheticText = synthesizeTextFromGraph(graph);
+  const syntheticText = Neo4J.synthesizeTextFromGraph(graph);
   Logger.info(
     `${docTag} Recovering: embedding from synthesized entity/relationship text (${graph.entities.length} entities)`
   );
@@ -138,7 +111,7 @@ export async function syncQdrantForUser(userSub: string, config: AppConfig): Pro
               const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
               try {
                 // 1. S3 embedding file — fastest path, no Bedrock cost
-                const embKey = embeddingS3Key(doc.ownerSub, doc.projectId, doc.documentId);
+                const embKey = AWS_S3.embeddingKey(doc.ownerSub, doc.projectId, doc.documentId);
                 try {
                   const embText = await AWS_S3.getObjectText(embKey, config.s3);
                   const file = JSON.parse(embText) as EmbeddingFile;
@@ -157,7 +130,7 @@ export async function syncQdrantForUser(userSub: string, config: AppConfig): Pro
                 }
 
                 // 2. Saved raw text file — re-embed (Bedrock cost, but avoids Textract)
-                const rawKey = textS3Key(doc.ownerSub, doc.projectId, doc.documentId);
+                const rawKey = AWS_S3.textKey(doc.ownerSub, doc.projectId, doc.documentId);
                 try {
                   const rawText = await AWS_S3.getObjectText(rawKey, config.s3);
                   Logger.info(`${docTag} Re-embedding from saved raw text`);

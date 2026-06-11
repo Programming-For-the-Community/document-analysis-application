@@ -5,9 +5,8 @@ import path from 'path';
 import { app } from 'electron';
 
 import { AWS_SECRETS } from '../../classes/aws/secrets';
+import { COMPOSE_FILE } from '../../constants/services/docker';
 import { Logger } from '../../utils/logger';
-
-const COMPOSE_FILE = 'docker-compose.yml';
 
 function isDaemonRunning(): boolean {
   try {
