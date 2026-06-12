@@ -20,6 +20,8 @@ export function ShareModal({
               <input type="text" id="share-username-input" placeholder="Enter username" autoComplete="off"
                 value={shareUsername} onChange={e => onUsernameInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') onShare(); }}
+                // Delay lets a suggestion's onMouseDown (which fires first) update the
+                // input before this clears it, so picking a suggestion isn't undone.
                 onBlur={() => setTimeout(() => onSelectSuggestion(''), 150)}
               />
               {suggestions.length > 0 && (

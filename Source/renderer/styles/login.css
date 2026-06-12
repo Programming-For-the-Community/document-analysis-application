@@ -74,41 +74,6 @@ body.page-login {
   color: var(--text);
 }
 
-.form-group {
-  text-align: left;
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-size: 14px;
-  color: var(--text);
-  background: var(--bg);
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.form-group input:focus {
-  border-color: var(--primary);
-}
-
-.error-msg {
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--error);
-}
-
 .page-login .btn-primary {
   width: 100%;
   padding: 11px 20px;

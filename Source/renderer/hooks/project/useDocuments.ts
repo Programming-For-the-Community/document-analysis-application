@@ -37,6 +37,9 @@ export function useDocuments(projectId: string) {
       );
     });
 
+    // Full reload rather than appending `doc` directly — it comes from the
+    // project-poller's periodic snapshot and may race with an in-flight
+    // upload's own reload, so re-fetching avoids duplicates/stale ordering.
     window.electron.documents.onDocumentAdded((doc) => {
       if (doc.projectId !== projectId) return;
       void reload();

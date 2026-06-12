@@ -22,7 +22,7 @@ export function GraphPanel({
 
   const hasData = nodes.length > 0;
 
-  // Create / destroy cytoscape when data or layout changes
+  // Create / destroy cytoscape when the node/edge data changes
   useEffect(() => {
     if (!containerRef.current || !hasData) return;
     cyRef.current?.destroy();
@@ -46,6 +46,11 @@ export function GraphPanel({
       observerRef.current?.disconnect();
       cyRef.current = null;
     };
+  // theme/hiddenTypes are intentionally excluded — the effects below apply them
+  // to the existing instance without a full recreation. layout is only the
+  // initial layout for a fresh instance; switching layouts later calls
+  // cy.layout().run() directly (see layout-picker-item onClick) instead of
+  // recreating the graph.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
 

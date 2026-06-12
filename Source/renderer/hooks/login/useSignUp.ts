@@ -20,6 +20,8 @@ export function useSignUp(setError: (e: string | null) => void) {
       setError(error);
       setCreatingAccount(false);
     }
+    // On success the main process loads the home page, unmounting this
+    // component — no need to reset creatingAccount back to false.
   }, [newUsername, newPassword, confirmPassword, setError]);
 
   return {

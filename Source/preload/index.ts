@@ -175,6 +175,8 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('user:set-preference', 'theme_preference', theme),
   },
   utils: {
+    // Dropped File objects no longer expose a `.path` property in the renderer
+    // (removed for sandboxing); webUtils.getPathForFile is the replacement API.
     getFilePath: (file: File): string => webUtils.getPathForFile(file),
   },
 });

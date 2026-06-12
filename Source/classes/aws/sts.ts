@@ -65,6 +65,8 @@ export class AWS_STS {
       accessKeyId: response.Credentials.AccessKeyId,
       secretAccessKey: response.Credentials.SecretAccessKey,
       sessionToken: response.Credentials.SessionToken,
+      // Expiration should always be set for an AssumeRole response; fall back to the
+      // requested 1h duration in case AWS ever omits it.
       expiresAt: response.Credentials.Expiration ?? new Date(Date.now() + 3_600_000),
     };
   }

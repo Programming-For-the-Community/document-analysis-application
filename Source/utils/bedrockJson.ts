@@ -1,3 +1,5 @@
+import { jsonrepair } from 'jsonrepair';
+
 import { BedrockJsonPayload } from '../interfaces/bedrock';
 import { Logger } from './logger';
 
@@ -98,20 +100,49 @@ export function parseBedrockJson(raw: string, documentId: string): BedrockJsonPa
   const s1 = tryParse(stripped);
   if (s1) return s1;
 
-  // Strategy 2: find and extract the outermost JSON object.
+  // Strategy 2: hand the full (fence-stripped) text to jsonrepair. It tokenizes
+  // the text itself rather than relying on naive brace-counting, so it can fix
+  // issues — like an unescaped quote inside a string value — that would otherwise
+  // throw off the brace-balanced extraction below before it even runs.
+  try {
+    const s2 = tryParse(jsonrepair(stripped));
+    if (s2) {
+      Logger.warn(`Bedrock: response for document ${documentId} required JSON repair (jsonrepair on full response) to parse successfully.`);
+      return s2;
+    }
+  } catch {
+    // jsonrepair throws on input it can't fix — fall through to other strategies.
+  }
+
+  // Strategy 3: find and extract the outermost JSON object.
   const extracted = extractJsonObject(stripped);
   if (extracted) {
-    const s2 = tryParse(extracted);
-    if (s2) return s2;
-
-    // Strategy 3: same object but with control characters inside strings sanitised.
-    const s3 = tryParse(sanitizeJsonStrings(extracted));
+    const s3 = tryParse(extracted);
     if (s3) return s3;
+
+    // Strategy 4: same object but with control characters inside strings sanitised.
+    const sanitized = sanitizeJsonStrings(extracted);
+    const s4 = tryParse(sanitized);
+    if (s4) {
+      Logger.warn(`Bedrock: response for document ${documentId} required control-character sanitisation to parse successfully.`);
+      return s4;
+    }
+
+    // Strategy 5: hand off to jsonrepair on the extracted object as a last resort.
+    try {
+      const s5 = tryParse(jsonrepair(sanitized));
+      if (s5) {
+        Logger.warn(`Bedrock: response for document ${documentId} required JSON repair (jsonrepair on extracted object) to parse successfully.`);
+        return s5;
+      }
+    } catch {
+      // jsonrepair throws on input it can't fix — fall through to failure logging.
+    }
   }
 
   Logger.warn(
     `Bedrock: all JSON parse strategies failed for document ${documentId}. ` +
-      `Raw response (first 200 chars): ${raw.slice(0, 200)}`
+      `Raw response (first 1000 chars): ${raw.slice(0, 1000)}`
   );
   return null;
 }

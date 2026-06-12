@@ -11,6 +11,8 @@ export function useTheme() {
     applyTheme(theme);
   }, [theme]);
 
+  // The user's theme preference is synced server-side, so on load it may
+  // override the local cache (e.g. if it was changed on another device).
   useEffect(() => {
     void fetchServerTheme().then((serverTheme) => {
       if (!serverTheme) return;

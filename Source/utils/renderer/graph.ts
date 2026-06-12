@@ -63,9 +63,8 @@ export function getGraphStyle(theme: Theme): cytoscape.StylesheetJsonBlock[] {
 }
 
 export function getLayoutConfig(name: string): Omit<GraphLayoutOptions, 'description'> {
-  let layoutOptions: GraphLayoutOptions = GRAPH_LAYOUTS.get(DEFAULT_GRAPH_LAYOUT)!; // Set default to fcose options, which work decently for most graph shapes and sizes
+  let layoutOptions: GraphLayoutOptions = GRAPH_LAYOUTS.get(DEFAULT_GRAPH_LAYOUT)!;
 
-  // GRAPH_LAYOUTS is a Map; check for presence of the key and return those layout options if found, otherwise default to fcose
   if (GRAPH_LAYOUTS.has(name)) {
     layoutOptions = GRAPH_LAYOUTS.get(name)!;
   };
@@ -98,7 +97,9 @@ export function buildGraphElements(
       const ratio = maxDeg > 0 ? deg / maxDeg : 0;
       const size = 36 + Math.round(ratio * 44);
       const fontSize = 9 + Math.round(ratio * 8);
-      const type = n.data.type as keyof EntityColorMap; // Assert type is a key in the color map, fallback to 'Other' if not found
+      // Cast so colors[type] type-checks; colors[type] ?? colors['Other'] below
+      // handles entity types that aren't in the color map.
+      const type = n.data.type as keyof EntityColorMap;
       return {
         data: {
           id: n.data.id,
@@ -155,6 +156,9 @@ export function wireGraphHover(
       tooltipEl.style.top = `${rect.top + rendPos.y}px`;
       tooltipEl.classList.remove('hidden');
     }
+    // Node ids are "name:type", so the same name can appear as separate nodes
+    // under different entity types. Highlight all of them plus each of their
+    // connected components, so hovering shows all context for that name.
     const sameNodes = cy.nodes().filter((n) => String(n.data('label')) === hoveredLabel);
     const highlightedIds = new Set<string>();
     sameNodes.forEach((n) => {

@@ -96,6 +96,8 @@ export class AWS_BEDROCK {
       })
     );
 
+    Logger.info(`Bedrock: response for document ${documentId} finished with stopReason: ${result.stopReason}`);
+
     if (result.stopReason === 'max_tokens') {
       Logger.warn(
         `Bedrock: response for document ${documentId} was truncated (stopReason: max_tokens) — ` +

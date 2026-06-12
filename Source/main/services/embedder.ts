@@ -38,7 +38,7 @@ export async function embedAndStore(
     return;
   }
 
-  Logger.info(`${docTag} Embedding ${textChunks.length} chunk(s) via Titan…`);
+  Logger.info(`${docTag} Embedding ${textChunks.length} chunk(s)…`);
   const vectors = await Promise.all(textChunks.map((chunk) => AWS_BEDROCK.embedText(chunk)));
 
   const chunks = textChunks.map((t, i) => ({

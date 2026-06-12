@@ -65,7 +65,9 @@ export function startHeartbeat(opts: HeartbeatOptions): void {
           }
         }
 
-        // 3. Validate session via device fingerprint
+        // 3. Validate session via device fingerprint — only one device may be
+        // active per account, so a mismatch means the user signed in elsewhere
+        // and this session should be logged out.
         const stored = await AWS_DYNAMODB.getSession(opts.userSub, opts.dbConfig);
         if (!stored || stored.deviceId !== myDeviceId) {
           Logger.warn(

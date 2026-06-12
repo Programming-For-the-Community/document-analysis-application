@@ -19,6 +19,8 @@ export function useSignIn(setError: (e: string | null) => void) {
       setError(error);
       setSigningIn(false);
     }
+    // On success the main process loads the home page, unmounting this
+    // component — no need to reset signingIn back to false.
   }, [username, password, setError]);
 
   return { username, setUsername, password, setPassword, signingIn, handleSignIn };
