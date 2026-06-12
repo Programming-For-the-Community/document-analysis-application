@@ -8,6 +8,21 @@ async function extractDocx(buffer: Buffer): Promise<string> {
   return result.value;
 }
 
+function cellValueToString(value: ExcelJS.CellValue): string {
+  if (value == null) return '';
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === 'object') {
+    if ('error' in value) return value.error;
+    if ('richText' in value) return value.richText.map((rt) => rt.text).join('');
+    if ('formula' in value || 'sharedFormula' in value) {
+      const { result } = value as ExcelJS.CellFormulaValue;
+      return result != null ? cellValueToString(result) : '';
+    }
+    if ('text' in value) return value.text; // hyperlink
+  }
+  return String(value);
+}
+
 async function extractXlsx(buffer: Buffer): Promise<string> {
   const workbook = new ExcelJS.Workbook();
   // Cast required: @types/node Buffer<ArrayBufferLike> vs ExcelJS's ungeneric Buffer
@@ -16,8 +31,17 @@ async function extractXlsx(buffer: Buffer): Promise<string> {
   workbook.eachSheet((sheet) => {
     lines.push(`=== ${sheet.name} ===`);
     sheet.eachRow((row) => {
-      const values = (row.values as ExcelJS.CellValue[]).slice(1); // index 0 is always null in exceljs
-      lines.push(values.map((v) => (v != null ? String(v) : '')).join('\t'));
+      const cells: string[] = [];
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        // Only the top-left cell of a merged range carries the value; the rest
+        // would otherwise repeat it across every cell in the range.
+        if (cell.isMerged && cell.master.address !== cell.address) {
+          cells.push('');
+          return;
+        }
+        cells.push(cellValueToString(cell.value));
+      });
+      lines.push(cells.join('\t'));
     });
   });
   return lines.join('\n');

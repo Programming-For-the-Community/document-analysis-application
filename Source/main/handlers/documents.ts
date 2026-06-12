@@ -18,6 +18,7 @@ import { CognitoAuthResult } from '../../types/aws';
 import { ProcessingStatus } from '../../types/document';
 import { Logger } from '../../utils/logger';
 import { userFacingError } from '../../utils/errors';
+import { GraphExtractionError } from '../../classes/graphExtractionError';
 
 type DocumentUploadResult = {
   success: boolean;
@@ -183,17 +184,13 @@ async function enqueueDocument(doc: DocumentRecord, config: AppConfig): Promise<
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      Logger.error(`${docTag} Direct text processing FAILED: ${message}`);
-      await AWS_DYNAMODB.updateDocumentStatus(
-        doc.projectId,
-        doc.documentId,
-        'FAILED',
-        config.dynamoDB
-      );
+      const status: ProcessingStatus = err instanceof GraphExtractionError ? 'GRAPH_FAILED' : 'FAILED';
+      Logger.error(`${docTag} Direct text processing FAILED (${status}): ${message}`);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, status, config.dynamoDB);
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
         projectId: doc.projectId,
         documentId: doc.documentId,
-        status: 'FAILED',
+        status,
       });
     }
     return;
@@ -262,17 +259,13 @@ async function enqueueDocument(doc: DocumentRecord, config: AppConfig): Promise<
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      Logger.error(`${docTag} Bedrock document processing FAILED: ${message}`);
-      await AWS_DYNAMODB.updateDocumentStatus(
-        doc.projectId,
-        doc.documentId,
-        'FAILED',
-        config.dynamoDB
-      );
+      const status: ProcessingStatus = err instanceof GraphExtractionError ? 'GRAPH_FAILED' : 'FAILED';
+      Logger.error(`${docTag} Bedrock document processing FAILED (${status}): ${message}`);
+      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, status, config.dynamoDB);
       BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
         projectId: doc.projectId,
         documentId: doc.documentId,
-        status: 'FAILED',
+        status,
       });
     }
     return;
@@ -639,9 +632,12 @@ export function registerDocumentHandlers(
         return { success: false, error: 'App not ready' };
       }
 
+      let documentName: string | undefined;
+
       try {
         const rec = await AWS_DYNAMODB.getDocumentRecord(projectId, documentId, config.dynamoDB);
         if (!rec) return { success: false, error: 'Document not found' };
+        documentName = rec.documentName;
 
         const text = await AWS_S3.getObjectText(
           AWS_S3.textKey(rec.ownerSub, projectId, documentId),
@@ -689,7 +685,10 @@ export function registerDocumentHandlers(
         );
         return { success: true };
       } catch (err) {
-        const message = userFacingError(err, 'Graph retry failed. Please try again.');
+        const message =
+          err instanceof GraphExtractionError
+            ? `Graph extraction failed for "${documentName ?? 'this document'}" — the AI's response could not be parsed. Please try again.`
+            : userFacingError(err, 'Graph retry failed. Please try again.');
         Logger.error(
           `document:retry-graph error: ${err instanceof Error ? err.message : String(err)}`
         );

@@ -55,7 +55,7 @@ export class AWS_BEDROCK {
       new ConverseCommand({
         modelId: this.modelId,
         messages: [{ role: 'user', content: [{ text: prompt }] }],
-        inferenceConfig: { maxTokens: 1024, temperature: 0.3 },
+        inferenceConfig: { maxTokens: 64000, temperature: 0.3 },
       })
     );
     return result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? '';
@@ -92,9 +92,16 @@ export class AWS_BEDROCK {
             content: [{ text: `Document text:\n---\n${text}\n---` }],
           },
         ],
-        inferenceConfig: { maxTokens: 8192, temperature: 0 },
+        inferenceConfig: { maxTokens: 9999, temperature: 0 },
       })
     );
+
+    if (result.stopReason === 'max_tokens') {
+      Logger.warn(
+        `Bedrock: response for document ${documentId} was truncated (stopReason: max_tokens) — ` +
+          `the document likely produced more entities/relationships than fit in the response.`
+      );
+    }
 
     const rawText =
       result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? '{}';
