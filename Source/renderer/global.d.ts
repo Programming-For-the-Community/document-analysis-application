@@ -4,6 +4,7 @@ import { GraphNode, GraphEdge, SearchCitation } from './project';
 import { DocumentRecord, UploadFileInfo } from '../interfaces/document';
 import { ProcessingStatus } from '../../types/document';
 import { EntityConnection } from '../interfaces/graph';
+import { ConnectivityStatus } from '../interfaces/connectivity';
 
 export {};
 
@@ -32,6 +33,10 @@ declare global {
       };
       config: {
         get: () => Promise<Record<string, string>>;
+      };
+      connectivity: {
+        get: () => Promise<ConnectivityStatus>;
+        onStatusUpdate: (callback: (status: ConnectivityStatus) => void) => void;
       };
       nav: {
         openProject: (project: { id: string; name: string }) => Promise<void>;

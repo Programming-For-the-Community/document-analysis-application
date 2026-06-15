@@ -7,16 +7,75 @@ import { Logger } from '../utils/logger';
 import { normalizeEntityName } from '../utils/entityNormalization';
 import { OTHER_ENTITY_TYPE, FALLBACK_RELATIONSHIP_TYPE } from '../constants/bedrock';
 import { VALID_ENTITY_TYPES, VALID_REL_TYPES } from '../constants/neo4j';
+import { RECONNECT_INTERVAL_MS } from '../constants/connectivity';
+import { setConnectionStatus } from '../main/services/connectivity';
 
 export class Neo4J {
   private static driver: Driver;
+  private static available = false;
+  private static healthCheckTimer: NodeJS.Timeout | null = null;
 
-  public static init(config: Neo4JConfig): void {
+  public static async init(config: Neo4JConfig): Promise<void> {
     this.driver = neo4j.driver(config.uri, neo4j.auth.basic(config.user, config.password));
     Logger.debug(`Neo4j driver initialized (uri: ${config.uri})`);
+
+    // `docker compose up -d` returns as soon as the container is started, not once
+    // Neo4j is accepting connections — retry briefly to ride that out.
+    for (let attempt = 1; attempt <= 10; attempt++) {
+      if (await this.connect()) break;
+      if (attempt < 10) await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    if (this.available) {
+      Logger.info(`Neo4j: initialized (uri: ${config.uri})`);
+    } else {
+      Logger.warn('Neo4j: init failed — graph features will be unavailable until connection is restored');
+    }
+
+    // Ongoing health check: keeps connectivity status current and recovers
+    // from a lost connection without requiring another query attempt.
+    if (!this.healthCheckTimer) {
+      this.healthCheckTimer = setInterval(() => void this.connect(), RECONNECT_INTERVAL_MS);
+    }
+  }
+
+  // Single connection attempt: verifies the driver can reach the server and updates availability.
+  private static async connect(): Promise<boolean> {
+    try {
+      await this.driver.verifyConnectivity();
+      this.setAvailable(true);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.setAvailable(false, message);
+      return false;
+    }
+  }
+
+  // Updates availability and notifies the renderer, but only on a state change
+  // so the 15s health check doesn't spam logs/IPC while the state is unchanged.
+  private static setAvailable(value: boolean, errorMessage?: string): void {
+    const changed = this.available !== value;
+    this.available = value;
+    if (!changed) return;
+
+    setConnectionStatus('neo4j', value ? 'connected' : 'disconnected');
+    if (value) {
+      Logger.info('Neo4j: connected');
+    } else {
+      Logger.warn(`Neo4j: disconnected — graph features unavailable until reconnected: ${errorMessage}`);
+    }
+  }
+
+  public static isAvailable(): boolean {
+    return this.available;
   }
 
   public static async close(): Promise<void> {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
     await this.driver?.close();
   }
 

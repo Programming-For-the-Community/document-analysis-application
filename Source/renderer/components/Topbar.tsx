@@ -1,7 +1,9 @@
 import { TopbarProps } from '../../interfaces/renderer/shared';
+import { useConnectivity } from '../hooks/useConnectivity';
 
 export function Topbar({ username, theme, onToggleTheme, onLogout, projectName, onBack, onShare }: TopbarProps) {
   const isParchment = theme === 'parchment';
+  const connectivity = useConnectivity();
 
   return (
     <header className="topbar">
@@ -31,6 +33,20 @@ export function Topbar({ username, theme, onToggleTheme, onLogout, projectName, 
         )}
       </div>
       <div className="topbar-user">
+        <span
+          className={`status-pill status-pill--${connectivity.neo4j}`}
+          title={`Neo4j: ${connectivity.neo4j === 'connected' ? 'Connected' : 'Disconnected — retrying every 15s'}`}
+        >
+          <span className="status-pill-dot" />
+          Neo4j
+        </span>
+        <span
+          className={`status-pill status-pill--${connectivity.qdrant}`}
+          title={`Qdrant: ${connectivity.qdrant === 'connected' ? 'Connected' : 'Disconnected — retrying every 15s'}`}
+        >
+          <span className="status-pill-dot" />
+          Qdrant
+        </span>
         <span className="user-email">{username}</span>
         <button
           className="btn-theme-toggle"

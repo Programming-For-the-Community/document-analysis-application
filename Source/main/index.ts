@@ -14,6 +14,7 @@ import { Qdrant } from '../classes/qdrant';
 import { awsConfig, buildAppConfig } from './config';
 import { registerAuthHandlers } from './handlers/auth';
 import { registerConfigHandlers } from './handlers/config';
+import { registerConnectivityHandlers } from './handlers/connectivity';
 import { registerNavHandlers } from './handlers/nav';
 import { registerProjectHandlers } from './handlers/projects';
 import { registerDocumentHandlers } from './handlers/documents';
@@ -84,6 +85,7 @@ registerAuthHandlers(
 );
 
 registerConfigHandlers(() => appConfig);
+registerConnectivityHandlers();
 registerNavHandlers(() => mainWindow);
 registerProjectHandlers(
   () => appConfig,
@@ -125,14 +127,15 @@ app.whenReady().then(async () => {
     AWS_SQS.init();
     AWS_TEXTRACT.init();
     AWS_BEDROCK.init(appConfig.bedrock.modelId);
-    Neo4J.init(appConfig.neo4j);
-    await Qdrant.init(appConfig.qdrant);
 
     if (app.isPackaged) {
       await dockerManager.start();
     } else {
       Logger.info('Dev mode — skipping Docker management, assuming containers already running');
     }
+
+    await Neo4J.init(appConfig.neo4j);
+    await Qdrant.init(appConfig.qdrant);
 
     createWindow();
     Logger.info('Application startup complete');
@@ -157,6 +160,7 @@ app.on('will-quit', (event) => {
 
   Logger.info('App quitting — stopping Docker containers...');
   void Neo4J.close();
+  Qdrant.close();
   dockerManager.stop().finally(() => {
     Logger.info('Shutdown complete');
     app.quit();

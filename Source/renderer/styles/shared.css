@@ -42,6 +42,31 @@
   color: var(--text-muted);
 }
 
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: default;
+}
+
+.status-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error);
+  flex-shrink: 0;
+}
+
+.status-pill--connected .status-pill-dot {
+  background: var(--success);
+}
+
 .btn-logout {
   font-size: 13px;
   color: var(--text-muted);

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
+import { ConnectivityStatus } from '../interfaces/connectivity';
 import { EntityConnection } from '../interfaces/graph';
 import { MemberRole } from '../types/app';
 
@@ -24,6 +25,14 @@ contextBridge.exposeInMainWorld('electron', {
   },
   config: {
     get: (): Promise<Record<string, string>> => ipcRenderer.invoke('config:get'),
+  },
+  connectivity: {
+    get: (): Promise<ConnectivityStatus> => ipcRenderer.invoke('connectivity:get'),
+    onStatusUpdate: (callback: (status: ConnectivityStatus) => void) => {
+      ipcRenderer.on('connectivity:status-update', (_event, status) =>
+        callback(status as ConnectivityStatus)
+      );
+    },
   },
   nav: {
     openProject: (project: { id: string; name: string }): Promise<void> =>
