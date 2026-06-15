@@ -1,6 +1,6 @@
 {
   "name": "document-analysis-app",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Charlie Hahm",
   "description": "Desktop app for document relationship analysis with AI",
   "main": "./dist/main/index.js",

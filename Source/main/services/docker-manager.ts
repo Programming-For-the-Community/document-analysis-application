@@ -24,7 +24,7 @@ function resolveComposePath(): string {
   return path.join(app.getAppPath(), '..', COMPOSE_FILE);
 }
 
-function resolveDataPath(): string {
+export function resolveDataPath(): string {
   // Dev machines have a D: drive for project data; fall back to ProgramData
   // on machines (incl. packaged installs) that only have C:.
   if (fs.existsSync('D:/')) return 'D:/Projects/.data/doc-analysis';

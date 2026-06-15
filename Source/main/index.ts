@@ -21,7 +21,8 @@ import { registerDocumentHandlers } from './handlers/documents';
 import { registerGraphHandlers } from './handlers/graph';
 import { registerSearchHandlers } from './handlers/search';
 import { registerUserHandlers } from './handlers/user';
-import { DockerManager } from './services/docker-manager';
+import { DockerManager, resolveDataPath } from './services/docker-manager';
+import { registerInstance, unregisterInstance } from './services/instance-lock';
 import { AppConfig } from '../interfaces/config';
 import { CognitoAuthResult } from '../types/aws';
 import { Logger } from '../utils/logger';
@@ -129,6 +130,7 @@ app.whenReady().then(async () => {
     AWS_BEDROCK.init(appConfig.bedrock.modelId);
 
     if (app.isPackaged) {
+      registerInstance(resolveDataPath());
       await dockerManager.start();
     } else {
       Logger.info('Dev mode — skipping Docker management, assuming containers already running');
@@ -158,9 +160,16 @@ app.on('will-quit', (event) => {
   event.preventDefault();
   isQuitting = true;
 
-  Logger.info('App quitting — stopping Docker containers...');
   void Neo4J.close();
   Qdrant.close();
+
+  if (!unregisterInstance(resolveDataPath())) {
+    Logger.info('App quitting — other instance(s) still running, leaving Docker containers up');
+    app.quit();
+    return;
+  }
+
+  Logger.info('App quitting — stopping Docker containers...');
   dockerManager.stop().finally(() => {
     Logger.info('Shutdown complete');
     app.quit();
