@@ -5,7 +5,14 @@ import dagre from 'cytoscape-dagre';
 import { THEME } from '../../constants/renderer/shared';
 import { GraphEdge, GraphNode, GraphLayoutOptions } from '../../interfaces/renderer/project/graph';
 import { Theme, EntityColorMap, EdgeColorMap } from '../../types/renderer/shared';
-import { ENTITY_COLORS_DARK, ENTITY_COLORS_PARCHMENT, GRAPH_LAYOUTS, EDGE_COLORS_DARK, EDGE_COLORS_PARCHMENT, DEFAULT_GRAPH_LAYOUT } from '../../constants/renderer/project/graph';
+import {
+  ENTITY_COLORS_DARK,
+  ENTITY_COLORS_PARCHMENT,
+  GRAPH_LAYOUTS,
+  EDGE_COLORS_DARK,
+  EDGE_COLORS_PARCHMENT,
+  DEFAULT_GRAPH_LAYOUT,
+} from '../../constants/renderer/project/graph';
 
 export type CyInstance = cytoscape.Core;
 
@@ -67,7 +74,7 @@ export function getLayoutConfig(name: string): Omit<GraphLayoutOptions, 'descrip
 
   if (GRAPH_LAYOUTS.has(name)) {
     layoutOptions = GRAPH_LAYOUTS.get(name)!;
-  };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { description, ...config } = layoutOptions;

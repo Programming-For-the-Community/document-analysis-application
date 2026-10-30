@@ -15,7 +15,8 @@ export async function uploadFiles(
   files: UploadFileInfo[]
 ): Promise<{ error: string | null; partialErrors: string[] }> {
   const result = await window.electron.documents.upload(projectId, files);
-  if (!result.success) return { error: result.error ?? PROJECT_ERRORS.DOC_UPLOAD_FAILURE, partialErrors: [] };
+  if (!result.success)
+    return { error: result.error ?? PROJECT_ERRORS.DOC_UPLOAD_FAILURE, partialErrors: [] };
 
   const partialErrors: string[] = [];
   if (result.failed && result.failed.length > 0) {
@@ -41,7 +42,9 @@ export async function deleteDocument(
   documentId: string
 ): Promise<{ error: string | null }> {
   const result = await window.electron.documents.delete(projectId, documentId);
-  return result.success ? { error: null } : { error: result.error ?? PROJECT_ERRORS.DOC_DELETE_FAILURE };
+  return result.success
+    ? { error: null }
+    : { error: result.error ?? PROJECT_ERRORS.DOC_DELETE_FAILURE };
 }
 
 export async function retryGraph(
@@ -49,5 +52,7 @@ export async function retryGraph(
   documentId: string
 ): Promise<{ error: string | null }> {
   const result = await window.electron.documents.retryGraph(projectId, documentId);
-  return result.success ? { error: null } : { error: result.error ?? PROJECT_ERRORS.GRAPH_RETRY_FAILURE };
+  return result.success
+    ? { error: null }
+    : { error: result.error ?? PROJECT_ERRORS.GRAPH_RETRY_FAILURE };
 }

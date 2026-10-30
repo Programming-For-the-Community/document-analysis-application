@@ -27,6 +27,9 @@ export function buildAppConfig(secrets: SecretValues): AppConfig {
     s3: {
       documentBucket: secrets.S3_BUCKET,
     },
+    releases: {
+      bucket: secrets.RELEASE_BUCKET,
+    },
     sns: {
       topicArn: secrets.SNS_TOPIC_ARN,
     },

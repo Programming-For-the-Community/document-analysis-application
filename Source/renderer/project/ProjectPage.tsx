@@ -31,26 +31,30 @@ export function ProjectPage() {
   const share                                             = useShareProject(projectId, role);
 
   // Reload graph when a document finishes processing
+  const { loadGraph, setIsExpanded } = graph;
   useEffect(() => {
-    window.electron.documents.onStatusUpdate((update) => {
+    return window.electron.documents.onStatusUpdate((update) => {
       if (update.projectId === projectId && update.status === PROCESSING_STATUS.COMPLETE) {
-        void graph.loadGraph();
+        void loadGraph();
       }
     });
-  }, [projectId, graph.loadGraph]);
+  }, [projectId, loadGraph]);
 
   // Dismiss all modals on Escape
+  const { close: closeDocText } = docText;
+  const { close: closeNodeDetail } = nodeDetail;
+  const { close: closeShare } = share;
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key !== 'Escape') return;
-      docText.close();
-      nodeDetail.close();
-      graph.setIsExpanded(false);
-      share.close();
+      closeDocText();
+      closeNodeDetail();
+      setIsExpanded(false);
+      closeShare();
     }
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [docText.close, nodeDetail.close, graph.setIsExpanded, share.close]);
+  }, [closeDocText, closeNodeDetail, setIsExpanded, closeShare]);
 
   return (
     <>

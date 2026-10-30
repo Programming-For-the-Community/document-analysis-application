@@ -29,7 +29,9 @@ export class Neo4J {
     if (this.available) {
       Logger.info(`Neo4j: initialized (uri: ${config.uri})`);
     } else {
-      Logger.warn('Neo4j: init failed — graph features will be unavailable until connection is restored');
+      Logger.warn(
+        'Neo4j: init failed — graph features will be unavailable until connection is restored'
+      );
     }
 
     // Ongoing health check: keeps connectivity status current and recovers
@@ -63,7 +65,9 @@ export class Neo4J {
     if (value) {
       Logger.info('Neo4j: connected');
     } else {
-      Logger.warn(`Neo4j: disconnected — graph features unavailable until reconnected: ${errorMessage}`);
+      Logger.warn(
+        `Neo4j: disconnected — graph features unavailable until reconnected: ${errorMessage}`
+      );
     }
   }
 
@@ -247,9 +251,10 @@ export class Neo4J {
       })
       .join('\n');
 
-    return [`Entities:\n${entityLines || '(none)'}`, `Relationships:\n${relLines || '(none)'}`].join(
-      '\n\n'
-    );
+    return [
+      `Entities:\n${entityLines || '(none)'}`,
+      `Relationships:\n${relLines || '(none)'}`,
+    ].join('\n\n');
   }
 
   // Replaces the stored graph for a document atomically.

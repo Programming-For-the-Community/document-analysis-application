@@ -109,6 +109,14 @@ export class Qdrant {
 
   public static async loadDocument(chunks: DocumentChunk[]): Promise<void> {
     if (chunks.length === 0) return;
+    if (!this.available) {
+      // Embeddings are already in S3 (embedder writes them first); store-resync
+      // loads them once Qdrant reconnects.
+      Logger.warn(
+        `Qdrant: offline — ${chunks.length} chunk(s) for document ${chunks[0]!.documentId} deferred until reconnect`
+      );
+      return;
+    }
 
     await this.withConnection(undefined, async () => {
       const documentId = chunks[0]!.documentId;

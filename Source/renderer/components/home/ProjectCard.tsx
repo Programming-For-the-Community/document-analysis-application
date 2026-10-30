@@ -1,7 +1,7 @@
 import { PROJECT_ROLES } from '../../../constants/app';
 import { ProjectCardProps } from '../../../interfaces/renderer/home';
 
-export function ProjectCard({ project, onRename, onDelete }: ProjectCardProps) {
+export function ProjectCard({ project, onRename, onDelete }: Readonly<ProjectCardProps>) {
   const isOwner  = project.role === PROJECT_ROLES.OWNER;
   const docCount = project.documentCount === 1 ? '1 document' : `${project.documentCount} documents`;
 

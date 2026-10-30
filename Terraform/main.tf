@@ -17,4 +17,11 @@ provider "aws" {
   region = var.region
 }
 
+# IAM is a global service whose CloudTrail events are only delivered to
+# EventBridge in us-east-1 — used by the svc-role change alert in monitoring.tf.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 data "aws_caller_identity" "current" {}

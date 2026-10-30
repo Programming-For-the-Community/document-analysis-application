@@ -20,7 +20,7 @@ function formatUploadDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function DocumentRow({ doc, isDuplicate, canEdit, onDelete, onRetry, onViewText }: DocumentRowProps) {
+export function DocumentRow({ doc, isDuplicate, canEdit, onDelete, onRetry, onViewText }: Readonly<DocumentRowProps>) {
   const { label, cls } = STATUS_BADGE[doc.processingStatus];
 
   return (

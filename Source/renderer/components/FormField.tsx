@@ -1,6 +1,6 @@
 import { FormFieldProps } from '../../interfaces/renderer/login';
 
-export function FormField({ label, id, type = 'text', value, placeholder, autoComplete, onChange }: FormFieldProps) {
+export function FormField({ label, id, type = 'text', value, placeholder, autoComplete, onChange }: Readonly<FormFieldProps>) {
   return (
     <div className="form-group">
       <label htmlFor={id}>{label}</label>

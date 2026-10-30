@@ -41,7 +41,6 @@ bower_components
 
 # node-waf configuration
 .lock-wscript
-package-lock.json
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
@@ -148,3 +147,4 @@ vite.config.ts.timestamp-*
 
 # Packaged application
 *.exe
+Source/eval/extraction/last-report.json

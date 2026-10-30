@@ -9,6 +9,7 @@ import { AWS_S3 } from '../classes/aws/s3';
 import { AWS_SQS } from '../classes/aws/sqs';
 import { AWS_TEXTRACT } from '../classes/aws/textract';
 import { AWS_BEDROCK } from '../classes/aws/bedrock';
+import { AWS_CLOUDWATCH } from '../classes/aws/cloudwatch';
 import { Neo4J } from '../classes/neo4j';
 import { Qdrant } from '../classes/qdrant';
 import { awsConfig, buildAppConfig } from './config';
@@ -21,6 +22,7 @@ import { registerDocumentHandlers } from './handlers/documents';
 import { registerGraphHandlers } from './handlers/graph';
 import { registerSearchHandlers } from './handlers/search';
 import { registerUserHandlers } from './handlers/user';
+import { registerUpdateHandlers } from './handlers/update';
 import { DockerManager, resolveDataPath } from './services/docker-manager';
 import { registerInstance, unregisterInstance } from './services/instance-lock';
 import { AppConfig } from '../interfaces/config';
@@ -108,6 +110,7 @@ registerUserHandlers(
   () => appConfig,
   () => currentTokens
 );
+registerUpdateHandlers();
 
 app.whenReady().then(async () => {
   Logger.info('Electron app ready — starting initialization sequence');
@@ -128,6 +131,7 @@ app.whenReady().then(async () => {
     AWS_SQS.init();
     AWS_TEXTRACT.init();
     AWS_BEDROCK.init(appConfig.bedrock.modelId);
+    AWS_CLOUDWATCH.init();
 
     if (app.isPackaged) {
       registerInstance(resolveDataPath());
@@ -155,6 +159,8 @@ app.whenReady().then(async () => {
 
 app.on('will-quit', (event) => {
   if (isQuitting) return;
+  // Best-effort: publish whatever AI metrics are still buffered
+  void AWS_CLOUDWATCH.shutdown();
   if (!app.isPackaged) return;
 
   event.preventDefault();

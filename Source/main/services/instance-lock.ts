@@ -47,6 +47,8 @@ export function unregisterInstance(dataPath: string): boolean {
   const lockPath = path.join(dataPath, LOCK_FILE);
   const pids = readPids(lockPath).filter((pid) => pid !== process.pid && isRunning(pid));
   writePids(lockPath, pids);
-  Logger.debug(`Instance lock: unregistered pid ${process.pid} (${pids.length} instance(s) remaining)`);
+  Logger.debug(
+    `Instance lock: unregistered pid ${process.pid} (${pids.length} instance(s) remaining)`
+  );
   return pids.length === 0;
 }

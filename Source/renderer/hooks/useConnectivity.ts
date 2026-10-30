@@ -10,7 +10,7 @@ export function useConnectivity() {
 
   useEffect(() => {
     void window.electron.connectivity.get().then(setStatus);
-    window.electron.connectivity.onStatusUpdate(setStatus);
+    return window.electron.connectivity.onStatusUpdate(setStatus);
   }, []);
 
   return status;

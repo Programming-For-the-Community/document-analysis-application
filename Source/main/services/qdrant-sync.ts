@@ -84,7 +84,11 @@ export async function syncQdrantForUser(userSub: string, config: AppConfig): Pro
     for (const project of projects) {
       try {
         const documents = await AWS_DYNAMODB.listDocuments(project.id, config.dynamoDB);
-        const complete = documents.filter((d) => d.processingStatus === 'COMPLETE');
+        // GRAPH_FAILED documents are still embedded at processing time (see sqs-poller),
+        // so they belong in Qdrant too — only the graph extraction failed.
+        const complete = documents.filter(
+          (d) => d.processingStatus === 'COMPLETE' || d.processingStatus === 'GRAPH_FAILED'
+        );
         if (complete.length === 0) continue;
 
         const missing = await Qdrant.findMissingDocuments(

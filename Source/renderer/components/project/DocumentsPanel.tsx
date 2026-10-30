@@ -7,7 +7,7 @@ import { DocumentsPanelProps } from '../../../interfaces/renderer/project/docume
 export function DocumentsPanel({
   documents, loading, uploadStatus, uploadError, role,
   onUpload, onDelete, onRetry, onViewText,
-}: DocumentsPanelProps) {
+}: Readonly<DocumentsPanelProps>) {
   const [menuOpen, setMenuOpen] = useState(false);
   const canEdit = role === PROJECT_ROLES.OWNER || role === PROJECT_ROLES.EDIT;
 

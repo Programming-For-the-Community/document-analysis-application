@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".."
+  },
+  // The renderer's ambient declarations (window.electron, cytoscape plugins) are
+  // needed because renderer handlers/hooks are tested alongside main-process code.
+  "include": ["**/*.ts", "../renderer/global.d.ts", "../renderer/cytoscape-plugins.d.ts"],
+  // Replaces the root exclude, which leaves out renderer/ (and so its declarations)
+  "exclude": ["../node_modules", "../dist"]
+}

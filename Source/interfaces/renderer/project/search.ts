@@ -1,8 +1,8 @@
 export interface SearchCitation {
-    documentId: string;
-    documentName: string;
-    excerpt: string;
-    score: number;
+  documentId: string;
+  documentName: string;
+  excerpt: string;
+  score: number;
 }
 
 export interface SearchPanelProps {

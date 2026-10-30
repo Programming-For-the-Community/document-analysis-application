@@ -10,7 +10,7 @@ import {
 export function GraphExpandModal({
   isOpen, nodes, edges, layout, minDocs, hiddenTypes, theme,
   onClose, onLayoutChange, onMinDocsChange, onToggleHiddenType, onNodeClick,
-}: GraphExpandModalProps) {
+}: Readonly<GraphExpandModalProps>) {
   const containerRef  = useRef<HTMLDivElement>(null);
   const cyRef         = useRef<CyInstance | null>(null);
   const observerRef   = useRef<ResizeObserver | null>(null);
@@ -43,7 +43,7 @@ export function GraphExpandModal({
 
   if (!isOpen) return null;
 
-  const typesPresent = [...new Set(nodes.map(n => n.data.type))].sort();
+  const typesPresent = [...new Set(nodes.map(n => n.data.type))].sort((a, b) => a.localeCompare(b));
   const colors = getEntityColors(theme);
 
   return (

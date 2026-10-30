@@ -16,6 +16,7 @@ import {
   BEDROCK_CONCURRENCY,
 } from '../../constants/services/sqsPoller';
 import { saveDocumentText, embedAndStore } from './embedder';
+import { analysisKey, discardDocumentArtifacts } from './document-artifacts';
 import { ProcessingStatus } from '../../types/document';
 import { extractDocumentText } from '../../utils/textract';
 import { getSessionId } from './session';
@@ -60,12 +61,18 @@ async function processOneDocument(msg: ParsedMessage, config: AppConfig): Promis
   Logger.info(`${docTag} Processing started (Textract job: ${msg.jobId})`);
 
   try {
-    await AWS_DYNAMODB.updateDocumentStatus(
+    const exists = await AWS_DYNAMODB.updateDocumentStatus(
       msg.projectId,
       msg.documentId,
       'PROCESSING',
       config.dynamoDB
     );
+    if (!exists) {
+      // Deleted before its Textract job finished — nothing to process
+      Logger.info(`${docTag} Document was deleted — discarding Textract result`);
+      await AWS_SQS.deleteMessage(config.sqs.queueUrl, msg.receiptHandle);
+      return;
+    }
     pushStatusUpdate(msg.projectId, msg.documentId, 'PROCESSING');
 
     const textractStart = Date.now();
@@ -101,9 +108,9 @@ async function processOneDocument(msg: ParsedMessage, config: AppConfig): Promis
       `${docTag} Bedrock inference complete — ${graph.entities.length} entity/entities, ${graph.relationships.length} relationship(s) in ${Date.now() - bedrockStart}ms`
     );
 
-    const analysisKey = `${msg.ownerSub}/${msg.projectId}/analysis/${msg.documentId}.json`;
-    await AWS_S3.putJson(analysisKey, graph, config.s3);
-    Logger.info(`${docTag} Analysis written to S3 → ${analysisKey}`);
+    const graphKey = analysisKey(msg);
+    await AWS_S3.putJson(graphKey, graph, config.s3);
+    Logger.info(`${docTag} Analysis written to S3 → ${graphKey}`);
 
     if (!graphFailed) {
       await Neo4J.loadGraph(graph).catch((err: unknown) =>
@@ -133,12 +140,20 @@ async function processOneDocument(msg: ParsedMessage, config: AppConfig): Promis
     );
 
     const finalStatus = graphFailed ? 'GRAPH_FAILED' : 'COMPLETE';
-    await AWS_DYNAMODB.updateDocumentStatus(
+    const stillExists = await AWS_DYNAMODB.updateDocumentStatus(
       msg.projectId,
       msg.documentId,
       finalStatus,
       config.dynamoDB
     );
+    if (!stillExists) {
+      // Deleted mid-processing — the delete handler's cleanup ran before we wrote
+      // these artifacts, so remove them here or they'd linger in graph/search results.
+      Logger.info(`${docTag} Document was deleted during processing — removing written artifacts`);
+      await discardDocumentArtifacts(msg, config);
+      await AWS_SQS.deleteMessage(config.sqs.queueUrl, msg.receiptHandle);
+      return;
+    }
     pushStatusUpdate(msg.projectId, msg.documentId, finalStatus);
 
     // Always delete the SQS message — GRAPH_FAILED is a stable terminal state.
@@ -227,6 +242,42 @@ function parseMessage(msg: Message): ParsedMessage | null {
 
 // ── Poll loop ────────────────────────────────────────────────────────────────
 
+function handleMessage(msg: Message, config: AppConfig): void {
+  const parsed = parseMessage(msg);
+  if (!parsed) return;
+
+  // Only process documents belonging to the currently logged-in user.
+  // Immediately return other users' messages to the queue (VisibilityTimeout=0)
+  // so their session can pick them up without waiting out our 10-min timeout.
+  if (parsed.ownerSub !== currentUserSub) {
+    Logger.debug(`SQS: returning message for user ${parsed.ownerSub} to queue immediately`);
+    void AWS_SQS.returnToQueue(config.sqs.queueUrl, msg.ReceiptHandle!);
+    return;
+  }
+
+  // Delete failed Textract jobs immediately rather than waiting for the 30-min stale check
+  if (parsed.status !== 'SUCCEEDED') {
+    const docTag = `[doc:${parsed.documentId} project:${parsed.projectId}]`;
+    Logger.warn(
+      `${docTag} Textract job ${parsed.status}: ${parsed.statusMessage} — deleting SQS message, resetting to UNPROCESSED`
+    );
+    void AWS_SQS.deleteMessage(config.sqs.queueUrl, parsed.receiptHandle);
+    void AWS_DYNAMODB.updateDocumentStatus(
+      parsed.projectId,
+      parsed.documentId,
+      'UNPROCESSED',
+      config.dynamoDB
+    );
+    pushStatusUpdate(parsed.projectId, parsed.documentId, 'UNPROCESSED');
+    return;
+  }
+
+  // De-duplicate: if already pending, update receipt handle to the fresher one
+  pending.set(parsed.documentId, parsed);
+  Logger.debug(`SQS: queued document ${parsed.documentId} for batch processing`);
+  scheduleTrailingWindow();
+}
+
 async function poll(): Promise<void> {
   while (running) {
     // Stop polling if session has been invalidated
@@ -239,41 +290,7 @@ async function poll(): Promise<void> {
     try {
       const messages = await AWS_SQS.receiveMessages(currentConfig!.sqs.queueUrl);
 
-      for (const msg of messages) {
-        const parsed = parseMessage(msg);
-        if (!parsed) continue;
-
-        // Only process documents belonging to the currently logged-in user.
-        // Immediately return other users' messages to the queue (VisibilityTimeout=0)
-        // so their session can pick them up without waiting out our 10-min timeout.
-        if (parsed.ownerSub !== currentUserSub) {
-          Logger.debug(`SQS: returning message for user ${parsed.ownerSub} to queue immediately`);
-          void AWS_SQS.returnToQueue(currentConfig!.sqs.queueUrl, msg.ReceiptHandle!);
-          continue;
-        }
-
-        // Delete failed Textract jobs immediately rather than waiting for the 30-min stale check
-        if (parsed.status !== 'SUCCEEDED') {
-          const docTag = `[doc:${parsed.documentId} project:${parsed.projectId}]`;
-          Logger.warn(
-            `${docTag} Textract job ${parsed.status}: ${parsed.statusMessage} — deleting SQS message, resetting to UNPROCESSED`
-          );
-          void AWS_SQS.deleteMessage(currentConfig!.sqs.queueUrl, parsed.receiptHandle);
-          void AWS_DYNAMODB.updateDocumentStatus(
-            parsed.projectId,
-            parsed.documentId,
-            'UNPROCESSED',
-            currentConfig!.dynamoDB
-          );
-          pushStatusUpdate(parsed.projectId, parsed.documentId, 'UNPROCESSED');
-          continue;
-        }
-
-        // De-duplicate: if already pending, update receipt handle to the fresher one
-        pending.set(parsed.documentId, parsed);
-        Logger.debug(`SQS: queued document ${parsed.documentId} for batch processing`);
-        scheduleTrailingWindow();
-      }
+      for (const msg of messages) handleMessage(msg, currentConfig!);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       Logger.error(`SQS poll error: ${message}`);

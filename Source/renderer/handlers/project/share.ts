@@ -17,7 +17,9 @@ export async function shareUser(
   role: MemberRole
 ): Promise<{ error: string | null }> {
   const result = await window.electron.projects.share(projectId, username, role);
-  return result.success ? { error: null } : { error: result.error ?? PROJECT_ERRORS.PROJECT_SHARE_FAILURE };
+  return result.success
+    ? { error: null }
+    : { error: result.error ?? PROJECT_ERRORS.PROJECT_SHARE_FAILURE };
 }
 
 export async function unshareUser(
@@ -25,7 +27,9 @@ export async function unshareUser(
   userSub: string
 ): Promise<{ error: string | null }> {
   const result = await window.electron.projects.unshare(projectId, userSub);
-  return result.success ? { error: null } : { error: result.error ?? PROJECT_ERRORS.PROJECT_UNSHARE_FAILURE };
+  return result.success
+    ? { error: null }
+    : { error: result.error ?? PROJECT_ERRORS.PROJECT_UNSHARE_FAILURE };
 }
 
 export async function updateMemberRole(
@@ -34,7 +38,9 @@ export async function updateMemberRole(
   newRole: MemberRole
 ): Promise<{ error: string | null }> {
   const result = await window.electron.projects.updateRole(projectId, userSub, newRole);
-  return result.success ? { error: null } : { error: result.error ?? PROJECT_ERRORS.MEMBER_ROLE_UPDATE_FAILURE };
+  return result.success
+    ? { error: null }
+    : { error: result.error ?? PROJECT_ERRORS.MEMBER_ROLE_UPDATE_FAILURE };
 }
 
 export async function searchUsers(prefix: string): Promise<string[]> {

@@ -81,11 +81,11 @@ export class Logger {
       for (let i = 0; i < stack.length; i++) {
         const file = stack[i]?.getFileName() ?? '';
         if (file && file.toLowerCase() !== thisFile) {
-          return file
-            .replace(/.*[\\/]Source[\\/]/i, '')
-            .replace(/^dist[\\/]/i, '')
-            .replace(/\\/g, '/')
-            .replace(/\.js$/, '.ts');
+          // lastIndexOf rather than a `.*[\\/]Source[\\/]` regex, which backtracks
+          let rel = file.replaceAll('\\', '/');
+          const sourceIdx = rel.toLowerCase().lastIndexOf('/source/');
+          if (sourceIdx !== -1) rel = rel.slice(sourceIdx + '/source/'.length);
+          return rel.replace(/^dist\//i, '').replace(/\.js$/, '.ts');
         }
       }
       return 'unknown';

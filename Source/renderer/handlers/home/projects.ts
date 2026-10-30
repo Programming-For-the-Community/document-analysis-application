@@ -1,5 +1,5 @@
 import { HOME_ERRORS } from '../../../constants/renderer/home';
-import { ProjectListItem } from '../../../interfaces/renderer/home';
+import { ProjectListItem } from '../../../interfaces/app';
 
 export async function loadProjects(): Promise<{
   projects?: ProjectListItem[];

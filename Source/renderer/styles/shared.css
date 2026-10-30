@@ -67,6 +67,39 @@
   background: var(--success);
 }
 
+.update-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: none;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.update-pill:hover {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.update-pill--busy {
+  color: var(--text-muted);
+  border-color: var(--border);
+  cursor: default;
+}
+
+.update-pill--busy:hover {
+  background: none;
+}
+
+.update-pill--error {
+  color: var(--error);
+  border-color: var(--error);
+}
+
 .btn-logout {
   font-size: 13px;
   color: var(--text-muted);

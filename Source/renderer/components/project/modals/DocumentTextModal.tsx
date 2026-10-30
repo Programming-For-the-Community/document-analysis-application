@@ -1,6 +1,6 @@
 import { DocumentTextModalProps } from '../../../../interfaces/renderer/project/documents';
 
-export function DocumentTextModal({ isOpen, documentName, text, loading, error, onClose }: DocumentTextModalProps) {
+export function DocumentTextModal({ isOpen, documentName, text, loading, error, onClose }: Readonly<DocumentTextModalProps>) {
   if (!isOpen) return null;
 
   return (

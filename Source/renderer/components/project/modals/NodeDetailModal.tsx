@@ -4,7 +4,7 @@ import { NodeDetailModalProps } from '../../../../interfaces/renderer/project/no
 export function NodeDetailModal({
   isOpen, entityName, entityType, connections, documents,
   loading, error, theme, onClose, onViewDocument,
-}: NodeDetailModalProps) {
+}: Readonly<NodeDetailModalProps>) {
   if (!isOpen) return null;
   const colors = getEntityColors(theme);
   const getColor = (type: string) => colors[type as keyof typeof colors] ?? colors['Other'];

@@ -1,5 +1,5 @@
 resource "aws_cognito_user_pool" "users" {
-  name = "${var.tf_project_name}-users"
+  name = "${var.project}-users"
 
   username_configuration {
     case_sensitive = true
@@ -36,7 +36,7 @@ resource "aws_cognito_user_pool" "users" {
 }
 
 resource "aws_cognito_user_pool_client" "electron_app" {
-  name         = "${var.tf_project_name}-electron"
+  name         = "${var.project}-electron"
   user_pool_id = aws_cognito_user_pool.users.id
 
   generate_secret = false

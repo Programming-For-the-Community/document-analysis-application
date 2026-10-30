@@ -1,7 +1,7 @@
 import { ProjectCard } from './ProjectCard';
 import { ProjectsGridProps } from '../../../interfaces/renderer/home';
 
-export function ProjectsGrid({ projects, loading, error, onRetry, onRename, onDelete }: ProjectsGridProps) {
+export function ProjectsGrid({ projects, loading, error, onRetry, onRename, onDelete }: Readonly<ProjectsGridProps>) {
   if (loading) {
     return (
       <div className="loading-state">

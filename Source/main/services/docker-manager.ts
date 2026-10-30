@@ -1,4 +1,4 @@
-import { execSync, spawn } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,9 +8,37 @@ import { AWS_SECRETS } from '../../classes/aws/secrets';
 import { COMPOSE_FILE } from '../../constants/services/docker';
 import { Logger } from '../../utils/logger';
 
+// Docker's standard install locations. Checked before PATH because a packaged
+// app launched from Finder/Explorer gets a minimal PATH (on macOS it usually
+// lacks /usr/local/bin and /opt/homebrew/bin), and a writable PATH entry could
+// otherwise shadow the real binary.
+const DOCKER_CANDIDATES: Record<string, string[]> = {
+  win32: [String.raw`C:\Program Files\Docker\Docker\resources\bin\docker.exe`],
+  darwin: [
+    '/usr/local/bin/docker',
+    '/opt/homebrew/bin/docker',
+    '/Applications/Docker.app/Contents/Resources/bin/docker',
+  ],
+  linux: ['/usr/bin/docker', '/usr/local/bin/docker'],
+};
+
+let dockerBinary: string | null = null;
+
+function resolveDocker(): string {
+  if (dockerBinary) return dockerBinary;
+  const found = (DOCKER_CANDIDATES[process.platform] ?? []).find((p) => fs.existsSync(p));
+  if (found) {
+    dockerBinary = found;
+  } else {
+    Logger.warn('Docker not found in its standard install location — falling back to PATH lookup');
+    dockerBinary = 'docker';
+  }
+  return dockerBinary;
+}
+
 function isDaemonRunning(): boolean {
   try {
-    execSync('docker info', { stdio: 'ignore' });
+    execFileSync(resolveDocker(), ['info'], { stdio: 'ignore' });
     return true;
   } catch {
     return false;
@@ -63,7 +91,7 @@ export class DockerManager {
         DATA_PATH: this.dataPath,
       };
       const proc = spawn(
-        'docker',
+        resolveDocker(),
         ['compose', '-p', 'doc-analysis', '-f', this.composePath, 'up', '-d'],
         { env }
       );
@@ -97,7 +125,7 @@ export class DockerManager {
     if (!this.composePath) return;
     Logger.info('Stopping application containers...');
     await new Promise<void>((resolve) => {
-      const proc = spawn('docker', [
+      const proc = spawn(resolveDocker(), [
         'compose',
         '-p',
         'doc-analysis',

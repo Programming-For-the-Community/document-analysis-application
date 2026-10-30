@@ -24,6 +24,10 @@ export interface S3Config {
   documentBucket: string;
 }
 
+export interface ReleasesConfig {
+  bucket: string;
+}
+
 export interface SNSConfig {
   topicArn: string;
 }
@@ -40,6 +44,7 @@ export interface AppConfig {
   dynamoDB: DynamoDBConfig;
   cognito: CognitoConfig;
   s3: S3Config;
+  releases: ReleasesConfig;
   sns: SNSConfig;
   sqs: SQSConfig;
   bedrock: BedrockConfig;

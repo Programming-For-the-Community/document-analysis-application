@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NewProjectModalProps } from '../../../../interfaces/renderer/home';
 
-export function NewProjectModal({ isOpen, submitting, error, onClose, onSubmit }: NewProjectModalProps) {
+export function NewProjectModal({ isOpen, submitting, error, onClose, onSubmit }: Readonly<NewProjectModalProps>) {
   const [name, setName] = useState('');
 
   if (!isOpen) return null;

@@ -1,0 +1,119 @@
+# Top-level pipeline, same shape as sports-predictor's app_deploy.yml:
+#
+#   test ──► scan ──► approval ──► infra (tf_install.yaml) ──► release (app_release.yml)
+#
+# Exactly ONE SonarQube Cloud scan per run. `test` runs directly in this file
+# (not nested inside a called reusable workflow, since a scan job can only
+# depend on sibling jobs in the SAME file), uploads its LCOV coverage as the
+# `js-coverage` artifact, and sonar_scan.yml downloads it — artifacts are
+# run-scoped, so no extra wiring is needed.
+#
+# On pushes to main the quality gate is blocking: a failing gate stops the
+# Terraform apply and the desktop release. Every other trigger (feature branches,
+# manual runs) scans in advisory mode and stops before infra.
+#
+# The release job builds the Windows and macOS installers and publishes them to
+# the release bucket, but only when package.json's version is newer than what's
+# published — pushes that don't bump the version publish nothing.
+
+name: App Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'Source/**'
+      - 'Terraform/**'
+      - 'sonar-project.properties'
+      - '.github/workflows/**'
+  workflow_call:
+
+# Terraform state is shared, so a second trigger queues behind an in-flight
+# apply rather than running concurrently. cancel-in-progress: false because
+# killing a running terraform apply can leave AWS resources half-applied.
+concurrency:
+  group: terraform-deploy-pipeline
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    name: Lint, type-check, test & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: Source
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install dependencies
+        # Scripts skipped: no Electron binary or better-sqlite3 rebuild is needed
+        # to lint, type-check, unit-test or compile.
+        run: |
+          node --version
+          npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Static checks
+        # Prettier, ESLint (incl. eslint-plugin-sonarjs), type-check of main/
+        # renderer/tests, and .env APP_VERSION == package.json
+        run: npm run check
+
+      - name: Unit tests
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage data
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: js-coverage
+          path: Source/coverage/lcov.info
+          retention-days: 1
+          if-no-files-found: ignore
+
+  scan:
+    name: SonarQube Cloud scan
+    needs: test
+    uses: ./.github/workflows/sonar_scan.yml
+    secrets: inherit
+    with:
+      # The one place a failing quality gate halts the pipeline
+      wait_for_quality_gate: ${{ github.ref == 'refs/heads/main' }}
+      environment: development
+      parent_workflow: ${{ github.workflow }}
+
+  # Required reviewers on the `development` environment (Settings > Environments)
+  # gate the Terraform apply.
+  approval:
+    name: Await deployment approval
+    needs: scan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Approved
+        run: echo "Deployment approved -- proceeding."
+
+  infra:
+    name: Apply shared infrastructure
+    needs: approval
+    uses: ./.github/workflows/tf_install.yaml
+    secrets: inherit
+
+  # Desktop installers are built only from code that passed the scan (quality
+  # gate blocking on main) and after infra, which owns the release bucket.
+  release:
+    name: Build & publish desktop app
+    needs: [scan, infra]
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/app_release.yml
+    secrets: inherit

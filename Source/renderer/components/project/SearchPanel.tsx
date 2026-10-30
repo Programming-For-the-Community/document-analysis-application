@@ -3,7 +3,7 @@ import { SearchPanelProps } from '../../../interfaces/renderer/project/search';
 export function SearchPanel({
   query, answer, citations, loading, error,
   onQueryChange, onSearch, onViewDocument,
-}: SearchPanelProps) {
+}: Readonly<SearchPanelProps>) {
   const hasResults = answer !== null;
 
   return (

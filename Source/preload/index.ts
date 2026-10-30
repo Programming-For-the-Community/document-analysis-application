@@ -3,6 +3,17 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { ConnectivityStatus } from '../interfaces/connectivity';
 import { EntityConnection } from '../interfaces/graph';
 import { MemberRole } from '../types/app';
+import { UpdateState } from '../interfaces/update';
+
+// Registers an IPC listener and returns a function that removes it, so React
+// effects can clean up instead of stacking a new listener on every re-run.
+function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
+  const listener = (_event: Electron.IpcRendererEvent, payload: unknown) => callback(payload as T);
+  ipcRenderer.on(channel, listener);
+  return () => {
+    ipcRenderer.removeListener(channel, listener);
+  };
+}
 
 contextBridge.exposeInMainWorld('electron', {
   auth: {
@@ -28,11 +39,8 @@ contextBridge.exposeInMainWorld('electron', {
   },
   connectivity: {
     get: (): Promise<ConnectivityStatus> => ipcRenderer.invoke('connectivity:get'),
-    onStatusUpdate: (callback: (status: ConnectivityStatus) => void) => {
-      ipcRenderer.on('connectivity:status-update', (_event, status) =>
-        callback(status as ConnectivityStatus)
-      );
-    },
+    onStatusUpdate: (callback: (status: ConnectivityStatus) => void) =>
+      subscribe('connectivity:status-update', callback),
   },
   nav: {
     openProject: (project: { id: string; name: string }): Promise<void> =>
@@ -122,19 +130,10 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('document:retry-graph', projectId, documentId),
     onStatusUpdate: (
       callback: (update: { projectId: string; documentId: string; status: string }) => void
-    ) => {
-      ipcRenderer.on('document:status-update', (_event, update) =>
-        callback(update as { projectId: string; documentId: string; status: string })
-      );
-    },
-    onDocumentAdded: (callback: (doc: unknown) => void) => {
-      ipcRenderer.on('document:added', (_event, doc) => callback(doc));
-    },
-    onDocumentRemoved: (callback: (data: { projectId: string; documentId: string }) => void) => {
-      ipcRenderer.on('document:removed', (_event, data) =>
-        callback(data as { projectId: string; documentId: string })
-      );
-    },
+    ) => subscribe('document:status-update', callback),
+    onDocumentAdded: (callback: (doc: unknown) => void) => subscribe('document:added', callback),
+    onDocumentRemoved: (callback: (data: { projectId: string; documentId: string }) => void) =>
+      subscribe('document:removed', callback),
   },
   search: {
     query: (
@@ -182,6 +181,11 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('user:get-preference', 'theme_preference'),
     setTheme: (theme: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('user:set-preference', 'theme_preference', theme),
+  },
+  updates: {
+    getStatus: (): Promise<UpdateState> => ipcRenderer.invoke('update:get-status'),
+    install: (): Promise<void> => ipcRenderer.invoke('update:install'),
+    onStatus: (callback: (state: UpdateState) => void) => subscribe('update:status', callback),
   },
   utils: {
     // Dropped File objects no longer expose a `.path` property in the renderer

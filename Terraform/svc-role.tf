@@ -9,7 +9,9 @@ resource "aws_iam_role" "svc_role" {
         Principal = {
           AWS = var.user_arn
         }
-        Action = "sts:AssumeRole"
+        # SetSourceIdentity lets the app stamp the Cognito sub on its session after
+        # login so CloudTrail attributes Bedrock/S3 calls to the actual user.
+        Action = ["sts:AssumeRole", "sts:SetSourceIdentity"]
       },
       {
         Effect = "Allow"
@@ -202,18 +204,56 @@ resource "aws_iam_role_policy" "svc_role_bedrock" {
   name = "doc-analysis-bedrock"
   role = aws_iam_role.svc_role.id
 
+  # Scoped to exactly the models the app uses. Converse is authorised by
+  # bedrock:InvokeModel, so no separate Converse action is needed.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream"
-        ]
-        # Cross-region inference profiles route to models in multiple regions,
-        # so resource-level restriction to a single-region ARN won't cover them.
-        Resource = "*"
+        Sid      = "InvokeViaInferenceProfile"
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = local.bedrock_profile_arn
+      },
+      {
+        # Cross-region profiles route to the foundation model in any of the profile's
+        # regions — the region wildcard covers that, and the condition stops the model
+        # being invoked directly or through any other profile.
+        Sid      = "UnderlyingModelOnlyViaProfile"
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = "arn:aws:bedrock:*::foundation-model/${local.bedrock_foundation_model}"
+        Condition = {
+          StringEquals = { "bedrock:InferenceProfileArn" = local.bedrock_profile_arn }
+        }
+      },
+      {
+        Sid      = "Embeddings"
+        Effect   = "Allow"
+        Action   = "bedrock:InvokeModel"
+        Resource = "arn:aws:bedrock:${var.region}::foundation-model/${var.embed_model}"
+      }
+    ]
+  })
+}
+
+# -------------------------------------------------------
+# CloudWatch — app-level AI quality metrics (see Source/classes/aws/cloudwatch.ts)
+# -------------------------------------------------------
+resource "aws_iam_role_policy" "svc_role_metrics" {
+  name = "doc-analysis-metrics"
+  role = aws_iam_role.svc_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*" # PutMetricData has no resource-level ARNs; scoped by namespace instead
+        Condition = {
+          StringEquals = { "cloudwatch:namespace" = local.app_metrics_namespace }
+        }
       }
     ]
   })

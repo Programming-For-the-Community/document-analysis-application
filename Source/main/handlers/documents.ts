@@ -12,6 +12,7 @@ import { Neo4J } from '../../classes/neo4j';
 import { Qdrant } from '../../classes/qdrant';
 import { AppConfig } from '../../interfaces/config';
 import { saveDocumentText, embedAndStore } from '../services/embedder';
+import { analysisKey, discardDocumentArtifacts } from '../services/document-artifacts';
 import { extractTextFromBuffer } from '../services/doc-extractor';
 import { DocumentRecord, UploadFileInfo } from '../../interfaces/document';
 import { CognitoAuthResult } from '../../types/aws';
@@ -77,7 +78,9 @@ function isStaleProcessing(doc: DocumentRecord): boolean {
 // Returns the status to reset a stale PROCESSING doc to:
 // - QUEUED if Textract results are still available (within 7-day TTL)
 // - UNPROCESSED if results have expired and Textract must be re-run
-function staleProcessingResetStatus(doc: DocumentRecord): Extract<ProcessingStatus, 'QUEUED' | 'UNPROCESSED'> {
+function staleProcessingResetStatus(
+  doc: DocumentRecord
+): Extract<ProcessingStatus, 'QUEUED' | 'UNPROCESSED'> {
   if (!doc.queuedAt) return 'UNPROCESSED';
   const age = Date.now() - new Date(doc.queuedAt).getTime();
   return age < TEXTRACT_TTL_MS ? 'QUEUED' : 'UNPROCESSED';
@@ -94,185 +97,271 @@ const SUPPORTED_EXTENSIONS = new Set([
 const ACCEPTED_TYPES_MSG =
   'Unsupported file type. Accepted: PDF, PNG, JPG, TIFF, TXT, CSV, MD, DOC, DOCX, XLSX, HTML';
 
-async function enqueueDocument(doc: DocumentRecord, config: AppConfig): Promise<void> {
-  const ext = path.extname(doc.documentName).toLowerCase();
-  const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
+function pushStatus(doc: DocumentRecord, status: ProcessingStatus): void {
+  BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
+    projectId: doc.projectId,
+    documentId: doc.documentId,
+    status,
+  });
+}
 
-  if (TEXTRACT_EXTENSIONS.has(ext)) {
-    try {
-      Logger.info(`${docTag} Submitting to Textract (s3Key: ${doc.s3Key})`);
-      const jobId = await AWS_TEXTRACT.startDocumentAnalysis(
-        doc.s3Key,
-        config.s3.documentBucket,
-        config.sns.topicArn,
-        doc.documentId
+function warnNonFatal(docTag: string, what: string) {
+  return (err: unknown) =>
+    Logger.warn(
+      `${docTag} ${what} failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
+    );
+}
+
+async function submitToTextract(doc: DocumentRecord, config: AppConfig): Promise<void> {
+  const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
+  try {
+    Logger.info(`${docTag} Submitting to Textract (s3Key: ${doc.s3Key})`);
+    const jobId = await AWS_TEXTRACT.startDocumentAnalysis(
+      doc.s3Key,
+      config.s3.documentBucket,
+      config.sns.topicArn,
+      doc.documentId
+    );
+    await AWS_DYNAMODB.updateDocumentStatus(
+      doc.projectId,
+      doc.documentId,
+      'QUEUED',
+      config.dynamoDB,
+      jobId
+    );
+    Logger.info(`${docTag} QUEUED — Textract jobId: ${jobId}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    Logger.error(`${docTag} Enqueue FAILED: ${message}`);
+  }
+}
+
+// Shared pipeline for documents whose text is available without Textract (plain
+// text, Office, HTML). Mirrors sqs-poller's processOneDocument: a graph extraction
+// failure still saves an empty graph and embeds the text, leaving the document
+// searchable as GRAPH_FAILED.
+async function processTextDirectly(
+  doc: DocumentRecord,
+  config: AppConfig,
+  description: string,
+  loadText: () => Promise<string>
+): Promise<void> {
+  const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
+  try {
+    Logger.info(`${docTag} ${description}`);
+    if (
+      !(await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        'PROCESSING',
+        config.dynamoDB
+      ))
+    ) {
+      Logger.info(`${docTag} Document was deleted — skipping processing`);
+      return;
+    }
+    pushStatus(doc, 'PROCESSING');
+
+    const text = await loadText();
+    // Persist raw text so re-embedding is possible after restarts
+    await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
+
+    let graphFailed = false;
+    const graph = await AWS_BEDROCK.extractRelationshipsFromText(
+      text,
+      doc.documentId,
+      doc.projectId
+    ).catch((err: unknown) => {
+      if (!(err instanceof GraphExtractionError)) throw err;
+      graphFailed = true;
+      Logger.warn(
+        `${docTag} Graph extraction failed — saving empty graph, document will be GRAPH_FAILED`
       );
+      return {
+        documentId: doc.documentId,
+        projectId: doc.projectId,
+        entities: [],
+        relationships: [],
+      };
+    });
+
+    const graphKey = analysisKey(doc);
+    await AWS_S3.putJson(graphKey, graph, config.s3);
+    if (!graphFailed) await Neo4J.loadGraph(graph).catch(warnNonFatal(docTag, 'Neo4j load'));
+    await embedAndStore(
+      doc.ownerSub,
+      doc.projectId,
+      doc.documentId,
+      doc.documentName,
+      text,
+      config
+    ).catch(warnNonFatal(docTag, 'Qdrant embedding'));
+
+    const finalStatus: ProcessingStatus = graphFailed ? 'GRAPH_FAILED' : 'COMPLETE';
+    if (
+      !(await AWS_DYNAMODB.updateDocumentStatus(
+        doc.projectId,
+        doc.documentId,
+        finalStatus,
+        config.dynamoDB
+      ))
+    ) {
+      Logger.info(`${docTag} Document was deleted during processing — removing written artifacts`);
+      await discardDocumentArtifacts(doc, config);
+      return;
+    }
+    pushStatus(doc, finalStatus);
+    Logger.info(
+      `${docTag} ${finalStatus} — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${graphKey}`
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    Logger.error(`${docTag} Direct processing FAILED: ${message}`);
+    if (
       await AWS_DYNAMODB.updateDocumentStatus(
         doc.projectId,
         doc.documentId,
-        'QUEUED',
-        config.dynamoDB,
-        jobId
-      );
-      Logger.info(`${docTag} QUEUED — Textract jobId: ${jobId}`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      Logger.error(`${docTag} Enqueue FAILED: ${message}`);
+        'FAILED',
+        config.dynamoDB
+      )
+    ) {
+      pushStatus(doc, 'FAILED');
     }
+  }
+}
+
+async function enqueueDocument(doc: DocumentRecord, config: AppConfig): Promise<void> {
+  const ext = path.extname(doc.documentName).toLowerCase();
+
+  if (TEXTRACT_EXTENSIONS.has(ext)) {
+    await submitToTextract(doc, config);
     return;
   }
 
   if (TEXT_EXTENSIONS.has(ext)) {
-    try {
-      Logger.info(`${docTag} Plain text file — bypassing Textract, processing directly`);
-      await AWS_DYNAMODB.updateDocumentStatus(
-        doc.projectId,
-        doc.documentId,
-        'PROCESSING',
-        config.dynamoDB
-      );
-      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId,
-        documentId: doc.documentId,
-        status: 'PROCESSING',
-      });
-      const text = await AWS_S3.getObjectText(doc.s3Key, config.s3);
-
-      // Persist raw text so re-embedding is possible after restarts
-      await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
-
-      const graph = await AWS_BEDROCK.extractRelationshipsFromText(
-        text,
-        doc.documentId,
-        doc.projectId
-      );
-      const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
-      await AWS_S3.putJson(analysisKey, graph, config.s3);
-
-      await Neo4J.loadGraph(graph).catch((err: unknown) =>
-        Logger.warn(
-          `${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
-        )
-      );
-
-      await embedAndStore(
-        doc.ownerSub,
-        doc.projectId,
-        doc.documentId,
-        doc.documentName,
-        text,
-        config
-      ).catch((err: unknown) =>
-        Logger.warn(
-          `${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
-        )
-      );
-
-      await AWS_DYNAMODB.updateDocumentStatus(
-        doc.projectId,
-        doc.documentId,
-        'COMPLETE',
-        config.dynamoDB
-      );
-      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId,
-        documentId: doc.documentId,
-        status: 'COMPLETE',
-      });
-      Logger.info(
-        `${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      const status: ProcessingStatus = err instanceof GraphExtractionError ? 'GRAPH_FAILED' : 'FAILED';
-      Logger.error(`${docTag} Direct text processing FAILED (${status}): ${message}`);
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, status, config.dynamoDB);
-      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId,
-        documentId: doc.documentId,
-        status,
-      });
-    }
+    await processTextDirectly(
+      doc,
+      config,
+      'Plain text file — bypassing Textract, processing directly',
+      () => AWS_S3.getObjectText(doc.s3Key, config.s3)
+    );
     return;
   }
 
   if (BEDROCK_DOC_EXTENSIONS.has(ext)) {
-    try {
-      Logger.info(`${docTag} Office/HTML document — extracting text locally`);
-      await AWS_DYNAMODB.updateDocumentStatus(
-        doc.projectId,
-        doc.documentId,
-        'PROCESSING',
-        config.dynamoDB
-      );
-      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId,
-        documentId: doc.documentId,
-        status: 'PROCESSING',
-      });
-
-      const bytes = await AWS_S3.getObjectBytes(doc.s3Key, config.s3);
-      const text = await extractTextFromBuffer(Buffer.from(bytes), doc.documentName);
-
-      await saveDocumentText(doc.ownerSub, doc.projectId, doc.documentId, text, config);
-
-      const graph = await AWS_BEDROCK.extractRelationshipsFromText(
-        text,
-        doc.documentId,
-        doc.projectId
-      );
-      const analysisKey = `${doc.ownerSub}/${doc.projectId}/analysis/${doc.documentId}.json`;
-      await AWS_S3.putJson(analysisKey, graph, config.s3);
-
-      await Neo4J.loadGraph(graph).catch((err: unknown) =>
-        Logger.warn(
-          `${docTag} Neo4j load failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
-        )
-      );
-
-      await embedAndStore(
-        doc.ownerSub,
-        doc.projectId,
-        doc.documentId,
-        doc.documentName,
-        text,
-        config
-      ).catch((err: unknown) =>
-        Logger.warn(
-          `${docTag} Qdrant embedding failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
-        )
-      );
-
-      await AWS_DYNAMODB.updateDocumentStatus(
-        doc.projectId,
-        doc.documentId,
-        'COMPLETE',
-        config.dynamoDB
-      );
-      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId,
-        documentId: doc.documentId,
-        status: 'COMPLETE',
-      });
-      Logger.info(
-        `${docTag} COMPLETE — ${graph.entities.length} entities, ${graph.relationships.length} relationships → ${analysisKey}`
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      const status: ProcessingStatus = err instanceof GraphExtractionError ? 'GRAPH_FAILED' : 'FAILED';
-      Logger.error(`${docTag} Bedrock document processing FAILED (${status}): ${message}`);
-      await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, status, config.dynamoDB);
-      BrowserWindow.getAllWindows()[0]?.webContents.send('document:status-update', {
-        projectId: doc.projectId,
-        documentId: doc.documentId,
-        status,
-      });
-    }
+    await processTextDirectly(
+      doc,
+      config,
+      'Office/HTML document — extracting text locally',
+      async () => {
+        const bytes = await AWS_S3.getObjectBytes(doc.s3Key, config.s3);
+        return extractTextFromBuffer(Buffer.from(bytes), doc.documentName);
+      }
+    );
     return;
   }
 
-  Logger.warn(`${docTag} Unsupported file type "${ext}" — marking FAILED`);
+  Logger.warn(
+    `[doc:${doc.documentId} "${doc.documentName}"] Unsupported file type "${ext}" — marking FAILED`
+  );
   await AWS_DYNAMODB.updateDocumentStatus(doc.projectId, doc.documentId, 'FAILED', config.dynamoDB);
+}
+
+const uploadKey = (name: string, size: number) => `${name}::${size}`;
+
+// Returns a user-facing reason the file can't be uploaded, or null if it can.
+function uploadRejection(
+  file: UploadFileInfo,
+  existingSet: Set<string>,
+  projectId: string
+): string | null {
+  const fileExt = path.extname(file.name).toLowerCase();
+  if (!SUPPORTED_EXTENSIONS.has(fileExt)) {
+    Logger.warn(`Rejecting unsupported file type "${fileExt}" for "${file.name}"`);
+    return ACCEPTED_TYPES_MSG;
+  }
+  if (existingSet.has(uploadKey(file.name, file.size))) {
+    Logger.warn(
+      `Skipping duplicate upload: "${file.name}" (${file.size} bytes) already exists in project ${projectId}`
+    );
+    return 'A file with this name and size already exists in the project';
+  }
+  return null;
+}
+
+interface UploadTarget {
+  projectId: string;
+  ownerSub: string;
+  s3Prefix: string;
+  projectName: string;
+}
+
+async function uploadOne(
+  file: UploadFileInfo,
+  target: UploadTarget,
+  config: AppConfig
+): Promise<DocumentRecord> {
+  const documentId = crypto.randomUUID();
+  const s3Key = `${target.s3Prefix}${documentId}`;
+
+  await AWS_S3.uploadDocument(
+    file.path,
+    s3Key,
+    file.size,
+    config.s3,
+    file.name,
+    target.projectName
+  );
+
+  const record: DocumentRecord = {
+    documentId,
+    projectId: target.projectId,
+    ownerSub: target.ownerSub,
+    documentName: file.name,
+    s3Key,
+    fileSize: file.size,
+    uploadedAt: new Date().toISOString(),
+    processingStatus: 'UNPROCESSED',
+  };
+
+  await AWS_DYNAMODB.addDocumentRecord(record, config.dynamoDB);
+  Logger.info(`[doc:${documentId} "${file.name}"] Uploaded → s3Key: ${s3Key}`);
+
+  await enqueueDocument(record, config);
+  return { ...record, processingStatus: 'QUEUED' };
+}
+
+async function uploadAll(
+  files: UploadFileInfo[],
+  target: UploadTarget,
+  config: AppConfig
+): Promise<{ uploaded: DocumentRecord[]; failed: { name: string; error: string }[] }> {
+  const uploaded: DocumentRecord[] = [];
+  const failed: { name: string; error: string }[] = [];
+
+  // Fetch existing documents once to detect duplicates without a per-file DB round-trip
+  const existing = await AWS_DYNAMODB.listDocuments(target.projectId, config.dynamoDB);
+  const existingSet = new Set(existing.map((d) => uploadKey(d.documentName, d.fileSize)));
+
+  for (const file of files) {
+    const rejection = uploadRejection(file, existingSet, target.projectId);
+    if (rejection) {
+      failed.push({ name: file.name, error: rejection });
+      continue;
+    }
+
+    try {
+      uploaded.push(await uploadOne(file, target, config));
+    } catch (err) {
+      const message = userFacingError(err, 'Upload failed');
+      Logger.error(
+        `Failed to upload "${file.name}": ${err instanceof Error ? err.message : String(err)}`
+      );
+      failed.push({ name: file.name, error: message });
+    }
+  }
+
+  return { uploaded, failed };
 }
 
 export function registerDocumentHandlers(
@@ -300,70 +389,11 @@ export function registerDocumentHandlers(
         if (!meta) return { success: false, error: 'Project not found' };
 
         const { s3Prefix, ownerSub, projectName } = meta;
-        const uploaded: DocumentRecord[] = [];
-        const failed: { name: string; error: string }[] = [];
-
-        // Fetch existing documents once to detect duplicates without a per-file DB round-trip
-        const existing = await AWS_DYNAMODB.listDocuments(projectId, config.dynamoDB);
-        const existingKey = (name: string, size: number) => `${name}::${size}`;
-        const existingSet = new Set(existing.map((d) => existingKey(d.documentName, d.fileSize)));
-
-        for (const file of files) {
-          const fileExt = path.extname(file.name).toLowerCase();
-          if (!SUPPORTED_EXTENSIONS.has(fileExt)) {
-            Logger.warn(`Rejecting unsupported file type "${fileExt}" for "${file.name}"`);
-            failed.push({ name: file.name, error: ACCEPTED_TYPES_MSG });
-            continue;
-          }
-
-          if (existingSet.has(existingKey(file.name, file.size))) {
-            Logger.warn(
-              `Skipping duplicate upload: "${file.name}" (${file.size} bytes) already exists in project ${projectId}`
-            );
-            failed.push({
-              name: file.name,
-              error: 'A file with this name and size already exists in the project',
-            });
-            continue;
-          }
-          const documentId = crypto.randomUUID();
-          const s3Key = `${s3Prefix}${documentId}`;
-          const now = new Date().toISOString();
-
-          try {
-            await AWS_S3.uploadDocument(
-              file.path,
-              s3Key,
-              file.size,
-              config.s3,
-              file.name,
-              projectName
-            );
-
-            const record: DocumentRecord = {
-              documentId,
-              projectId,
-              ownerSub,
-              documentName: file.name,
-              s3Key,
-              fileSize: file.size,
-              uploadedAt: now,
-              processingStatus: 'UNPROCESSED',
-            };
-
-            await AWS_DYNAMODB.addDocumentRecord(record, config.dynamoDB);
-            Logger.info(`[doc:${documentId} "${file.name}"] Uploaded → s3Key: ${s3Key}`);
-
-            await enqueueDocument(record, config);
-            uploaded.push({ ...record, processingStatus: 'QUEUED' });
-          } catch (err) {
-            const message = userFacingError(err, 'Upload failed');
-            Logger.error(
-              `Failed to upload "${file.name}": ${err instanceof Error ? err.message : String(err)}`
-            );
-            failed.push({ name: file.name, error: message });
-          }
-        }
+        const { uploaded, failed } = await uploadAll(
+          files,
+          { projectId, ownerSub, s3Prefix, projectName },
+          config
+        );
 
         if (uploaded.length > 0) {
           await AWS_DYNAMODB.incrementDocumentCount(projectId, uploaded.length, config.dynamoDB);

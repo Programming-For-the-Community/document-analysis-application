@@ -35,10 +35,13 @@ The workflow uses OIDC to authenticate with AWS — no AWS credentials need to b
 | Secret | `AWS_DEPLOY_SVC_ACCT_ARN` | ARN of the GitHub Actions IAM role |
 | Secret | `AWS_USER_ARN` | ARN of the IAM user allowed to assume the service role |
 | Variable | `AWS_RESOURCE_REGION` | AWS region (e.g. `us-east-2`) |
-| Variable | `PROJECT` | Human-readable project name |
-| Variable | `TF_PROJECT_NAME` | Slug used for resource naming (e.g. `doc-analysis-app`) |
+| Variable | `PROJECT` | Project slug used for tags and as the prefix for every resource name (e.g. `doc-analysis-app`) — must not change once deployed |
 | Variable | `OWNER` | Owner name tagged on resources |
 | Variable | `SECRETS_MANAGER_PATH` | Secrets Manager secret name (e.g. `doc-analysis-secret`) |
+| Secret | `ALERT_EMAIL` | Email subscribed to AI monitoring alarms and the Bedrock budget (optional) |
+| Secret | `SONAR_TOKEN` | SonarQube Cloud token used by `sonar_scan.yml` |
+| Variable | `SONAR_ORGANIZATION` | SonarQube Cloud organization key |
+| Variable | `SONAR_PROJECT_KEY` | SonarQube Cloud project key (project Analysis Method must be **CI-based**) |
 
 #### Running Terraform locally
 
@@ -50,8 +53,7 @@ terraform init
 terraform apply \
   -var="account_id=YOUR_ACCOUNT_ID" \
   -var="region=us-east-2" \
-  -var="project=Document Analysis Application" \
-  -var="tf_project_name=doc-analysis-app" \
+  -var="project=doc-analysis-app" \
   -var="owner=YOUR_NAME" \
   -var="user_arn=arn:aws:iam::YOUR_ACCOUNT_ID:user/YOUR_USERNAME" \
   -var="github_org=YOUR_GITHUB_ORG" \

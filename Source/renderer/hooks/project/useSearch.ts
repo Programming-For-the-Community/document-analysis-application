@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { searchDocuments } from '../../handlers/project/search';
+import { SearchCitation } from '../../../interfaces/renderer/project/search';
 
 export function useSearch(projectId: string) {
   const [query, setQuery] = useState('');

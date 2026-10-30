@@ -21,6 +21,7 @@ export interface SecretValues {
   COGNITO_USER_POOL_ID: string;
   COGNITO_CLIENT_ID: string;
   S3_BUCKET: string;
+  RELEASE_BUCKET: string;
   DYNAMODB_PROJECT_STATE_TABLE: string;
   DYNAMODB_PROJECT_ACCESS_TABLE: string;
   DYNAMODB_USER_SESSIONS_TABLE: string;

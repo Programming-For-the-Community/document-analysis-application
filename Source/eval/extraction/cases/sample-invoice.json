@@ -1,0 +1,32 @@
+{
+  "name": "Sample invoice (synthetic)",
+  "text": "INVOICE #INV-2041\nDate: March 3, 2026\n\nFrom: Northwind Traders LLC, 120 Harbor Way, Portland, OR\nBill To: Contoso Manufacturing Inc., 9 Mill Road, Akron, OH\n\nPrepared by: Maria Chen, Accounts Receivable Manager, Northwind Traders LLC\n\nDescription: 400 units Industrial Bearing Model B-12\nTotal Due: $18,400.00\nPayment terms: Net 30 per Master Supply Agreement MSA-77.",
+  "expected": {
+    "entities": [
+      { "type": "Organization", "value": "Northwind Traders LLC" },
+      { "type": "Organization", "value": "Contoso Manufacturing Inc." },
+      { "type": "Person", "value": "Maria Chen" },
+      { "type": "Role", "value": "Accounts Receivable Manager" },
+      { "type": "Date", "value": "March 3, 2026" },
+      { "type": "Amount", "value": "$18,400.00" },
+      { "type": "Location", "value": "120 Harbor Way, Portland, OR" },
+      { "type": "Location", "value": "9 Mill Road, Akron, OH" },
+      { "type": "Product", "value": "Industrial Bearing Model B-12" },
+      { "type": "Agreement", "value": "Master Supply Agreement MSA-77" }
+    ],
+    "relationships": [
+      { "source": "Maria Chen", "type": "EMPLOYED_BY", "target": "Northwind Traders LLC" },
+      { "source": "Maria Chen", "type": "HAS_ROLE", "target": "Accounts Receivable Manager" },
+      {
+        "source": "Northwind Traders LLC",
+        "type": "LOCATED_AT",
+        "target": "120 Harbor Way, Portland, OR"
+      },
+      {
+        "source": "Contoso Manufacturing Inc.",
+        "type": "LOCATED_AT",
+        "target": "9 Mill Road, Akron, OH"
+      }
+    ]
+  }
+}

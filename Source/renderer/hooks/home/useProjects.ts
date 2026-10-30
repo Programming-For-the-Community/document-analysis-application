@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { loadProjects } from '../../handlers/home/projects';
-import { ProjectListItem } from '../../../interfaces/renderer/home';
+import { ProjectListItem } from '../../../interfaces/app';
 
 export function useProjects() {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);

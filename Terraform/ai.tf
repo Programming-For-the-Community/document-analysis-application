@@ -1,9 +1,10 @@
 # -------------------------------------------------------
-# AI Pipeline — no AWS resources to provision
+# AI Pipeline
 #
 # Textract and Bedrock are fully managed services.
 # IAM permissions are in svc-role.tf.
 # SNS + SQS wiring is in messaging.tf.
+# Monitoring, invocation logging, alarms and budget are in monitoring.tf.
 #
 # Runtime config from secrets.tf:
 #   SNS_TOPIC_ARN    — passed to StartDocumentAnalysis NotificationChannel
@@ -28,3 +29,13 @@
 #           → DynamoDB processing_status = COMPLETE
 #           → import into local Neo4j + Qdrant
 # -------------------------------------------------------
+
+locals {
+  # var.bedrock_model is a cross-region inference profile ID (e.g. us.amazon.nova-lite-v1:0);
+  # stripping the geo prefix gives the foundation model it routes to.
+  bedrock_foundation_model = replace(var.bedrock_model, "/^(us|eu|apac|global)\\./", "")
+  bedrock_profile_arn      = "arn:aws:bedrock:${var.region}:${var.account_id}:inference-profile/${var.bedrock_model}"
+
+  # Must match APP_METRICS_NAMESPACE in Source/constants/metrics.ts
+  app_metrics_namespace = "DocAnalysis/AI"
+}

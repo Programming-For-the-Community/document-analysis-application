@@ -11,8 +11,8 @@ import { writeSession, startHeartbeat, stopHeartbeat, clearSession } from '../se
 import { HeartbeatOptions } from '../../interfaces/services/session';
 import { startPoller, stopPoller } from '../services/sqs-poller';
 import { startProjectPoller, stopProjectPoller } from '../services/project-poller';
-import { syncNeo4jForUser } from '../services/neo4j-sync';
-import { syncQdrantForUser } from '../services/qdrant-sync';
+import { startStoreResync, stopStoreResync } from '../services/store-resync';
+import { checkForUpdate } from '../services/updater';
 import { Logger } from '../../utils/logger';
 
 async function onLoginSuccess(
@@ -25,12 +25,12 @@ async function onLoginSuccess(
   setTokens(tokens);
 
   const userSub = extractSub(tokens.idToken);
+  await AWS_STS.setSourceIdentity(userSub);
   await writeSession(userSub, config.dynamoDB);
 
   startPoller(userSub, config);
   startProjectPoller(userSub, config);
-  void syncNeo4jForUser(userSub, config);
-  void syncQdrantForUser(userSub, config);
+  startStoreResync(userSub, config);
 
   const heartbeatOpts: HeartbeatOptions = {
     userSub,
@@ -44,12 +44,16 @@ async function onLoginSuccess(
     onInvalidated: () => {
       Logger.warn('Session invalidated — logging out');
       stopPoller();
+      stopStoreResync();
       clearSession();
       setTokens(null);
+      void AWS_STS.setSourceIdentity(null);
       win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
     },
   };
   startHeartbeat(heartbeatOpts);
+
+  void checkForUpdate(config);
 }
 
 function onLogout(
@@ -58,9 +62,11 @@ function onLogout(
 ): void {
   stopPoller();
   stopProjectPoller();
+  stopStoreResync();
   stopHeartbeat();
   clearSession();
   setTokens(null);
+  void AWS_STS.setSourceIdentity(null);
   win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
 }
 
@@ -142,7 +148,8 @@ export function registerAuthHandlers(
 
   ipcMain.handle('auth:get-tokens', () => {
     Logger.debug('IPC auth:get-tokens requested');
-    return getTokens();
+    const tokens = getTokens();
+    return tokens && typeof tokens !== 'boolean' ? tokens : null;
   });
 
   ipcMain.handle('auth:logout', () => {

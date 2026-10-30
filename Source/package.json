@@ -5,21 +5,26 @@
   "description": "Desktop app for document relationship analysis with AI",
   "main": "./dist/main/index.js",
   "scripts": {
-    "format": "prettier --write \"**/*.{ts,json,css,html,md}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{ts,json,css,html,md}\" --ignore-path .gitignore",
-    "lint": "eslint \"**/*.ts\" --ignore-path .gitignore",
-    "lint:fix": "eslint \"**/*.ts\" --fix --ignore-path .gitignore",
-    "type-check": "tsc --noEmit",
-    "check": "npm run format:check && npm run lint && npm run type-check",
+    "format": "prettier --write \"**/*.{ts,json,css,html,md}\" --ignore-path ../.gitignore",
+    "format:check": "prettier --check \"**/*.{ts,json,css,html,md}\" --ignore-path ../.gitignore",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "type-check": "tsc --noEmit && tsc --noEmit -p renderer/tsconfig.json && tsc -p tests/tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "check": "npm run format:check && npm run lint && npm run type-check && node scripts/sync-version.js --check",
     "dev": "concurrently \"tsc --watch\" \"node scripts/build-renderer.js --watch\" \"electron .\"",
     "build": "tsc && node scripts/build-renderer.js",
     "start": "electron .",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "postinstall": "npm run rebuild",
     "build-icons": "node scripts/build-icons.js",
-    "dist": "npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder",
-    "dist:win": "npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder --win",
-    "dist:mac": "npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder --mac",
+    "version": "node scripts/sync-version.js && git add .env",
+    "release": "node scripts/release.js",
+    "eval:extraction": "node scripts/eval-extraction.js",
+    "dist": "node scripts/sync-version.js && npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder",
+    "dist:win": "node scripts/sync-version.js && npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder --win",
+    "dist:mac": "node scripts/sync-version.js && npm run build-icons && tsc && node scripts/build-renderer.js && electron-builder --mac",
     "render-diagrams": "mmdc -i ../docs/diagrams/architecture.mmd -o ../docs/diagrams/architecture.svg --width 2800 --configFile ../docs/diagrams/mermaid-arch.config.json --backgroundColor \"#18181b\" && mmdc -i ../docs/diagrams/workflow.mmd -o ../docs/diagrams/workflow.svg --width 1400 --configFile ../docs/diagrams/mermaid.config.json --backgroundColor \"#18181b\""
   },
   "build": {
@@ -52,6 +57,12 @@
       "icon": "build/icon.ico",
       "target": "nsis"
     },
+    "nsis": {
+      "artifactName": "DocumentAnalysis-Setup-${version}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "DocumentAnalysis-Setup-${version}.${ext}"
+    },
     "mac": {
       "icon": "build/icon.icns",
       "target": "dmg",
@@ -64,6 +75,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1024.0",
+    "@aws-sdk/client-cloudwatch": "^3.1160.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.1024.0",
     "@aws-sdk/client-dynamodb": "^3.1045.0",
     "@aws-sdk/client-s3": "^3.1024.0",
@@ -90,6 +102,7 @@
     "@electron/rebuild": "^4.0.3",
     "@mermaid-js/mermaid-cli": "^11.4.2",
     "@resvg/resvg-js": "^2.6.2",
+    "@testing-library/react": "^16.3.3",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cytoscape": "^3.21.9",
     "@types/node": "^22.14.0",
@@ -97,15 +110,21 @@
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
+    "@vitest/coverage-v8": "^3.2.7",
+    "aws-sdk-client-mock": "^4.1.0",
     "concurrently": "^10.0.3",
     "electron": "^41.1.1",
     "electron-builder": "^26.8.1",
     "esbuild": "^0.25.12",
     "eslint": "^9.20.0",
     "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-sonarjs": "^3.0.7",
+    "happy-dom": "^21.0.4",
     "png-to-ico": "^2.1.8",
     "png2icons": "^2.0.1",
     "prettier": "^3.4.2",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "vitest": "^3.2.7"
   }
 }

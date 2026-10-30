@@ -1,6 +1,6 @@
 import { DeleteProjectModalProps } from '../../../../interfaces/renderer/home';
 
-export function DeleteProjectModal({ isOpen, projectName, confirming, error, onClose, onConfirm }: DeleteProjectModalProps) {
+export function DeleteProjectModal({ isOpen, projectName, confirming, error, onClose, onConfirm }: Readonly<DeleteProjectModalProps>) {
   if (!isOpen) return null;
 
   return (

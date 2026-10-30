@@ -29,6 +29,25 @@ export function useGraph(projectId: string, initialMinDocs: number) {
     void loadGraph();
   }, [loadGraph]);
 
+  // If Neo4j was unreachable when the page loaded (local backend still starting),
+  // the first load came back empty — re-sync and reload once it connects.
+  const loadGraphRef = useRef(loadGraph);
+  useEffect(() => {
+    loadGraphRef.current = loadGraph;
+  }, [loadGraph]);
+
+  useEffect(() => {
+    let wasConnected: boolean | null = null;
+    void window.electron.connectivity.get().then((s) => {
+      wasConnected ??= s.neo4j === 'connected';
+    });
+    return window.electron.connectivity.onStatusUpdate((s) => {
+      const connected = s.neo4j === 'connected';
+      if (connected && wasConnected === false) void loadGraphRef.current();
+      wasConnected = connected;
+    });
+  }, []);
+
   const reloadWithFilter = useCallback(
     async (newMinDocs: number) => {
       if (!projectId || !hasSyncedData) return;

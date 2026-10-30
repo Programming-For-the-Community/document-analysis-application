@@ -4,7 +4,7 @@ import { ShareModalProps } from '../../../../interfaces/renderer/project/share';
 export function ShareModal({
   isOpen, members, membersLoading, shareUsername, shareRole, sharing, error, suggestions, callerRole,
   onClose, onShare, onRemoveMember, onUpdateRole, onUsernameInput, onShareRoleChange, onSelectSuggestion,
-}: ShareModalProps) {
+}: Readonly<ShareModalProps>) {
   if (!isOpen) return null;
   const isOwner = callerRole === 'OWNER';
 
@@ -56,7 +56,7 @@ export function ShareModal({
             <div key={member.userSub} className="member-item">
               <span className="member-username">{member.username}</span>
               <select className="member-role-select" value={member.role} disabled={!isOwner}
-                onChange={e => void onUpdateRole(member.userSub, e.target.value as MemberRole)}>
+                onChange={e => onUpdateRole(member.userSub, e.target.value as MemberRole)}>
                 <option value="VIEW">View</option>
                 <option value="EDIT">Edit</option>
               </select>

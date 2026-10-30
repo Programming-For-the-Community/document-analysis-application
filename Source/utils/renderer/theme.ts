@@ -2,9 +2,7 @@ import { THEME } from '../../constants/renderer/shared';
 import { Theme } from '../../types/renderer/shared';
 
 export function getStoredTheme(): Theme {
-  return localStorage.getItem('doc-analysis-theme') === THEME.LIGHT
-    ? THEME.LIGHT
-    : THEME.DARK;
+  return localStorage.getItem('doc-analysis-theme') === THEME.LIGHT ? THEME.LIGHT : THEME.DARK;
 }
 
 export function applyTheme(theme: Theme): void {

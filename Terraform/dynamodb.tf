@@ -9,7 +9,7 @@
 #   PK=project_id, SK=document_id   → document processing state + S3 result keys
 # -------------------------------------------------------
 resource "aws_dynamodb_table" "project_state" {
-  name         = "${var.tf_project_name}-project-state"
+  name         = "${var.project}-project-state"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "project_id"
   range_key    = "document_id"
@@ -42,7 +42,7 @@ resource "aws_dynamodb_table" "project_state" {
 # Sort key      : project_id
 # -------------------------------------------------------
 resource "aws_dynamodb_table" "project_access" {
-  name         = "${var.tf_project_name}-project-access"
+  name         = "${var.project}-project-access"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "user_sub"
   range_key    = "project_id"
@@ -77,7 +77,7 @@ resource "aws_dynamodb_table" "project_access" {
 # Partition key : user_sub  (Cognito sub — one active session per user)
 # -------------------------------------------------------
 resource "aws_dynamodb_table" "user_sessions" {
-  name         = "${var.tf_project_name}-user-sessions"
+  name         = "${var.project}-user-sessions"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "user_sub"
 

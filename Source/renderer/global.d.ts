@@ -5,6 +5,7 @@ import { DocumentRecord, UploadFileInfo } from '../interfaces/document';
 import { ProcessingStatus } from '../../types/document';
 import { EntityConnection } from '../interfaces/graph';
 import { ConnectivityStatus } from '../interfaces/connectivity';
+import { UpdateState } from '../interfaces/update';
 
 export {};
 
@@ -36,7 +37,7 @@ declare global {
       };
       connectivity: {
         get: () => Promise<ConnectivityStatus>;
-        onStatusUpdate: (callback: (status: ConnectivityStatus) => void) => void;
+        onStatusUpdate: (callback: (status: ConnectivityStatus) => void) => () => void;
       };
       nav: {
         openProject: (project: { id: string; name: string }) => Promise<void>;
@@ -122,11 +123,11 @@ declare global {
             documentId: string;
             status: ProcessingStatus;
           }) => void
-        ) => void;
-        onDocumentAdded: (callback: (doc: DocumentRecord) => void) => void;
+        ) => () => void;
+        onDocumentAdded: (callback: (doc: DocumentRecord) => void) => () => void;
         onDocumentRemoved: (
           callback: (data: { projectId: string; documentId: string }) => void
-        ) => void;
+        ) => () => void;
       };
       search: {
         query: (
@@ -140,9 +141,7 @@ declare global {
         }>;
       };
       graph: {
-        syncProject: (
-          projectId: string
-        ) => Promise<{
+        syncProject: (projectId: string) => Promise<{
           success: boolean;
           loaded?: number;
           failed?: number;
@@ -173,10 +172,14 @@ declare global {
         getTheme: () => Promise<{ success: boolean; value?: string | null; error?: string }>;
         setTheme: (theme: string) => Promise<{ success: boolean; error?: string }>;
       };
+      updates: {
+        getStatus: () => Promise<UpdateState>;
+        install: () => Promise<void>;
+        onStatus: (callback: (state: UpdateState) => void) => () => void;
+      };
       utils: {
         getFilePath: (file: File) => string;
       };
     };
   }
-
 }

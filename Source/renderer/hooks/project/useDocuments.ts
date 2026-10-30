@@ -7,6 +7,20 @@ import {
 } from '../../handlers/project/documents';
 import { DocumentRecord, UploadFileInfo } from '../../../interfaces/document';
 
+function withStatus(
+  docs: DocumentRecord[],
+  documentId: string,
+  status: DocumentRecord['processingStatus']
+): DocumentRecord[] {
+  return docs.map((doc) =>
+    doc.documentId === documentId ? { ...doc, processingStatus: status } : doc
+  );
+}
+
+function withoutDocument(docs: DocumentRecord[], documentId: string): DocumentRecord[] {
+  return docs.filter((d) => d.documentId !== documentId);
+}
+
 export function useDocuments(projectId: string) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,27 +42,26 @@ export function useDocuments(projectId: string) {
   useEffect(() => {
     if (!projectId) return;
 
-    window.electron.documents.onStatusUpdate((update) => {
-      if (update.projectId !== projectId) return;
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.documentId === update.documentId ? { ...doc, processingStatus: update.status } : doc
-        )
-      );
-    });
+    const unsubscribers = [
+      window.electron.documents.onStatusUpdate((update) => {
+        if (update.projectId !== projectId) return;
+        setDocuments((prev) => withStatus(prev, update.documentId, update.status));
+      }),
 
-    // Full reload rather than appending `doc` directly — it comes from the
-    // project-poller's periodic snapshot and may race with an in-flight
-    // upload's own reload, so re-fetching avoids duplicates/stale ordering.
-    window.electron.documents.onDocumentAdded((doc) => {
-      if (doc.projectId !== projectId) return;
-      void reload();
-    });
+      // Full reload rather than appending `doc` directly — it comes from the
+      // project-poller's periodic snapshot and may race with an in-flight
+      // upload's own reload, so re-fetching avoids duplicates/stale ordering.
+      window.electron.documents.onDocumentAdded((doc) => {
+        if (doc.projectId !== projectId) return;
+        void reload();
+      }),
 
-    window.electron.documents.onDocumentRemoved((data) => {
-      if (data.projectId !== projectId) return;
-      setDocuments((prev) => prev.filter((d) => d.documentId !== data.documentId));
-    });
+      window.electron.documents.onDocumentRemoved((data) => {
+        if (data.projectId !== projectId) return;
+        setDocuments((prev) => withoutDocument(prev, data.documentId));
+      }),
+    ];
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [projectId, reload]);
 
   const upload = useCallback(
@@ -75,7 +88,7 @@ export function useDocuments(projectId: string) {
         setUploadError(error);
         return false;
       }
-      setDocuments((prev) => prev.filter((d) => d.documentId !== documentId));
+      setDocuments((prev) => withoutDocument(prev, documentId));
       return true;
     },
     [projectId]

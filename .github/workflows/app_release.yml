@@ -1,0 +1,73 @@
+# Reusable workflow: builds the desktop installers and publishes them to the
+# private release bucket (Terraform/releases.tf) via Source/scripts/release.js.
+#
+# Only called by app_deploy.yml on pushes to main, after tests, the SonarQube
+# Cloud scan (quality gate blocking), approval and the Terraform apply have all
+# passed — so no installer is ever built from code that failed the scan.
+#
+# release.js runs with --if-new: a push that doesn't bump the version
+# (`npm version patch|minor|major`) builds nothing and publishes nothing.
+#
+# Installers are unsigned for now. macOS runners are Apple Silicon, so the DMG
+# is arm64-only.
+
+name: App Release
+
+on:
+  workflow_call:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  release:
+    name: Build & publish (${{ matrix.platform }})
+    runs-on: ${{ matrix.runner }}
+    # Same environment as the Terraform job, so the deploy role's OIDC trust
+    # (scoped to this environment) accepts the token
+    environment: development
+    strategy:
+      # One platform failing shouldn't cancel the other mid-upload
+      fail-fast: false
+      matrix:
+        include:
+          - platform: win
+            runner: windows-latest
+          - platform: mac
+            runner: macos-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: Source
+    env:
+      # No signing certificates yet — stop electron-builder searching the keychain
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Configure AWS Credentials (via OIDC)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_SVC_ACCT_ARN }}
+          aws-region: ${{ vars.AWS_RESOURCE_REGION }}
+
+      - name: Install dependencies
+        # Install scripts run here (unlike the test job): the packaged app needs
+        # better-sqlite3 rebuilt against Electron's Node ABI.
+        run: |
+          node --version
+          npm ci --no-audit --no-fund
+
+      - name: Build & publish installer
+        env:
+          # Passed through the environment, never interpolated into the script
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          NOTES="${COMMIT_MESSAGE%%$'\n'*}"
+          if [ -n "$NOTES" ]; then
+            npm run release -- --platform ${{ matrix.platform }} --if-new --notes "$NOTES"
+          else
+            npm run release -- --platform ${{ matrix.platform }} --if-new
+          fi

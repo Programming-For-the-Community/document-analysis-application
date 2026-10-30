@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 
 import { AWS_BEDROCK } from '../../classes/aws/bedrock';
+import { AWS_CLOUDWATCH } from '../../classes/aws/cloudwatch';
 import { Qdrant } from '../../classes/qdrant';
 import { AppConfig } from '../../interfaces/config';
 import { CognitoAuthResult } from '../../types/aws';
@@ -38,11 +39,17 @@ export function registerSearchHandlers(
         return { success: false, error: 'Query is empty' };
       }
 
+      const dims = { ModelId: config.bedrock.modelId };
+      const started = Date.now();
+
       try {
         Logger.info(`search:query project=${projectId} query="${trimmedQuery.slice(0, 80)}…"`);
 
         const queryVector = await AWS_BEDROCK.embedText(trimmedQuery);
         const hits = await Qdrant.search(projectId, queryVector, 5);
+
+        AWS_CLOUDWATCH.record('SearchQueries', 1, dims);
+        AWS_CLOUDWATCH.record('SearchZeroHits', hits.length === 0 ? 1 : 0, dims);
 
         if (hits.length === 0) {
           return {
@@ -64,6 +71,8 @@ export function registerSearchHandlers(
           `Question: ${trimmedQuery}`;
 
         const answer = await AWS_BEDROCK.synthesize(synthesisPrompt);
+        AWS_CLOUDWATCH.record('SearchEmptyAnswer', answer.trim() ? 0 : 1, dims);
+        AWS_CLOUDWATCH.record('SearchLatency', Date.now() - started, dims, 'Milliseconds');
 
         const citations = hits.map((h) => ({
           documentId: h.documentId,

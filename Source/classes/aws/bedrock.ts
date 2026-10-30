@@ -6,6 +6,7 @@ import {
 import { Block } from '@aws-sdk/client-textract';
 
 import { AWS_STS } from './sts';
+import { AWS_CLOUDWATCH } from './cloudwatch';
 import { Logger } from '../../utils/logger';
 import { awsConfig } from '../../main/config';
 import { parseBedrockJson } from '../../utils/bedrockJson';
@@ -82,6 +83,8 @@ export class AWS_BEDROCK {
     documentId: string,
     projectId: string
   ): Promise<RelationshipGraph> {
+    const dims = { ModelId: this.modelId };
+    const started = Date.now();
     const result = await this.client.send(
       new ConverseCommand({
         modelId: this.modelId,
@@ -96,9 +99,12 @@ export class AWS_BEDROCK {
       })
     );
 
-    Logger.info(`Bedrock: response for document ${documentId} finished with stopReason: ${result.stopReason}`);
+    Logger.info(
+      `Bedrock: response for document ${documentId} finished with stopReason: ${result.stopReason}`
+    );
 
-    if (result.stopReason === 'max_tokens') {
+    const truncated = result.stopReason === 'max_tokens';
+    if (truncated) {
       Logger.warn(
         `Bedrock: response for document ${documentId} was truncated (stopReason: max_tokens) — ` +
           `the document likely produced more entities/relationships than fit in the response.`
@@ -108,8 +114,22 @@ export class AWS_BEDROCK {
     const rawText =
       result.output?.message?.content?.find((c) => c.text !== undefined)?.text ?? '{}';
 
-    const extracted = parseBedrockJson(rawText, documentId);
-    if (!extracted) throw new GraphExtractionError(documentId);
+    const parsed = parseBedrockJson(rawText, documentId);
+
+    // Every counter is recorded as 0 or 1 so the hourly rate alarms in
+    // Terraform/monitoring.tf always have a numerator and denominator.
+    AWS_CLOUDWATCH.record('ExtractionAttempts', 1, dims);
+    AWS_CLOUDWATCH.record('ExtractionLatency', Date.now() - started, dims, 'Milliseconds');
+    AWS_CLOUDWATCH.record('ExtractionTruncated', truncated ? 1 : 0, dims);
+    AWS_CLOUDWATCH.record('ExtractionFailed', parsed ? 0 : 1, dims);
+    AWS_CLOUDWATCH.record(
+      'ExtractionRepaired',
+      parsed && parsed.strategy !== 'clean' ? 1 : 0,
+      dims
+    );
+
+    if (!parsed) throw new GraphExtractionError(documentId);
+    const extracted = parsed.payload;
 
     const graph: RelationshipGraph = {
       documentId,
@@ -117,6 +137,10 @@ export class AWS_BEDROCK {
       entities: extracted.entities ?? [],
       relationships: extracted.relationships ?? [],
     };
+
+    AWS_CLOUDWATCH.record('ExtractionZeroEntities', graph.entities.length === 0 ? 1 : 0, dims);
+    AWS_CLOUDWATCH.record('EntitiesPerDocument', graph.entities.length, dims);
+    AWS_CLOUDWATCH.record('RelationshipsPerDocument', graph.relationships.length, dims);
 
     Logger.info(
       `Bedrock extracted ${graph.entities.length} entity/entities and ${graph.relationships.length} relationship(s) for document ${documentId}`

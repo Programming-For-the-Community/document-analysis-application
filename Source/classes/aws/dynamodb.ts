@@ -389,13 +389,16 @@ export class AWS_DYNAMODB {
     Logger.debug(`Document record created: ${record.documentId}`);
   }
 
+  // Returns false if the document record no longer exists (e.g. deleted while
+  // Textract/Bedrock was still processing it) — the update is skipped rather than
+  // upserting a status-only "ghost" item with no name, size, or upload date.
   public static async updateDocumentStatus(
     projectId: string,
     documentId: string,
     status: ProcessingStatus,
     config: DynamoDBConfig,
     jobId?: string
-  ): Promise<void> {
+  ): Promise<boolean> {
     const now = new Date().toISOString();
     // Always record when the status last changed
     let expr = 'SET processing_status = :status, status_updated_at = :now';
@@ -410,15 +413,29 @@ export class AWS_DYNAMODB {
       }
     }
 
-    await this.client.send(
-      new UpdateCommand({
-        TableName: config.projectStateTable,
-        Key: { project_id: projectId, document_id: documentId },
-        UpdateExpression: expr,
-        ExpressionAttributeValues: values,
-      })
-    );
+    try {
+      await this.client.send(
+        new UpdateCommand({
+          TableName: config.projectStateTable,
+          Key: { project_id: projectId, document_id: documentId },
+          UpdateExpression: expr,
+          // document_name is only written by addDocumentRecord, so this also
+          // refuses to update a ghost item left behind by an older app version
+          ConditionExpression: 'attribute_exists(document_name)',
+          ExpressionAttributeValues: values,
+        })
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === 'ConditionalCheckFailedException') {
+        Logger.warn(
+          `Document ${documentId} no longer exists — skipping status update to ${status}`
+        );
+        return false;
+      }
+      throw err;
+    }
     Logger.debug(`Document ${documentId} status → ${status}`);
+    return true;
   }
 
   public static async writeSession(
@@ -595,6 +612,32 @@ export class AWS_DYNAMODB {
     return result.Item ? (result.Item['document_name'] as string) : null;
   }
 
+  // Deletes ghost items only (conditional on document_name being absent) and does not
+  // touch document_count — the real record's deletion already decremented it.
+  private static async purgeOrphanedDocuments(
+    projectId: string,
+    documentIds: string[],
+    config: DynamoDBConfig
+  ): Promise<void> {
+    await Promise.all(
+      documentIds.map((documentId) =>
+        this.client
+          .send(
+            new DeleteCommand({
+              TableName: config.projectStateTable,
+              Key: { project_id: projectId, document_id: documentId },
+              ConditionExpression: 'attribute_not_exists(document_name)',
+            })
+          )
+          .catch((err: unknown) =>
+            Logger.warn(
+              `Failed to purge orphaned record ${documentId}: ${err instanceof Error ? err.message : String(err)}`
+            )
+          )
+      )
+    );
+  }
+
   public static async listDocuments(
     projectId: string,
     config: DynamoDBConfig
@@ -608,8 +651,22 @@ export class AWS_DYNAMODB {
       })
     );
     const items = (result.Items ?? []).filter((item) => item['document_id'] !== 'META');
-    Logger.info(`Found ${items.length} document(s) for project: ${projectId}`);
-    return items.map((item) => ({
+
+    // Status-only items with no document_name are ghosts created by status updates
+    // that landed after the document was deleted — hide them and purge in the background.
+    const orphanIds = items
+      .filter((item) => item['document_name'] === undefined)
+      .map((item) => item['document_id'] as string);
+    if (orphanIds.length > 0) {
+      Logger.warn(
+        `Purging ${orphanIds.length} orphaned document record(s) in project ${projectId}`
+      );
+      void this.purgeOrphanedDocuments(projectId, orphanIds, config);
+    }
+
+    const docs = items.filter((item) => item['document_name'] !== undefined);
+    Logger.info(`Found ${docs.length} document(s) for project: ${projectId}`);
+    return docs.map((item) => ({
       documentId: item['document_id'] as string,
       projectId: item['project_id'] as string,
       ownerSub: (item['owner_sub'] as string) ?? '',

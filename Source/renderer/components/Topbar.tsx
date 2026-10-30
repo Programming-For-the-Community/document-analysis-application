@@ -1,7 +1,8 @@
 import { TopbarProps } from '../../interfaces/renderer/shared';
 import { useConnectivity } from '../hooks/useConnectivity';
+import { UpdatePill } from './UpdatePill';
 
-export function Topbar({ username, theme, onToggleTheme, onLogout, projectName, onBack, onShare }: TopbarProps) {
+export function Topbar({ username, theme, onToggleTheme, onLogout, projectName, onBack, onShare }: Readonly<TopbarProps>) {
   const isParchment = theme === 'parchment';
   const connectivity = useConnectivity();
 
@@ -33,6 +34,7 @@ export function Topbar({ username, theme, onToggleTheme, onLogout, projectName, 
         )}
       </div>
       <div className="topbar-user">
+        <UpdatePill />
         <span
           className={`status-pill status-pill--${connectivity.neo4j}`}
           title={`Neo4j: ${connectivity.neo4j === 'connected' ? 'Connected' : 'Disconnected — retrying every 15s'}`}

@@ -10,6 +10,7 @@ resource "aws_secretsmanager_secret_version" "app_config" {
     COGNITO_USER_POOL_ID          = aws_cognito_user_pool.users.id
     COGNITO_CLIENT_ID             = aws_cognito_user_pool_client.electron_app.id
     S3_BUCKET                     = aws_s3_bucket.documents.bucket
+    RELEASE_BUCKET                = aws_s3_bucket.releases.bucket
     DYNAMODB_PROJECT_STATE_TABLE  = aws_dynamodb_table.project_state.name
     DYNAMODB_PROJECT_ACCESS_TABLE = aws_dynamodb_table.project_access.name
     DYNAMODB_USER_SESSIONS_TABLE  = aws_dynamodb_table.user_sessions.name

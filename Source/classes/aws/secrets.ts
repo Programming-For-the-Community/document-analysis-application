@@ -6,7 +6,11 @@ import { Logger } from '../../utils/logger';
 
 export class AWS_SECRETS {
   private static client: SecretsManagerClient;
-  public static secrets: SecretValues;
+  private static values: SecretValues;
+
+  public static get secrets(): SecretValues {
+    return this.values;
+  }
 
   // Uses the local AWS credential chain (CLI profile / env vars / IAM instance role)
   // rather than the assumed service role — this is intentional, because the role ARN
@@ -26,7 +30,7 @@ export class AWS_SECRETS {
       throw new Error(`Secret "${awsConfig.secretName}" has no string value`);
     }
 
-    this.secrets = JSON.parse(response.SecretString) as SecretValues;
+    this.values = JSON.parse(response.SecretString) as SecretValues;
 
     if (!this.secrets.SVC_ROLE_ARN) {
       throw new Error(`Secret "${awsConfig.secretName}" is missing required key: SVC_ROLE_ARN`);

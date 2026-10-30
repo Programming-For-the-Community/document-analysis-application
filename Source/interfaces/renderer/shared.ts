@@ -9,4 +9,3 @@ export interface TopbarProps {
   onBack?: () => void;
   onShare?: () => void;
 }
-

@@ -28,9 +28,7 @@ export class AWS_TEXTRACT {
     Logger.debug(`Textract client initialized (region: ${awsConfig.region})`);
   }
 
-  public static async getJobStatus(
-    jobId: string
-  ): Promise<{
+  public static async getJobStatus(jobId: string): Promise<{
     status: 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED' | 'PARTIAL_SUCCESS';
     message: string;
   }> {

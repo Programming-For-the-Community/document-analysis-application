@@ -1,4 +1,7 @@
+import crypto from 'crypto';
 import fs from 'fs';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 
 import {
   S3Client,
@@ -10,7 +13,7 @@ import {
 
 import { AWS_STS } from './sts';
 import { awsConfig } from '../../main/config';
-import { S3Config } from '../../interfaces/config';
+import { S3Config, ReleasesConfig } from '../../interfaces/config';
 import { Logger } from '../../utils/logger';
 
 export class AWS_S3 {
@@ -170,5 +173,46 @@ export class AWS_S3 {
       })
     );
     Logger.debug(`Uploaded ${s3Key}`);
+  }
+
+  // ── Release bucket (read-only for the app) ────────────────────────────────
+
+  // Returns null when the object doesn't exist (no release published yet).
+  public static async getReleaseJson<T>(key: string, config: ReleasesConfig): Promise<T | null> {
+    try {
+      const result = await this.client.send(
+        new GetObjectCommand({ Bucket: config.bucket, Key: key })
+      );
+      return JSON.parse((await result.Body?.transformToString()) ?? 'null') as T | null;
+    } catch (err) {
+      if (err instanceof Error && err.name === 'NoSuchKey') return null;
+      throw err;
+    }
+  }
+
+  // Streams a release object to disk, hashing as it goes so large installers
+  // are never held in memory. Returns the base64 SHA-512 of what was written.
+  public static async downloadRelease(
+    key: string,
+    destPath: string,
+    config: ReleasesConfig,
+    onProgress: (bytes: number) => void
+  ): Promise<string> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: config.bucket, Key: key })
+    );
+    if (!result.Body) throw new Error(`Empty body for release object ${key}`);
+
+    const hash = crypto.createHash('sha512');
+    let received = 0;
+    const body = result.Body as Readable;
+    body.on('data', (chunk: Buffer) => {
+      hash.update(chunk);
+      received += chunk.length;
+      onProgress(received);
+    });
+
+    await pipeline(body, fs.createWriteStream(destPath));
+    return hash.digest('base64');
   }
 }

@@ -12,7 +12,7 @@ export function GraphPanel({
   nodes, edges, loading, hasSyncedData,
   layout, minDocs, hiddenTypes, theme,
   onLayoutChange, onMinDocsChange, onToggleHiddenType, onNodeClick, onExpand,
-}: GraphPanelProps) {
+}: Readonly<GraphPanelProps>) {
   const containerRef    = useRef<HTMLDivElement>(null);
   const cyRef           = useRef<CyInstance | null>(null);
   const observerRef     = useRef<ResizeObserver | null>(null);
@@ -64,7 +64,7 @@ export function GraphPanel({
     if (cyRef.current) applyTypeFilters(cyRef.current, hiddenTypes);
   }, [hiddenTypes]);
 
-  const typesPresent = [...new Set(nodes.map(n => n.data.type))].sort();
+  const typesPresent = [...new Set(nodes.map(n => n.data.type))].sort((a, b) => a.localeCompare(b));
   const colors = getEntityColors(theme);
 
   return (

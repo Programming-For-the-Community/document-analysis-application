@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RenameProjectModalProps } from '../../../../interfaces/renderer/home';
 
-export function RenameProjectModal({ isOpen, projectName, submitting, error, onClose, onSubmit }: RenameProjectModalProps) {
+export function RenameProjectModal({ isOpen, projectName, submitting, error, onClose, onSubmit }: Readonly<RenameProjectModalProps>) {
   const [name, setName] = useState(projectName);
 
   useEffect(() => { setName(projectName); }, [projectName]);

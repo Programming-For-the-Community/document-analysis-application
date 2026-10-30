@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "documents" {
-  bucket = "${var.tf_project_name}-documents-${var.account_id}"
+  bucket = "${var.project}-documents-${var.account_id}"
 
   tags = {
     Owner       = var.owner

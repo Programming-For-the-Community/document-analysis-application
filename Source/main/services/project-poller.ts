@@ -78,68 +78,88 @@ async function loadDocIntoLocalStores(doc: DocumentRecord, config: AppConfig): P
   }
 }
 
+// Both terminal-success states have local-store artifacts: GRAPH_FAILED documents
+// have an (empty) analysis file and are still embedded for search.
+function isLoadable(status: string): boolean {
+  return status === 'COMPLETE' || status === 'GRAPH_FAILED';
+}
+
+// New documents added by another device or user
+function handleAddedDocuments(
+  project: { id: string; name: string },
+  documents: DocumentRecord[],
+  prevIds: Set<string>,
+  config: AppConfig
+): void {
+  for (const doc of documents) {
+    if (prevIds.has(doc.documentId)) continue;
+    Logger.info(`[project-poller] New document "${doc.documentName}" in project "${project.name}"`);
+    pushToRenderer('document:added', doc);
+    if (isLoadable(doc.processingStatus)) void loadDocIntoLocalStores(doc, config);
+  }
+}
+
+// Documents deleted by another device or user
+async function handleRemovedDocuments(
+  project: { id: string; name: string },
+  currentIds: Set<string>,
+  prevIds: Set<string>
+): Promise<void> {
+  for (const prevId of prevIds) {
+    if (currentIds.has(prevId)) continue;
+    Logger.info(`[project-poller] Document ${prevId} removed from project "${project.name}"`);
+    await Neo4J.deleteDocument(prevId).catch((err: unknown) =>
+      Logger.warn(
+        `[project-poller] Neo4j cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`
+      )
+    );
+    if (Qdrant.isAvailable()) {
+      await Qdrant.deleteDocument(prevId).catch((err: unknown) =>
+        Logger.warn(
+          `[project-poller] Qdrant cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`
+        )
+      );
+    }
+    pushToRenderer('document:removed', { projectId: project.id, documentId: prevId });
+    trackedStatuses.delete(prevId);
+  }
+}
+
+// Status changes on documents that existed last poll (e.g. another device processed a doc)
+function handleStatusChanges(
+  documents: DocumentRecord[],
+  prevIds: Set<string>,
+  config: AppConfig
+): void {
+  for (const doc of documents) {
+    if (!prevIds.has(doc.documentId)) continue;
+    const prevStatus = trackedStatuses.get(doc.documentId);
+    if (prevStatus === undefined || prevStatus === doc.processingStatus) continue;
+
+    Logger.info(
+      `[project-poller] Status change "${doc.documentName}": ${prevStatus} → ${doc.processingStatus}`
+    );
+    pushToRenderer('document:status-update', {
+      projectId: doc.projectId,
+      documentId: doc.documentId,
+      status: doc.processingStatus,
+    });
+    if (isLoadable(doc.processingStatus)) void loadDocIntoLocalStores(doc, config);
+  }
+}
+
 async function pollProject(
   project: { id: string; name: string },
   config: AppConfig
 ): Promise<void> {
   const documents = await AWS_DYNAMODB.listDocuments(project.id, config.dynamoDB);
   const currentIds = new Set(documents.map((d) => d.documentId));
-  const isFirst = !trackedDocIds.has(project.id);
-  const prevIds = trackedDocIds.get(project.id) ?? new Set<string>();
+  const prevIds = trackedDocIds.get(project.id);
 
-  if (!isFirst) {
-    // New documents added by another device or user
-    for (const doc of documents) {
-      if (!prevIds.has(doc.documentId)) {
-        Logger.info(
-          `[project-poller] New document "${doc.documentName}" in project "${project.name}"`
-        );
-        pushToRenderer('document:added', doc);
-        if (doc.processingStatus === 'COMPLETE') {
-          void loadDocIntoLocalStores(doc, config);
-        }
-      }
-    }
-
-    // Documents deleted by another device or user
-    for (const prevId of prevIds) {
-      if (!currentIds.has(prevId)) {
-        Logger.info(`[project-poller] Document ${prevId} removed from project "${project.name}"`);
-        await Neo4J.deleteDocument(prevId).catch((err: unknown) =>
-          Logger.warn(
-            `[project-poller] Neo4j cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`
-          )
-        );
-        if (Qdrant.isAvailable()) {
-          await Qdrant.deleteDocument(prevId).catch((err: unknown) =>
-            Logger.warn(
-              `[project-poller] Qdrant cleanup for ${prevId}: ${err instanceof Error ? err.message : String(err)}`
-            )
-          );
-        }
-        pushToRenderer('document:removed', { projectId: project.id, documentId: prevId });
-        trackedStatuses.delete(prevId);
-      }
-    }
-
-    // Status changes on documents that existed last poll (e.g. another device processed a doc)
-    for (const doc of documents) {
-      if (!prevIds.has(doc.documentId)) continue;
-      const prevStatus = trackedStatuses.get(doc.documentId);
-      if (prevStatus !== undefined && prevStatus !== doc.processingStatus) {
-        Logger.info(
-          `[project-poller] Status change "${doc.documentName}": ${prevStatus} → ${doc.processingStatus}`
-        );
-        pushToRenderer('document:status-update', {
-          projectId: doc.projectId,
-          documentId: doc.documentId,
-          status: doc.processingStatus,
-        });
-        if (doc.processingStatus === 'COMPLETE') {
-          void loadDocIntoLocalStores(doc, config);
-        }
-      }
-    }
+  if (prevIds) {
+    handleAddedDocuments(project, documents, prevIds, config);
+    await handleRemovedDocuments(project, currentIds, prevIds);
+    handleStatusChanges(documents, prevIds, config);
   } else {
     Logger.debug(
       `[project-poller] First poll for project "${project.name}" — ${documents.length} document(s) tracked`
