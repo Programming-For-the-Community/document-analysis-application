@@ -66,6 +66,7 @@ body.page-home {
 /* ── Project cards (home page) ──────────────────────────────────────────────── */
 
 .project-card {
+  position: relative; /* anchors the stretched name button */
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -96,6 +97,8 @@ body.page-home {
 }
 
 .btn-card-action {
+  position: relative; /* above the stretched name button */
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;

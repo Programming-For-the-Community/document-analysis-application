@@ -7,6 +7,7 @@ const tseslint = require('@typescript-eslint/eslint-plugin');
 const tsParser = require('@typescript-eslint/parser');
 const sonarjs = require('eslint-plugin-sonarjs');
 const reactHooks = require('eslint-plugin-react-hooks');
+const jsxA11y = require('eslint-plugin-jsx-a11y');
 const prettier = require('eslint-config-prettier');
 
 module.exports = [
@@ -46,6 +47,18 @@ module.exports = [
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Sonar S6544 — unhandled promises must be awaited, caught or marked `void`
+      '@typescript-eslint/no-floating-promises': 'error',
+    },
+  },
+  {
+    // Sonar's React accessibility rules (S6848, S1082, S6853, S6836…) are jsx-a11y's
+    files: ['**/*.tsx'],
+    plugins: { 'jsx-a11y': jsxA11y },
+    rules: {
+      ...jsxA11y.flatConfigs.recommended.rules,
+      // Sonar S6819 — prefer a native <button> etc. over role="button" on a div
+      'jsx-a11y/prefer-tag-over-role': 'error',
     },
   },
   {

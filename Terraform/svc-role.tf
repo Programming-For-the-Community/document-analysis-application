@@ -66,6 +66,12 @@ resource "aws_iam_role_policy" "svc_role_sns" {
         Effect   = "Allow"
         Action   = "sns:Publish"
         Resource = aws_sns_topic.textract_results.arn
+      },
+      {
+        # The topic is KMS-encrypted (encryption.tf)
+        Effect   = "Allow"
+        Action   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+        Resource = aws_kms_key.sns.arn
       }
     ]
   })

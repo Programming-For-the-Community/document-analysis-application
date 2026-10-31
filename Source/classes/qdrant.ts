@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { QdrantClient } from '@qdrant/js-client-rest';
 
 import { Logger } from '../utils/logger';

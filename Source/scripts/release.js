@@ -19,10 +19,10 @@
 // Uses the default AWS credential chain — your AWS CLI profile locally, the OIDC
 // deploy role in CI (.github/workflows/app_release.yml) — which needs the
 // doc-analysis-release-publisher policy from Terraform/releases.tf (or broader).
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execSync } = require('node:child_process');
 const {
   S3Client,
   GetObjectCommand,
@@ -136,7 +136,8 @@ async function main() {
   const s3 = new S3Client({ region });
   const dir = args.platform;
 
-  console.log(`Releasing ${build.productName} ${version} (${dir}) → s3://${bucket}/${dir}/`);
+  // The bucket name comes from Secrets Manager, so it stays out of the (CI) log
+  console.log(`Releasing ${build.productName} ${version} (${dir}) to the release bucket`);
 
   const latest = await getJson(s3, bucket, `${dir}/latest.json`);
   const notNewer = latest && compareVersions(version, latest.version) <= 0;

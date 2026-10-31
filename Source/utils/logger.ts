@@ -1,4 +1,4 @@
-import os from 'os';
+import os from 'node:os';
 import winston from 'winston';
 
 import { LoggerConfig } from '../interfaces/config';

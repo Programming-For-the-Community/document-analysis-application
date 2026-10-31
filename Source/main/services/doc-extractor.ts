@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 import mammoth from 'mammoth';
 import ExcelJS from 'exceljs';

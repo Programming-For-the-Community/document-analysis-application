@@ -3,8 +3,8 @@
 const { Resvg } = require('@resvg/resvg-js');
 const pngToIco = require('png-to-ico');
 const png2icons = require('png2icons');
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const ASSETS_DIR = path.join(__dirname, '..', 'assets');
 const BUILD_DIR  = path.join(__dirname, '..', 'build');

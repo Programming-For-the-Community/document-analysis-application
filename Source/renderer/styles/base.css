@@ -14,3 +14,46 @@ body {
   color: var(--text);
   height: 100vh;
 }
+
+/* Native <button> standing in for a clickable div — drops the browser's button
+   look so the element's own class (declared in a later stylesheet) styles it */
+.btn-plain {
+  appearance: none;
+  background: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+/* Makes a whole card/row clickable through one real button: the button's ::after
+   covers its nearest positioned ancestor. Other controls inside that ancestor
+   need position: relative + z-index: 1 to stay clickable above it. */
+.btn-stretched::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.btn-stretched:focus-visible {
+  outline: none;
+}
+
+.btn-stretched:focus-visible::after {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* Click-outside-to-close target behind a modal card (see ModalOverlay.tsx). The
+   overlays are position: fixed, so z-index: -1 keeps it above their tint but
+   below the card. */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  cursor: default;
+}

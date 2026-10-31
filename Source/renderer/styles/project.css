@@ -333,6 +333,7 @@ body.page-project {
 
 .layout-picker-item {
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
@@ -635,6 +636,7 @@ body.page-project {
 }
 
 .search-source-card {
+  width: 100%;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -803,6 +805,7 @@ body.page-project {
 }
 
 .doc-item {
+  position: relative; /* anchors the stretched name button */
   display: flex;
   align-items: center;
   gap: 12px;
@@ -847,6 +850,8 @@ body.page-project {
 }
 
 .doc-duplicate-badge {
+  position: relative; /* above the stretched name button, so its tooltip shows */
+  z-index: 1;
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 500;
@@ -909,6 +914,8 @@ body.page-project {
 }
 
 .doc-item-actions {
+  position: relative; /* above the stretched name button */
+  z-index: 1;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -1055,6 +1062,8 @@ body.page-project {
 }
 
 .username-dropdown-item {
+  display: block;
+  width: 100%;
   padding: 8px 12px;
   font-size: 13px;
   cursor: pointer;
@@ -1280,6 +1289,7 @@ body.page-project {
 
 .node-detail-doc {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
@@ -1425,4 +1435,12 @@ html[data-theme='parchment'] .view-only-banner {
 
 html[data-theme='parchment'] .view-only-banner svg {
   color: #b45309;
+}
+
+/* ── Cytoscape ────────────────────────────────────────────────────────────── */
+
+/* Cytoscape normally injects this rule as an inline <style>, which the CSP
+   blocks — project/index.html tells it the stylesheet is already present */
+.__________cytoscape_container {
+  position: relative;
 }

@@ -1,13 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NewProjectModalProps } from '../../../../interfaces/renderer/home';
+import { ModalOverlay } from '../../ModalOverlay';
 
 export function NewProjectModal({ isOpen, submitting, error, onClose, onSubmit }: Readonly<NewProjectModalProps>) {
   const [name, setName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Move focus into the dialog when it opens
+  useEffect(() => { if (isOpen) inputRef.current?.focus(); }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal-card">
         <h2 className="modal-title">New Project</h2>
         <div className="form-group">
@@ -16,8 +21,8 @@ export function NewProjectModal({ isOpen, submitting, error, onClose, onSubmit }
             type="text" id="new-project-name" maxLength={100}
             placeholder="e.g. Legal Contracts Q1"
             value={name} onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') onSubmit(name); else if (e.key === 'Escape') onClose(); }}
-            autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') onSubmit(name); }}
+            ref={inputRef}
           />
         </div>
         {error && <p className="error-msg">{error}</p>}
@@ -28,6 +33,6 @@ export function NewProjectModal({ isOpen, submitting, error, onClose, onSubmit }
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

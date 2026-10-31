@@ -106,6 +106,13 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "invocation_logs" 
   }
 }
 
+# Access logs go to the shared bucket in access-logs.tf
+resource "aws_s3_bucket_logging" "invocation_logs" {
+  bucket        = aws_s3_bucket.invocation_logs.id
+  target_bucket = aws_s3_bucket.access_logs.id
+  target_prefix = "invocation-logs/"
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "invocation_logs" {
   bucket = aws_s3_bucket.invocation_logs.id
 
@@ -228,7 +235,8 @@ resource "aws_bedrock_model_invocation_logging_configuration" "this" {
 # 2. Alerts topic — alarms and budget notifications
 # -------------------------------------------------------
 resource "aws_sns_topic" "ai_alerts" {
-  name = "doc-analysis-ai-alerts"
+  name              = "doc-analysis-ai-alerts"
+  kms_master_key_id = aws_kms_key.sns.arn
 
   tags = {
     Owner   = var.owner
@@ -557,8 +565,9 @@ resource "aws_budgets_budget" "bedrock" {
 # including legitimate `terraform apply` runs that touch it.
 # -------------------------------------------------------
 resource "aws_sns_topic" "iam_alerts" {
-  provider = aws.us_east_1
-  name     = "doc-analysis-iam-alerts"
+  provider          = aws.us_east_1
+  name              = "doc-analysis-iam-alerts"
+  kms_master_key_id = aws_kms_key.sns_us_east_1.arn
 
   tags = {
     Owner   = var.owner
@@ -659,6 +668,14 @@ resource "aws_s3_bucket_public_access_block" "cloudtrail" {
   restrict_public_buckets = true
 }
 
+# Access logs go to the shared bucket in access-logs.tf
+resource "aws_s3_bucket_logging" "cloudtrail" {
+  count         = var.enable_cloudtrail ? 1 : 0
+  bucket        = aws_s3_bucket.cloudtrail[0].id
+  target_bucket = aws_s3_bucket.access_logs.id
+  target_prefix = "cloudtrail/"
+}
+
 resource "aws_s3_bucket_policy" "cloudtrail" {
   count  = var.enable_cloudtrail ? 1 : 0
   bucket = aws_s3_bucket.cloudtrail[0].id
@@ -666,6 +683,19 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource = [
+          aws_s3_bucket.cloudtrail[0].arn,
+          "${aws_s3_bucket.cloudtrail[0].arn}/*"
+        ]
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+      },
       {
         Sid       = "AclCheck"
         Effect    = "Allow"

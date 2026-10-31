@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 import { app, BrowserWindow, dialog, Menu, screen } from 'electron';
 
 import { AWS_STS } from '../classes/aws/sts';
@@ -72,7 +72,7 @@ function createWindow(): void {
     mainWindow.center();
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../../renderer/login/index.html'));
+  void mainWindow.loadFile(path.join(__dirname, '../../renderer/login/index.html'));
   Logger.debug('Browser window created — loaded login page');
 }
 
@@ -112,7 +112,7 @@ registerUserHandlers(
 );
 registerUpdateHandlers();
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   Logger.info('Electron app ready — starting initialization sequence');
 
   try {
@@ -176,10 +176,15 @@ app.on('will-quit', (event) => {
   }
 
   Logger.info('App quitting — stopping Docker containers...');
-  dockerManager.stop().finally(() => {
-    Logger.info('Shutdown complete');
-    app.quit();
-  });
+  void dockerManager
+    .stop()
+    .catch((err) => {
+      Logger.error(`Failed to stop Docker containers: ${err instanceof Error ? err.message : err}`);
+    })
+    .finally(() => {
+      Logger.info('Shutdown complete');
+      app.quit();
+    });
 });
 
 app.on('window-all-closed', () => {

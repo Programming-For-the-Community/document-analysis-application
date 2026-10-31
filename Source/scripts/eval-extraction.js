@@ -15,8 +15,8 @@
 //
 // Runs against the compiled app in dist/ — `npm run build` first. Uses your local AWS
 // credentials the same way the app does (Secrets Manager → assume svc role).
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
 const EVAL_DIR = path.join(ROOT, 'eval', 'extraction');

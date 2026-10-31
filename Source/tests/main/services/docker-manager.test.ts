@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SecretValues } from '../../../interfaces/aws';
 import { setPlatform } from '../../helpers';
 
-vi.mock('child_process', () => ({ execFileSync: vi.fn(), spawn: vi.fn() }));
+vi.mock('node:child_process', () => ({ execFileSync: vi.fn(), spawn: vi.fn() }));
 
 class FakeProcess extends EventEmitter {
   stdout = new EventEmitter();
@@ -20,7 +20,7 @@ async function load(existing: string[] = []) {
   vi.resetModules();
   const electron = await import('../../mocks/electron');
   electron.resetElectronMock();
-  const childProcess = await import('child_process');
+  const childProcess = await import('node:child_process');
   const { AWS_SECRETS } = await import('../../../classes/aws/secrets');
   vi.spyOn(AWS_SECRETS, 'secrets', 'get').mockReturnValue({
     SVC_PWD: 'neo-pw',

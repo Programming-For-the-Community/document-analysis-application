@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RenameProjectModalProps } from '../../../../interfaces/renderer/home';
+import { ModalOverlay } from '../../ModalOverlay';
 
 export function RenameProjectModal({ isOpen, projectName, submitting, error, onClose, onSubmit }: Readonly<RenameProjectModalProps>) {
   const [name, setName] = useState(projectName);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => { setName(projectName); }, [projectName]);
+
+  // Move focus into the dialog when it opens
+  useEffect(() => { if (isOpen) inputRef.current?.focus(); }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal-card">
         <h2 className="modal-title">Rename Project</h2>
         <div className="form-group">
@@ -17,8 +23,8 @@ export function RenameProjectModal({ isOpen, projectName, submitting, error, onC
           <input
             type="text" id="rename-project-name" maxLength={100}
             value={name} onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') onSubmit(name); else if (e.key === 'Escape') onClose(); }}
-            autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') onSubmit(name); }}
+            ref={inputRef}
           />
         </div>
         {error && <p className="error-msg">{error}</p>}
@@ -29,6 +35,6 @@ export function RenameProjectModal({ isOpen, projectName, submitting, error, onC
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

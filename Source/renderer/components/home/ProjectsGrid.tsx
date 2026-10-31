@@ -14,7 +14,7 @@ export function ProjectsGrid({ projects, loading, error, onRetry, onRename, onDe
   if (error) {
     return (
       <div className="empty-state">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <svg aria-hidden="true" width="48" height="48" viewBox="0 0 48 48" fill="none">
           <circle cx="24" cy="24" r="20" stroke="#9ca3af" strokeWidth="2" />
           <path d="M24 14v12M24 32v2" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
@@ -27,7 +27,7 @@ export function ProjectsGrid({ projects, loading, error, onRetry, onRename, onDe
   if (projects.length === 0) {
     return (
       <div className="empty-state">
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <svg aria-hidden="true" width="48" height="48" viewBox="0 0 48 48" fill="none">
           <rect x="8" y="6" width="26" height="34" rx="3" stroke="#9ca3af" strokeWidth="2" />
           <path d="M14 16h14M14 22h10M14 28h14" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" />
           <circle cx="36" cy="36" r="8" fill="var(--primary)" />

@@ -35,13 +35,33 @@ resource "aws_s3_bucket_versioning" "documents" {
   }
 }
 
-# Grant Textract permission to read documents from S3
+# Access logs go to the shared bucket in access-logs.tf
+resource "aws_s3_bucket_logging" "documents" {
+  bucket        = aws_s3_bucket.documents.id
+  target_bucket = aws_s3_bucket.access_logs.id
+  target_prefix = "documents/"
+}
+
+# HTTPS only, and grant Textract permission to read documents from S3
 resource "aws_s3_bucket_policy" "documents" {
   bucket = aws_s3_bucket.documents.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource = [
+          aws_s3_bucket.documents.arn,
+          "${aws_s3_bucket.documents.arn}/*"
+        ]
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+      },
       {
         Effect    = "Allow"
         Principal = { Service = "textract.amazonaws.com" }

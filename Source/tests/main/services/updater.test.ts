@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReleaseManifest } from '../../../interfaces/update';
 import { makeConfig, setPlatform } from '../../helpers';
 
-vi.mock('child_process', () => ({ execFile: vi.fn(), spawn: vi.fn() }));
+vi.mock('node:child_process', () => ({ execFile: vi.fn(), spawn: vi.fn() }));
 
 const config = makeConfig();
 const manifest: ReleaseManifest = {
@@ -34,7 +34,7 @@ async function load(options: { publisher?: string } = {}) {
   electron.resetElectronMock();
   electron.app.isPackaged = true;
   electron.app.getVersion.mockReturnValue('1.1.0');
-  const childProcess = await import('child_process');
+  const childProcess = await import('node:child_process');
   const { AWS_S3 } = await import('../../../classes/aws/s3');
   const updater = await import('../../../main/services/updater');
   return { ...updater, electron, AWS_S3, childProcess: vi.mocked(childProcess) };

@@ -1,5 +1,6 @@
 import { MemberRole } from '../../../../types/app';
 import { ShareModalProps } from '../../../../interfaces/renderer/project/share';
+import { ModalOverlay } from '../../ModalOverlay';
 
 export function ShareModal({
   isOpen, members, membersLoading, shareUsername, shareRole, sharing, error, suggestions, callerRole,
@@ -9,12 +10,12 @@ export function ShareModal({
   const isOwner = callerRole === 'OWNER';
 
   return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal-card share-modal-card">
         <h2 className="modal-title">Share Project</h2>
 
         <div className="form-group">
-          <label>Add people</label>
+          <label htmlFor="share-username-input">Add people</label>
           <div className="share-form-row">
             <div className="share-username-wrapper">
               <input type="text" id="share-username-input" placeholder="Enter username" autoComplete="off"
@@ -27,10 +28,11 @@ export function ShareModal({
               {suggestions.length > 0 && (
                 <div className="username-dropdown">
                   {suggestions.map(u => (
-                    <div key={u} className="username-dropdown-item"
-                      onMouseDown={e => { e.preventDefault(); onSelectSuggestion(u); }}>
+                    <button type="button" key={u} className="btn-plain username-dropdown-item"
+                      onMouseDown={e => { e.preventDefault(); onSelectSuggestion(u); }}
+                      onClick={() => onSelectSuggestion(u)}>
                       {u}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -62,7 +64,7 @@ export function ShareModal({
               </select>
               {isOwner && (
                 <button className="btn-member-remove" title={`Remove ${member.username}`} onClick={() => onRemoveMember(member.userSub)}>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none">
                     <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </button>
@@ -75,6 +77,6 @@ export function ShareModal({
           <button className="btn-secondary" onClick={onClose}>Done</button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

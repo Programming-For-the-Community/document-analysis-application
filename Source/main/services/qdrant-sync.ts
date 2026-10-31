@@ -1,4 +1,4 @@
-import path from 'path';
+import path from 'node:path';
 
 import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
 import { AWS_S3 } from '../../classes/aws/s3';

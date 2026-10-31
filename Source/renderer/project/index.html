@@ -3,15 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
-    />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
     <title>Document Analysis</title>
     <link rel="stylesheet" href="../styles/theme.css" />
     <link rel="stylesheet" href="../styles/base.css" />
     <link rel="stylesheet" href="../styles/shared.css" />
-    <link rel="stylesheet" href="../styles/project.css" />
+    <!-- The id stops Cytoscape injecting its own inline <style> (blocked by the CSP
+         above); project.css carries the rule it would have added instead -->
+    <link id="__________cytoscape_stylesheet" rel="stylesheet" href="../styles/project.css" />
   </head>
   <body class="page-project">
     <div id="root"></div>

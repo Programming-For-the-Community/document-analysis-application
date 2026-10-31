@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron';
-import path from 'path';
+import path from 'node:path';
 
 import { AWS_STS } from '../../classes/aws/sts';
 import { AWS_COGNITO } from '../../classes/aws/cognito';
@@ -48,7 +48,7 @@ async function onLoginSuccess(
       clearSession();
       setTokens(null);
       void AWS_STS.setSourceIdentity(null);
-      win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
+      void win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
     },
   };
   startHeartbeat(heartbeatOpts);
@@ -67,7 +67,7 @@ function onLogout(
   clearSession();
   setTokens(null);
   void AWS_STS.setSourceIdentity(null);
-  win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
+  void win?.loadFile(path.join(__dirname, '../../../renderer/login/index.html'));
 }
 
 export function registerAuthHandlers(
@@ -100,7 +100,7 @@ export function registerAuthHandlers(
 
         await onLoginSuccess(tokens, getAppConfig()!, getTokens, setTokens, getWindow());
         Logger.info(`User "${credentials.username}" signed in — navigating to home`);
-        getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
+        void getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
         return { success: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Authentication failed';
@@ -136,7 +136,7 @@ export function registerAuthHandlers(
 
         await onLoginSuccess(tokens, getAppConfig()!, getTokens, setTokens, getWindow());
         Logger.info(`User "${credentials.username}" registered and signed in — navigating to home`);
-        getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
+        void getWindow()?.loadFile(path.join(__dirname, '../../../renderer/home/index.html'));
         return { success: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to create account';

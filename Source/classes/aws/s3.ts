@@ -1,7 +1,7 @@
-import crypto from 'crypto';
-import fs from 'fs';
-import { Readable } from 'stream';
-import { pipeline } from 'stream/promises';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import {
   S3Client,

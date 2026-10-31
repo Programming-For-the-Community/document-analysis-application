@@ -1,10 +1,11 @@
 import { DeleteProjectModalProps } from '../../../../interfaces/renderer/home';
+import { ModalOverlay } from '../../ModalOverlay';
 
 export function DeleteProjectModal({ isOpen, projectName, confirming, error, onClose, onConfirm }: Readonly<DeleteProjectModalProps>) {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <ModalOverlay onClose={onClose}>
       <div className="modal-card">
         <h2 className="modal-title">Delete Project</h2>
         <p className="modal-body">
@@ -18,6 +19,6 @@ export function DeleteProjectModal({ isOpen, projectName, confirming, error, onC
           </button>
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

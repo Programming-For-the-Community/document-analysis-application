@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {

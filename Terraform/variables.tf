@@ -66,6 +66,12 @@ variable "invocation_log_retention_days" {
   default     = 30
 }
 
+variable "access_log_retention_days" {
+  description = "Retention for S3 server access logs (access-logs.tf)"
+  type        = number
+  default     = 90
+}
+
 variable "enable_cloudtrail" {
   description = "Create a dedicated CloudTrail trail. Leave false if the account already has one."
   type        = bool

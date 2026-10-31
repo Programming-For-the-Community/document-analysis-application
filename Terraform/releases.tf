@@ -47,6 +47,13 @@ resource "aws_s3_bucket_versioning" "releases" {
   }
 }
 
+# Access logs go to the shared bucket in access-logs.tf
+resource "aws_s3_bucket_logging" "releases" {
+  bucket        = aws_s3_bucket.releases.id
+  target_bucket = aws_s3_bucket.access_logs.id
+  target_prefix = "releases/"
+}
+
 # latest.json is overwritten on every release — keep superseded copies for 90 days
 # so a bad release can be rolled back by restoring the previous manifest version.
 resource "aws_s3_bucket_lifecycle_configuration" "releases" {

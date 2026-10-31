@@ -10,7 +10,7 @@ export function SearchPanel({
     <section className="project-panel" id="search-panel">
       <div className="panel-header">
         <div className="panel-title-group">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none">
             <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" strokeWidth="1.5" />
             <path d="M11.5 11.5L15 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
@@ -28,7 +28,7 @@ export function SearchPanel({
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSearch(); } }}
           />
           <button className="search-submit-btn" aria-label="Ask" onClick={onSearch}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
@@ -44,7 +44,7 @@ export function SearchPanel({
 
       {!loading && !hasResults && (
         <div className="panel-placeholder">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <svg aria-hidden="true" width="32" height="32" viewBox="0 0 32 32" fill="none">
             <circle cx="13" cy="13" r="8" stroke="#d1d5db" strokeWidth="1.8" />
             <path d="M19 19L27 27" stroke="#d1d5db" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
@@ -64,19 +64,18 @@ export function SearchPanel({
               <p className="search-sources-label">Sources</p>
               <div className="search-sources-grid">
                 {citations.map((c, i) => (
-                  <div key={i} className="search-source-card" role="button" tabIndex={0}
+                  <button type="button" key={i} className="btn-plain search-source-card"
                     title="Click to view full document text"
-                    onClick={() => onViewDocument(c.documentId, c.documentName)}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onViewDocument(c.documentId, c.documentName); }}>
-                    <div className="search-source-name">
-                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                    onClick={() => onViewDocument(c.documentId, c.documentName)}>
+                    <span className="search-source-name">
+                      <svg aria-hidden="true" width="11" height="11" viewBox="0 0 14 14" fill="none">
                         <rect x="2" y="1" width="8" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
                         <path d="M4 4h4M4 6.5h3M4 9h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                       </svg>
                       {c.documentName}
-                    </div>
-                    <div className="search-source-excerpt">{c.excerpt}</div>
-                  </div>
+                    </span>
+                    <span className="search-source-excerpt">{c.excerpt}</span>
+                  </button>
                 ))}
               </div>
             </>

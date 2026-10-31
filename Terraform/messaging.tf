@@ -11,7 +11,8 @@
 # -------------------------------------------------------
 
 resource "aws_sns_topic" "textract_results" {
-  name = "${var.project}-textract-results"
+  name              = "${var.project}-textract-results"
+  kms_master_key_id = aws_kms_key.sns.arn
 
   tags = {
     Owner       = var.owner

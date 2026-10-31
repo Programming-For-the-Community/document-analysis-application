@@ -1,5 +1,6 @@
 import { getEntityColors } from '../../../../utils/renderer/graph';
 import { NodeDetailModalProps } from '../../../../interfaces/renderer/project/node-detail';
+import { ModalOverlay } from '../../ModalOverlay';
 
 export function NodeDetailModal({
   isOpen, entityName, entityType, connections, documents,
@@ -10,7 +11,7 @@ export function NodeDetailModal({
   const getColor = (type: string) => colors[type as keyof typeof colors] ?? colors['Other'];
 
   return (
-    <div className="doc-text-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <ModalOverlay className="doc-text-overlay" onClose={onClose}>
       <div className="node-detail-modal">
         <div className="doc-text-modal-header">
           <div className="node-detail-header-info">
@@ -19,7 +20,7 @@ export function NodeDetailModal({
             <span className="node-detail-type-badge">{entityType}</span>
           </div>
           <button className="btn-icon-danger" aria-label="Close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
@@ -48,21 +49,20 @@ export function NodeDetailModal({
                 {documents.length === 0 ? (
                   <p className="node-detail-empty">No documents found.</p>
                 ) : documents.map(doc => (
-                  <div key={doc.documentId} className="node-detail-doc" role="button" tabIndex={0}
-                    onClick={() => { onClose(); onViewDocument(doc.documentId, doc.documentName); }}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { onClose(); onViewDocument(doc.documentId, doc.documentName); } }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <button type="button" key={doc.documentId} className="btn-plain node-detail-doc"
+                    onClick={() => { onClose(); onViewDocument(doc.documentId, doc.documentName); }}>
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none">
                       <rect x="2" y="1" width="8" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
                       <path d="M4 4h4M4 6.5h3M4 9h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
                     </svg>
                     <span>{doc.documentName}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </ModalOverlay>
   );
 }

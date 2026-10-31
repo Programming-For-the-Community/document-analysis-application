@@ -62,7 +62,7 @@ export function useGraph(projectId: string, initialMinDocs: number) {
 
   const handleMinDocsChange = useCallback(
     (value: number) => {
-      const clamped = isNaN(value) || value < 2 ? 2 : value;
+      const clamped = Number.isNaN(value) || value < 2 ? 2 : value;
       setMinDocs(clamped);
       if (minDocsTimerRef.current) clearTimeout(minDocsTimerRef.current);
       minDocsTimerRef.current = setTimeout(() => {

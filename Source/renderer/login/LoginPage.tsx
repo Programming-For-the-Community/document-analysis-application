@@ -29,7 +29,7 @@ export function LoginPage() {
     <div className="login-container">
       <div className="login-card">
         <div className="logo">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <svg aria-hidden="true" width="40" height="40" viewBox="0 0 40 40" fill="none">
             <rect width="40" height="40" rx="8" fill="var(--primary)" />
             <path d="M10 12h20M10 18h14M10 24h20M10 30h10" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
           </svg>

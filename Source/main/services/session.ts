@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 
 import { AWS_DYNAMODB } from '../../classes/aws/dynamodb';
 import { AWS_STS } from '../../classes/aws/sts';

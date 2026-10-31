@@ -31,7 +31,7 @@ export function ProjectPage() {
   const share                                             = useShareProject(projectId, role);
 
   // Reload graph when a document finishes processing
-  const { loadGraph, setIsExpanded } = graph;
+  const { loadGraph } = graph;
   useEffect(() => {
     return window.electron.documents.onStatusUpdate((update) => {
       if (update.projectId === projectId && update.status === PROCESSING_STATUS.COMPLETE) {
@@ -39,22 +39,6 @@ export function ProjectPage() {
       }
     });
   }, [projectId, loadGraph]);
-
-  // Dismiss all modals on Escape
-  const { close: closeDocText } = docText;
-  const { close: closeNodeDetail } = nodeDetail;
-  const { close: closeShare } = share;
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key !== 'Escape') return;
-      closeDocText();
-      closeNodeDetail();
-      setIsExpanded(false);
-      closeShare();
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [closeDocText, closeNodeDetail, setIsExpanded, closeShare]);
 
   return (
     <>

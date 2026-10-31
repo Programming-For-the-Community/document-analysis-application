@@ -1,6 +1,6 @@
 // Stand-in for the `electron` module (aliased in vitest.config.mjs). IPC handlers
 // registered through ipcMain.handle are captured so tests can call them with invoke().
-import os from 'os';
+import os from 'node:os';
 import { vi } from 'vitest';
 
 type IpcHandler = (event: unknown, ...args: unknown[]) => unknown;

@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import { execFile, spawn } from 'child_process';
-import { promisify } from 'util';
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFile, spawn } from 'node:child_process';
+import { promisify } from 'node:util';
 import { app, BrowserWindow, shell } from 'electron';
 
 import { AWS_S3 } from '../../classes/aws/s3';
