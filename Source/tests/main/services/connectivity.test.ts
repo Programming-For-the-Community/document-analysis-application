@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  announceConnection,
   getConnectivityStatus,
   onReconnect,
   setConnectionStatus,
@@ -69,5 +70,16 @@ describe('connectivity service', () => {
     expect(Logger.warn).toHaveBeenCalledWith(expect.stringContaining('listener broke'));
     expect(Logger.warn).toHaveBeenCalledWith(expect.stringContaining('not an error object'));
     unsubscribers.forEach((u) => u());
+  });
+
+  it('announces a store connecting or dropping, with what is affected', () => {
+    announceConnection('qdrant', true);
+    expect(getConnectivityStatus().qdrant).toBe('connected');
+    expect(Logger.info).toHaveBeenCalledWith('Qdrant: connected');
+
+    announceConnection('neo4j', false, 'refused');
+    expect(Logger.warn).toHaveBeenCalledWith(
+      'Neo4j: disconnected — graph features unavailable until reconnected: refused'
+    );
   });
 });

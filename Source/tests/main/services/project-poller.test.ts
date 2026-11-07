@@ -12,7 +12,11 @@ import { Logger } from '../../../utils/logger';
 import { makeConfig, makeDoc, makeGraph } from '../../helpers';
 import { sentOn } from '../../mocks/electron';
 
-vi.mock('../../../main/services/embedder', () => ({ embedAndStore: vi.fn() }));
+// Only embedAndStore (Bedrock) is faked; loadStoredEmbeddings runs for real on the S3/Qdrant spies
+vi.mock('../../../main/services/embedder', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../main/services/embedder')>()),
+  embedAndStore: vi.fn(),
+}));
 
 const config = makeConfig();
 const project = (id = 'proj-1') => ({

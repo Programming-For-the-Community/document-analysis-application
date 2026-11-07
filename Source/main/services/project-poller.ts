@@ -7,9 +7,8 @@ import { Qdrant } from '../../classes/qdrant';
 import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
 import { DocumentRecord } from '../../interfaces/document';
-import { EmbeddingFile } from '../../interfaces/services/embedder';
 import { POLL_INTERVAL_MS } from '../../constants/services/projectPoller';
-import { embedAndStore } from './embedder';
+import { embedAndStore, loadStoredEmbeddings } from './embedder';
 import { Logger } from '../../utils/logger';
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -41,18 +40,8 @@ async function loadDocIntoLocalStores(doc: DocumentRecord, config: AppConfig): P
 
   if (!Qdrant.isAvailable()) return;
 
-  const embKey = AWS_S3.embeddingKey(doc.ownerSub, doc.projectId, doc.documentId);
   try {
-    const embText = await AWS_S3.getObjectText(embKey, config.s3);
-    const file = JSON.parse(embText) as EmbeddingFile;
-    await Qdrant.loadDocument(
-      file.chunks.map((c) => ({
-        ...c,
-        documentId: file.documentId,
-        projectId: file.projectId,
-        documentName: file.documentName,
-      }))
-    );
+    await loadStoredEmbeddings(doc, config);
     Logger.debug(`${docTag} Loaded into Qdrant from embedding file`);
     return;
   } catch {

@@ -34,6 +34,29 @@ export function setConnectionStatus(service: Service, value: ConnectionStatus): 
   }
 }
 
+const SERVICE_DESCRIPTIONS: Record<Service, { name: string; offlineImpact: string }> = {
+  neo4j: { name: 'Neo4j', offlineImpact: 'graph features' },
+  qdrant: { name: 'Qdrant', offlineImpact: 'search' },
+};
+
+// Called by a store client (Neo4J, Qdrant) when its availability changes:
+// updates the renderer-facing status and logs the transition.
+export function announceConnection(
+  service: Service,
+  connected: boolean,
+  errorMessage?: string
+): void {
+  setConnectionStatus(service, connected ? 'connected' : 'disconnected');
+  const { name, offlineImpact } = SERVICE_DESCRIPTIONS[service];
+  if (connected) {
+    Logger.info(`${name}: connected`);
+  } else {
+    Logger.warn(
+      `${name}: disconnected — ${offlineImpact} unavailable until reconnected: ${errorMessage}`
+    );
+  }
+}
+
 export function getConnectivityStatus(): ConnectivityStatus {
   return { ...status };
 }

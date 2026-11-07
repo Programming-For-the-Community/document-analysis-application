@@ -8,7 +8,7 @@ import { normalizeEntityName } from '../utils/entityNormalization';
 import { OTHER_ENTITY_TYPE, FALLBACK_RELATIONSHIP_TYPE } from '../constants/bedrock';
 import { VALID_ENTITY_TYPES, VALID_REL_TYPES } from '../constants/neo4j';
 import { RECONNECT_INTERVAL_MS } from '../constants/connectivity';
-import { setConnectionStatus } from '../main/services/connectivity';
+import { announceConnection } from '../main/services/connectivity';
 
 export class Neo4J {
   private static driver: Driver;
@@ -55,18 +55,9 @@ export class Neo4J {
   // Updates availability and notifies the renderer, but only on a state change
   // so the 15s health check doesn't spam logs/IPC while the state is unchanged.
   private static setAvailable(value: boolean, errorMessage?: string): void {
-    const changed = this.available !== value;
+    if (this.available === value) return;
     this.available = value;
-    if (!changed) return;
-
-    setConnectionStatus('neo4j', value ? 'connected' : 'disconnected');
-    if (value) {
-      Logger.info('Neo4j: connected');
-    } else {
-      Logger.warn(
-        `Neo4j: disconnected — graph features unavailable until reconnected: ${errorMessage}`
-      );
-    }
+    announceConnection('neo4j', value, errorMessage);
   }
 
   public static isAvailable(): boolean {

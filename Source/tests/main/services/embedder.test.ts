@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { embedAndStore, saveDocumentText } from '../../../main/services/embedder';
+import {
+  embedAndStore,
+  loadStoredEmbeddings,
+  saveDocumentText,
+} from '../../../main/services/embedder';
 import { discardDocumentArtifacts, analysisKey } from '../../../main/services/document-artifacts';
 import { AWS_BEDROCK } from '../../../classes/aws/bedrock';
 import { AWS_S3 } from '../../../classes/aws/s3';
@@ -42,6 +46,30 @@ describe('embedder', () => {
         chunkIndex: 0,
         text: 'Some document text.',
         vector: [19],
+        documentId: 'd',
+        projectId: 'p',
+        documentName: 'a.txt',
+      },
+    ]);
+  });
+
+  it('loads a stored embedding file into Qdrant', async () => {
+    const file = {
+      documentId: 'd',
+      projectId: 'p',
+      documentName: 'a.txt',
+      chunks: [{ chunkIndex: 0, text: 't', vector: [1] }],
+    };
+    vi.spyOn(AWS_S3, 'getObjectText').mockResolvedValue(JSON.stringify(file));
+
+    await loadStoredEmbeddings({ ownerSub: 'o', projectId: 'p', documentId: 'd' }, config);
+
+    expect(AWS_S3.getObjectText).toHaveBeenCalledWith('o/p/embeddings/d.json', config.s3);
+    expect(Qdrant.loadDocument).toHaveBeenCalledWith([
+      {
+        chunkIndex: 0,
+        text: 't',
+        vector: [1],
         documentId: 'd',
         projectId: 'p',
         documentName: 'a.txt',

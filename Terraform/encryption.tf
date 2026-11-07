@@ -11,6 +11,18 @@
 # svc-role.tf — the AccountAdmin statement delegates key access to IAM.
 # -------------------------------------------------------
 
+locals {
+  # Every KMS key policy in this stack starts with this: the account root keeps
+  # full control and key access is delegated to IAM policies (e.g. svc-role.tf)
+  kms_account_admin_statement = {
+    Sid       = "AccountAdmin"
+    Effect    = "Allow"
+    Principal = { AWS = "arn:aws:iam::${var.account_id}:root" }
+    Action    = "kms:*"
+    Resource  = "*"
+  }
+}
+
 resource "aws_kms_key" "sns" {
   description         = "Encrypts the ${var.project} SNS topics in ${var.region}"
   enable_key_rotation = true
@@ -18,13 +30,7 @@ resource "aws_kms_key" "sns" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Sid       = "AccountAdmin"
-        Effect    = "Allow"
-        Principal = { AWS = "arn:aws:iam::${var.account_id}:root" }
-        Action    = "kms:*"
-        Resource  = "*"
-      },
+      local.kms_account_admin_statement,
       {
         # ai_alerts publishers (monitoring.tf)
         Sid       = "AlarmsAndBudgets"
@@ -60,13 +66,7 @@ resource "aws_kms_key" "sns_us_east_1" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Sid       = "AccountAdmin"
-        Effect    = "Allow"
-        Principal = { AWS = "arn:aws:iam::${var.account_id}:root" }
-        Action    = "kms:*"
-        Resource  = "*"
-      },
+      local.kms_account_admin_statement,
       {
         # iam_alerts publisher (monitoring.tf)
         Sid       = "EventBridge"

@@ -8,8 +8,7 @@ import { RelationshipGraph } from '../../interfaces/bedrock';
 import { AppConfig } from '../../interfaces/config';
 import { TEXT_EXTENSIONS } from '../../constants/document';
 import { Logger } from '../../utils/logger';
-import { EmbeddingFile } from '../../interfaces/services/embedder';
-import { embedAndStore } from './embedder';
+import { embedAndStore, loadStoredEmbeddings } from './embedder';
 
 async function recoverFromS3Origin(
   doc: {
@@ -115,18 +114,8 @@ export async function syncQdrantForUser(userSub: string, config: AppConfig): Pro
               const docTag = `[doc:${doc.documentId} "${doc.documentName}"]`;
               try {
                 // 1. S3 embedding file — fastest path, no Bedrock cost
-                const embKey = AWS_S3.embeddingKey(doc.ownerSub, doc.projectId, doc.documentId);
                 try {
-                  const embText = await AWS_S3.getObjectText(embKey, config.s3);
-                  const file = JSON.parse(embText) as EmbeddingFile;
-                  await Qdrant.loadDocument(
-                    file.chunks.map((c) => ({
-                      ...c,
-                      documentId: file.documentId,
-                      projectId: file.projectId,
-                      documentName: file.documentName,
-                    }))
-                  );
+                  await loadStoredEmbeddings(doc, config);
                   Logger.debug(`Qdrant sync: ${docTag} loaded from S3 embedding file`);
                   return;
                 } catch {

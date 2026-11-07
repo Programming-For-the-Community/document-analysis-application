@@ -26,13 +26,7 @@ resource "aws_kms_key" "invocation_logs" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Sid       = "AccountAdmin"
-        Effect    = "Allow"
-        Principal = { AWS = "arn:aws:iam::${var.account_id}:root" }
-        Action    = "kms:*"
-        Resource  = "*"
-      },
+      local.kms_account_admin_statement,
       {
         Sid       = "CloudWatchLogs"
         Effect    = "Allow"

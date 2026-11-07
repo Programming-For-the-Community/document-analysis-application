@@ -6,7 +6,7 @@ import { QdrantConfig } from '../interfaces/config';
 import { COLLECTION, VECTOR_SIZE } from '../constants/qdrant';
 import { RECONNECT_INTERVAL_MS } from '../constants/connectivity';
 import { DocumentChunk, SearchHit } from '../interfaces/qdrant';
-import { setConnectionStatus } from '../main/services/connectivity';
+import { announceConnection } from '../main/services/connectivity';
 
 export class Qdrant {
   private static client: QdrantClient;
@@ -79,16 +79,9 @@ export class Qdrant {
   // Updates availability and notifies the renderer, but only on a state change
   // so the 15s health check doesn't spam logs/IPC while the state is unchanged.
   private static setAvailable(value: boolean, errorMessage?: string): void {
-    const changed = this.available !== value;
+    if (this.available === value) return;
     this.available = value;
-    if (!changed) return;
-
-    setConnectionStatus('qdrant', value ? 'connected' : 'disconnected');
-    if (value) {
-      Logger.info('Qdrant: connected');
-    } else {
-      Logger.warn(`Qdrant: disconnected — search unavailable until reconnected: ${errorMessage}`);
-    }
+    announceConnection('qdrant', value, errorMessage);
   }
 
   // Runs a Qdrant operation, falling back on failure. The ongoing health check

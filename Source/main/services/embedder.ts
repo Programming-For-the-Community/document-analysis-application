@@ -20,6 +20,22 @@ export async function saveDocumentText(
   Logger.debug(`[doc:${documentId}] Raw text saved → ${key}`);
 }
 
+// Qdrant points for an embedding file's chunks, each tagged with its document
+function qdrantChunks({ documentId, projectId, documentName, chunks }: EmbeddingFile) {
+  return chunks.map((c) => ({ ...c, documentId, projectId, documentName }));
+}
+
+// Loads a document's stored embedding file from S3 into Qdrant — the cheap way
+// to restore it (no Bedrock calls). Throws if the file is missing or unreadable.
+export async function loadStoredEmbeddings(
+  doc: { ownerSub: string; projectId: string; documentId: string },
+  config: AppConfig
+): Promise<void> {
+  const key = AWS_S3.embeddingKey(doc.ownerSub, doc.projectId, doc.documentId);
+  const file = JSON.parse(await AWS_S3.getObjectText(key, config.s3)) as EmbeddingFile;
+  await Qdrant.loadDocument(qdrantChunks(file));
+}
+
 // Chunks, embeds, and stores a document in both S3 and Qdrant.
 // Called at processing time and during re-embedding in qdrant-sync.
 export async function embedAndStore(
@@ -53,5 +69,5 @@ export async function embedAndStore(
   await AWS_S3.putJson(key, embeddingFile, config.s3);
   Logger.info(`${docTag} Embeddings written to S3 → ${key}`);
 
-  await Qdrant.loadDocument(chunks.map((c) => ({ ...c, documentId, projectId, documentName })));
+  await Qdrant.loadDocument(qdrantChunks(embeddingFile));
 }
