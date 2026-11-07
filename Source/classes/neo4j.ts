@@ -36,9 +36,7 @@ export class Neo4J {
 
     // Ongoing health check: keeps connectivity status current and recovers
     // from a lost connection without requiring another query attempt.
-    if (!this.healthCheckTimer) {
-      this.healthCheckTimer = setInterval(() => void this.connect(), RECONNECT_INTERVAL_MS);
-    }
+    this.healthCheckTimer ??= setInterval(() => void this.connect(), RECONNECT_INTERVAL_MS);
   }
 
   // Single connection attempt: verifies the driver can reach the server and updates availability.

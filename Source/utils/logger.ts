@@ -72,14 +72,14 @@ export class Logger {
     const originalFunc = Error.prepareStackTrace;
 
     try {
-      const err = new Error();
+      const err = new Error('caller stack capture');
       Error.prepareStackTrace = (_, stack) => stack;
 
       const stack = err.stack as unknown as NodeJS.CallSite[];
       const thisFile = __filename.toLowerCase();
 
-      for (let i = 0; i < stack.length; i++) {
-        const file = stack[i]?.getFileName() ?? '';
+      for (const frame of stack) {
+        const file = frame.getFileName() ?? '';
         if (file && file.toLowerCase() !== thisFile) {
           // lastIndexOf rather than a `.*[\\/]Source[\\/]` regex, which backtracks
           let rel = file.replaceAll('\\', '/');

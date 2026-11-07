@@ -334,6 +334,9 @@ body.page-project {
 .layout-picker-item {
   display: flex;
   width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
   flex-direction: column;
   gap: 2px;
   padding: 8px 12px;
@@ -347,12 +350,6 @@ body.page-project {
 
 .layout-picker-item.active {
   background: color-mix(in srgb, var(--primary) 14%, transparent);
-}
-
-.layout-picker-item {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text);
 }
 
 .layout-info-anchor {
@@ -467,7 +464,7 @@ body.page-project {
 
 .graph-tooltip-value {
   font-weight: 500;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .graph-tooltip-docs {
@@ -747,7 +744,7 @@ body.page-project {
   line-height: 1.75;
   color: var(--text);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .doc-text-modal-error {
@@ -874,7 +871,7 @@ body.page-project {
 }
 
 .doc-status-unprocessed {
-  color: #6b7280;
+  color: #4b5563;
   background: #f3f4f6;
   border-color: #e5e7eb;
 }
@@ -945,7 +942,7 @@ body.page-project {
 
 .btn-icon-danger:hover {
   background: #fee2e2;
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 .btn-retry-graph {
@@ -1163,7 +1160,7 @@ body.page-project {
 
 .btn-member-remove:hover {
   background: #fee2e2;
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 /* ── Node detail modal ───────────────────────────────────────────────────────── */
@@ -1336,50 +1333,48 @@ html:not([data-theme='parchment']) .upload-zone.drag-over {
   background: rgba(45, 212, 191, 0.06);
 }
 
+/* Status/badge tints below are the rgba values in their comments, pre-blended
+   over --card-bg (#252528) — opaque, so text contrast can be measured */
 html:not([data-theme='parchment']) .doc-status-unprocessed {
   color: #a1a1aa;
-  background: rgba(161, 161, 170, 0.12);
+  background: #343438; /* rgba(161, 161, 170, 0.12) */
   border-color: rgba(161, 161, 170, 0.2);
 }
 
 html:not([data-theme='parchment']) .doc-status-queued {
   color: #93c5fd;
-  background: rgba(59, 130, 246, 0.15);
+  background: #283347; /* rgba(59, 130, 246, 0.15) */
   border-color: rgba(59, 130, 246, 0.25);
 }
 
 html:not([data-theme='parchment']) .doc-status-processing {
   color: #c4b5fd;
-  background: rgba(139, 92, 246, 0.15);
+  background: #342d47; /* rgba(139, 92, 246, 0.15) */
   border-color: rgba(139, 92, 246, 0.25);
 }
 
 html:not([data-theme='parchment']) .doc-status-complete {
   color: #6ee7b7;
-  background: rgba(16, 185, 129, 0.15);
+  background: #223b35; /* rgba(16, 185, 129, 0.15) */
   border-color: rgba(16, 185, 129, 0.25);
 }
 
 html:not([data-theme='parchment']) .doc-status-failed {
   color: #fca5a5;
-  background: rgba(239, 68, 68, 0.15);
+  background: #432a2c; /* rgba(239, 68, 68, 0.15) */
   border-color: rgba(239, 68, 68, 0.25);
 }
 
-html:not([data-theme='parchment']) .doc-status-graph-failed {
-  color: #fcd34d;
-  background: rgba(251, 191, 36, 0.12);
-  border-color: rgba(251, 191, 36, 0.2);
-}
-
+html:not([data-theme='parchment']) .doc-status-graph-failed,
 html:not([data-theme='parchment']) .doc-duplicate-badge {
   color: #fcd34d;
-  background: rgba(251, 191, 36, 0.12);
+  background: #3f3728; /* rgba(251, 191, 36, 0.12) */
   border-color: rgba(251, 191, 36, 0.2);
 }
 
-html:not([data-theme='parchment']) .btn-icon-danger:hover {
-  background: rgba(239, 68, 68, 0.15);
+html:not([data-theme='parchment']) .btn-icon-danger:hover,
+html:not([data-theme='parchment']) .btn-member-remove:hover {
+  background: #432a2c; /* rgba(239, 68, 68, 0.15) */
   color: #f87171;
 }
 
@@ -1388,23 +1383,18 @@ html:not([data-theme='parchment']) .btn-retry-graph {
 }
 
 html:not([data-theme='parchment']) .btn-retry-graph:hover {
-  background: rgba(251, 191, 36, 0.12);
+  background: #3f3728; /* rgba(251, 191, 36, 0.12) */
   color: #fbbf24;
 }
 
 html:not([data-theme='parchment']) .view-only-banner {
-  background: rgba(45, 212, 191, 0.08);
+  background: #263334; /* rgba(45, 212, 191, 0.08) */
   border-bottom-color: rgba(45, 212, 191, 0.2);
   color: #5eead4;
 }
 
 html:not([data-theme='parchment']) .view-only-banner svg {
   color: #2dd4bf;
-}
-
-html:not([data-theme='parchment']) .btn-member-remove:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
 }
 
 /* ── Parchment-specific overrides ────────────────────────────────────────── */

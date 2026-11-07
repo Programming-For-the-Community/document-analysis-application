@@ -39,9 +39,9 @@ body.page-home {
   color: var(--text-muted);
 }
 
-.empty-sub {
-  font-size: 13px !important;
-  font-weight: 400 !important;
+.empty-state .empty-sub {
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .projects-grid {
@@ -119,13 +119,14 @@ body.page-home {
   color: var(--text-muted);
 }
 
-.btn-card-action:hover {
-  color: var(--text) !important;
+/* .project-card prefix outranks the .project-card:hover rule above */
+.project-card .btn-card-action:hover {
+  color: var(--text);
   background: var(--bg);
 }
 
-.btn-card-delete:hover {
-  color: #dc2626 !important;
+.project-card .btn-card-delete:hover {
+  color: #b91c1c;
   background: #fef2f2;
 }
 
@@ -169,19 +170,21 @@ body.page-home {
 
 /* ── Slate Pro (dark) overrides for hardcoded light-mode component values ── */
 
+/* Backgrounds below are the rgba tints they replace, pre-blended over --card-bg
+   (#252528) — opaque, so contrast can be measured */
 html:not([data-theme='parchment']) .btn-card-delete:hover {
-  color: #f87171 !important;
-  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  background: #432a2c; /* rgba(239, 68, 68, 0.15) */
 }
 
 html:not([data-theme='parchment']) .project-role-view {
   color: #93c5fd;
-  background: rgba(59, 130, 246, 0.12);
+  background: #283041; /* rgba(59, 130, 246, 0.12) */
   border-color: rgba(59, 130, 246, 0.25);
 }
 
 html:not([data-theme='parchment']) .project-role-edit {
   color: #6ee7b7;
-  background: rgba(16, 185, 129, 0.12);
+  background: #223733; /* rgba(16, 185, 129, 0.12) */
   border-color: rgba(16, 185, 129, 0.25);
 }

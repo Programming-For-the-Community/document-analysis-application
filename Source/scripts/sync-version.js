@@ -49,12 +49,16 @@ function run(argv, version) {
   }
 
   const changed = syncEnvVersion(version);
-  console.log(changed ? `.env APP_VERSION set to ${version}` : `.env APP_VERSION already ${version}`);
+  console.log(
+    changed ? `.env APP_VERSION set to ${version}` : `.env APP_VERSION already ${version}`
+  );
   return 0;
 }
 
 module.exports = { readEnv, syncEnvVersion, run, ENV_PATH };
 
-if (require.main === module) {
+// Run directly (not require()d) — compared by filename, which Sonar's typings
+// can follow, unlike `require.main === module`
+if (require.main?.filename === __filename) {
   process.exitCode = run(process.argv.slice(2), require('../package.json').version);
 }

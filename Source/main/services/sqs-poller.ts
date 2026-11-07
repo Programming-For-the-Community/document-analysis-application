@@ -197,9 +197,7 @@ function scheduleTrailingWindow(): void {
   if (trailingTimer) clearTimeout(trailingTimer);
   trailingTimer = setTimeout(() => void processBatch(), TRAILING_WINDOW_MS);
 
-  if (!maxBatchTimer) {
-    maxBatchTimer = setTimeout(() => void processBatch(), MAX_BATCH_WAIT_MS);
-  }
+  maxBatchTimer ??= setTimeout(() => void processBatch(), MAX_BATCH_WAIT_MS);
 }
 
 // ── Message parsing ──────────────────────────────────────────────────────────

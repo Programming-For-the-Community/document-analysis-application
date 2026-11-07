@@ -1,5 +1,6 @@
 import { getEntityColors } from '../../../../utils/renderer/graph';
 import { NodeDetailModalProps } from '../../../../interfaces/renderer/project/node-detail';
+import { withContentKeys } from '../../../../utils/renderer/keys';
 import { ModalOverlay } from '../../ModalOverlay';
 
 export function NodeDetailModal({
@@ -34,8 +35,8 @@ export function NodeDetailModal({
                 <h3 className="node-detail-section-title">Connections</h3>
                 {connections.length === 0 ? (
                   <p className="node-detail-empty">No connections found.</p>
-                ) : connections.map((c, i) => (
-                  <div key={i} className="node-detail-connection">
+                ) : withContentKeys(connections, c => `${c.direction}|${c.relType}|${c.otherType}|${c.otherName}`).map(({ item: c, key }) => (
+                  <div key={key} className="node-detail-connection">
                     <span className="node-detail-rel-type">{c.relType}</span>
                     <span className="node-detail-arrow">{c.direction === 'out' ? '→' : '←'}</span>
                     <span className="node-detail-swatch-sm" style={{ background: getColor(c.otherType) }}></span>

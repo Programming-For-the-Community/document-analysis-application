@@ -6,5 +6,6 @@ export async function getUser(): Promise<{ username: string } | null> {
 
   const payload = parseJwt(tokens.idToken);
 
-  return { username: String(payload['cognito:username'] ?? '') };
+  const username = payload['cognito:username'];
+  return { username: typeof username === 'string' ? username : '' };
 }

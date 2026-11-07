@@ -57,7 +57,7 @@ export class AWS_COGNITO {
     const response: AdminInitiateAuthCommandOutput = await this.client.send(cmd);
     const result: AuthenticationResultType | undefined = response.AuthenticationResult;
 
-    if (!result || !result.AccessToken || !result.IdToken || !result.RefreshToken) {
+    if (!result?.AccessToken || !result.IdToken || !result.RefreshToken) {
       Logger.warn(`Authentication response for "${username}" was missing tokens`);
       return false;
     }

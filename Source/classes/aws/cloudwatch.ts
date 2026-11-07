@@ -30,7 +30,7 @@ interface Aggregate {
 // and dropped, never surfaced to the user.
 export class AWS_CLOUDWATCH {
   private static client: CloudWatchClient | null = null;
-  private static buffer = new Map<string, Aggregate>();
+  private static readonly buffer = new Map<string, Aggregate>();
   private static timer: ReturnType<typeof setInterval> | null = null;
 
   public static init(): void {

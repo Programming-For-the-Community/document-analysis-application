@@ -78,7 +78,7 @@ async function main() {
   const files = fs
     .readdirSync(CASES_DIR)
     .filter((f) => f.endsWith('.json') && (!args.filter || f.includes(args.filter)))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
   if (files.length === 0) throw new Error(`No cases found in ${CASES_DIR}`);
 
   await AWS_SECRETS.init();

@@ -16,7 +16,7 @@ export function useShareProject(projectId: string, role: ProjectRole) {
   const [isOpen, setIsOpen] = useState(false);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
-  const [shareUsername, setShareUsernameState] = useState('');
+  const [shareUsername, setShareUsername] = useState('');
   const [shareRole, setShareRole] = useState<MemberRole>(PROJECT_ROLES.VIEW);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function useShareProject(projectId: string, role: ProjectRole) {
   }, [projectId]);
 
   const open = useCallback(() => {
-    setShareUsernameState('');
+    setShareUsername('');
     setShareRole('VIEW');
     setError(null);
     setSuggestions([]);
@@ -57,7 +57,7 @@ export function useShareProject(projectId: string, role: ProjectRole) {
       setError(err);
       return;
     }
-    setShareUsernameState('');
+    setShareUsername('');
     void reloadMembers();
   }, [projectId, shareUsername, shareRole, reloadMembers]);
 
@@ -87,7 +87,7 @@ export function useShareProject(projectId: string, role: ProjectRole) {
   );
 
   const handleUsernameInput = useCallback((value: string) => {
-    setShareUsernameState(value);
+    setShareUsername(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     if (!value.trim()) {
       setSuggestions([]);

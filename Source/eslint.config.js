@@ -49,6 +49,20 @@ module.exports = [
       '@typescript-eslint/no-explicit-any': 'warn',
       // Sonar S6544 — unhandled promises must be awaited, caught or marked `void`
       '@typescript-eslint/no-floating-promises': 'error',
+      // Sonar S2933 / S6582 / S6606. (S9382 no-await-in-loop is deliberately not
+      // mirrored — see sonar-project.properties.) `||` on strings stays allowed so
+      // an empty env var still falls back to its default.
+      '@typescript-eslint/prefer-readonly': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': [
+        'error',
+        {
+          ignoreTernaryTests: true,
+          ignoreConditionalTests: true,
+          ignoreMixedLogicalExpressions: true,
+          ignorePrimitives: { string: true },
+        },
+      ],
     },
   },
   {

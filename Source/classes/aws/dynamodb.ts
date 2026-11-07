@@ -107,7 +107,7 @@ export class AWS_DYNAMODB {
         Key: { user_sub: userSub, project_id: projectId },
       })
     );
-    if (!result.Item || !result.Item['role']) return null;
+    if (!result.Item?.['role']) return null;
     return result.Item['role'] as ProjectRole;
   }
 

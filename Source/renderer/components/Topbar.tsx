@@ -22,7 +22,7 @@ export function Topbar({ username, theme, onToggleTheme, onLogout, projectName, 
         </svg>
         <span className="brand-name">{projectName ?? 'Document Analysis'}</span>
         {onShare && (
-          <button className="btn-sm btn-secondary hidden" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties} onClick={onShare}>
+          <button className="btn-sm btn-secondary" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties} onClick={onShare}>
             <svg aria-hidden="true" width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ marginRight: 4 }}>
               <circle cx="10.5" cy="2.5" r="1.5" stroke="currentColor" strokeWidth="1.3" />
               <circle cx="10.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.3" />

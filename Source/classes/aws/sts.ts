@@ -7,7 +7,7 @@ import { RoleCredentials } from '../../interfaces/aws';
 export class AWS_STS {
   // Client is created at class load time — no credentials needed to call AssumeRole,
   // it uses the local AWS CLI session that is already authenticated.
-  private static client: STSClient = new STSClient({ region: awsConfig.region });
+  private static readonly client: STSClient = new STSClient({ region: awsConfig.region });
   private static current: RoleCredentials;
 
   public static get credentials(): RoleCredentials {
@@ -37,16 +37,14 @@ export class AWS_STS {
     const fiveMin = 5 * 60 * 1000;
     if (this.credentials.expiresAt.getTime() - Date.now() >= fiveMin) return;
 
-    if (!this.refreshPromise) {
-      this.refreshPromise = this.assumeRole()
-        .then((creds) => {
-          this.current = creds;
-          Logger.info(`STS credentials refreshed — new expiry: ${creds.expiresAt.toISOString()}`);
-        })
-        .finally(() => {
-          this.refreshPromise = null;
-        });
-    }
+    this.refreshPromise ??= this.assumeRole()
+      .then((creds) => {
+        this.current = creds;
+        Logger.info(`STS credentials refreshed — new expiry: ${creds.expiresAt.toISOString()}`);
+      })
+      .finally(() => {
+        this.refreshPromise = null;
+      });
 
     await this.refreshPromise;
   }
@@ -85,11 +83,7 @@ export class AWS_STS {
       })
     );
 
-    if (
-      !response.Credentials ||
-      !response.Credentials.AccessKeyId ||
-      !response.Credentials.SecretAccessKey
-    ) {
+    if (!response.Credentials?.AccessKeyId || !response.Credentials.SecretAccessKey) {
       throw new Error('STS returned incomplete credentials');
     }
 

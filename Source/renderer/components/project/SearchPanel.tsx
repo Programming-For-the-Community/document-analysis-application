@@ -1,4 +1,5 @@
 import { SearchPanelProps } from '../../../interfaces/renderer/project/search';
+import { withContentKeys } from '../../../utils/renderer/keys';
 
 export function SearchPanel({
   query, answer, citations, loading, error,
@@ -63,8 +64,8 @@ export function SearchPanel({
             <>
               <p className="search-sources-label">Sources</p>
               <div className="search-sources-grid">
-                {citations.map((c, i) => (
-                  <button type="button" key={i} className="btn-plain search-source-card"
+                {withContentKeys(citations, c => `${c.documentId}|${c.excerpt}`).map(({ item: c, key }) => (
+                  <button type="button" key={key} className="btn-plain search-source-card"
                     title="Click to view full document text"
                     onClick={() => onViewDocument(c.documentId, c.documentName)}>
                     <span className="search-source-name">

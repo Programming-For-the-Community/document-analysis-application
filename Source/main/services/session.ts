@@ -61,7 +61,7 @@ async function refreshTokensIfDue(opts: HeartbeatOptions): Promise<boolean> {
 // the user signed in elsewhere and this session should be logged out.
 async function validateActiveDevice(opts: HeartbeatOptions, myDeviceId: string): Promise<void> {
   const stored = await AWS_DYNAMODB.getSession(opts.userSub, opts.dbConfig);
-  if (!stored || stored.deviceId !== myDeviceId) {
+  if (stored?.deviceId !== myDeviceId) {
     Logger.warn(
       `Session invalidated for user ${opts.userSub} — active device is ${stored?.deviceId ?? 'unknown'}, this device is ${myDeviceId}`
     );

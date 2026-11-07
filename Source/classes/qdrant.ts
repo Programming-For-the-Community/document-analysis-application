@@ -34,9 +34,7 @@ export class Qdrant {
 
     // Ongoing health check: keeps connectivity status current and recovers
     // from a lost connection without requiring another search/upload attempt.
-    if (!this.healthCheckTimer) {
-      this.healthCheckTimer = setInterval(() => void this.connect(), RECONNECT_INTERVAL_MS);
-    }
+    this.healthCheckTimer ??= setInterval(() => void this.connect(), RECONNECT_INTERVAL_MS);
   }
 
   public static close(): void {

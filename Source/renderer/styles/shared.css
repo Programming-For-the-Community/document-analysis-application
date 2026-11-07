@@ -243,8 +243,10 @@
   cursor: not-allowed;
 }
 
+/* Toggled from script (graph tooltip, graph canvas). Elements using it must not
+   set their own `display`, which would override it. */
 .hidden {
-  display: none !important;
+  display: none;
 }
 
 /* ── Modal ──────────────────────────────────────────────────────────────────── */
